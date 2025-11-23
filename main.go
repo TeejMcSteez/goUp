@@ -1,10 +1,11 @@
 package main
 
 import (
-    "fmt"
-	"slices"
+	"fmt"
+	"goUp/scheduler"
 	"goUp/server"
 	"goUp/utils"
+	"slices"
 )
 
 var serviceEndpoints []string = []string{}
@@ -27,6 +28,8 @@ func main() {
 	}
 
 	var svcData []utils.ServiceData = utils.GetServiceData(serviceEndpoints)
+
+	scheduler.StartScheduler(serviceEndpoints, &svcData)
 
 	ret, err := server.Start(svcData)
 
