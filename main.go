@@ -28,11 +28,11 @@ func main() {
 	// Get current service data before full launch
 	var svcData = utils.GetServiceData(serviceEndpoints)
 	// Create blank data store
-	var dataStore utils.SharedData = *utils.NewStore()
+	dataStore := utils.NewStore()
 	// Set current data to most recent fetch
 	dataStore.Set(svcData)
 	// Start's scheduler
-	scheduler.StartScheduler(serviceEndpoints, &dataStore)
+	scheduler.StartScheduler(serviceEndpoints, dataStore)
 	// Starts http server
 	ret, err := server.Start(svcData)
 	if err != nil {
