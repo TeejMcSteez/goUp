@@ -31,7 +31,7 @@ async function init() {
                 cards.innerHTML += `
                     <div class="card">
                         <h1 class="svcName">Server URL: <a href="${svc.name}">${svc.name}</a></h1>
-                        <p>Status: ${svc.response === 200 ? "✅" : "❌"}</p>
+                        <p>Status: ${svc.response === "200" ? "✅" : "❌"}</p>
                         <p class="svcHttpRes">HTTP Response: ${svc.response}</p>
                     </div>
                 `;

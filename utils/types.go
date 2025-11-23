@@ -12,7 +12,7 @@ type Service struct {
 
 type ServiceData struct {
 	ServiceName         string `json:"name"`
-	ServiceHTTPResponse int    `json:"response"`
+	ServiceHTTPResponse string    `json:"response"`
 }
 
 type SharedData struct {

@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"log"
-    "net/http"
 	"fmt"
-
+	"log"
+	"net/http"
+	"strconv"
 )
 
 func GetServiceData(serviceEndpoints []string) []ServiceData{
@@ -14,6 +14,10 @@ func GetServiceData(serviceEndpoints []string) []ServiceData{
         res, err := http.Get(endpoint)
         if err != nil {
             log.Printf("error fetching %s: %v %s", endpoint, err, "❌")
+            var sd ServiceData
+            sd.ServiceName = serviceEndpoints[i]
+            sd.ServiceHTTPResponse = err.Error()
+            svcData = append(svcData, sd)
             continue
         }
 
@@ -21,7 +25,7 @@ func GetServiceData(serviceEndpoints []string) []ServiceData{
 
         var sd ServiceData
         sd.ServiceName = serviceEndpoints[i]
-        sd.ServiceHTTPResponse = resType
+        sd.ServiceHTTPResponse = strconv.Itoa(resType)
         
         svcData = append(svcData, sd)
 
