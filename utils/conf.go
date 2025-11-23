@@ -5,7 +5,9 @@ import (
 	"os"
 
 )
-
+/*
+Parses yml file for service information
+*/
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

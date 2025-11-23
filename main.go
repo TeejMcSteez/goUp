@@ -27,9 +27,10 @@ func main() {
 		}
 	}
 
-	var svcData []utils.ServiceData = utils.GetServiceData(serviceEndpoints)
+	var svcData = utils.GetServiceData(serviceEndpoints)
+	var dataStore utils.SharedData = *utils.NewStore()
 
-	scheduler.StartScheduler(serviceEndpoints, &svcData)
+	scheduler.StartScheduler(serviceEndpoints, &dataStore)
 
 	ret, err := server.Start(svcData)
 
