@@ -72,10 +72,10 @@ async function updateSchedule() {
 
     const req = await fetch("/api/schedule", {
         method: "POST",
-        body: {
-            timespan: ts,
-            timeInterval: ti
-        }
+        body: JSON.stringify({
+            timespan: Number(ts),
+            timeInterval: ti,
+        }),
     });
 
     if (!req.ok) {
