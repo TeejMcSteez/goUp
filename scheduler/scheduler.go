@@ -12,7 +12,7 @@ import (
 var s int = 30
 var i string = "Seconds"
 var mux sync.RWMutex
-var schedule utils.ScheduleParamters = utils.ScheduleParamters{Span: &s, Interval: &i, Mux: &mux}
+var schedule utils.ScheduleParameters = utils.ScheduleParameters{Span: &s, Interval: &i, Mux: &mux}
 
 var ticker time.Ticker
 

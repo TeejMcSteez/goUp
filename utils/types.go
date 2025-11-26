@@ -25,7 +25,7 @@ type SharedData struct {
 	data []ServiceData
 }
 
-type ScheduleParamters struct {
+type ScheduleParameters struct {
 	Span *int
 	Interval *string
 	Mux *sync.RWMutex
