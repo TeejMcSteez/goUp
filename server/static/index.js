@@ -49,6 +49,9 @@ async function init() {
     } catch (err) {
         console.error("Error fetching service data:", err);
     }
+
+    await getSchedule();
+    
 }
 
 function animate() {
@@ -61,4 +64,52 @@ function animate() {
         document.getElementById("logo").style.display = "none";
     }
     
+}
+
+async function updateSchedule() {
+    const ts = document.getElementById("timespan").value;
+    const ti = document.getElementById("timeInterval").value;
+
+    const req = await fetch("/api/schedule", {
+        method: "POST",
+        body: {
+            timespan: ts,
+            timeInterval: ti
+        }
+    });
+
+    if (!req.ok) {
+        alert("Update failed!");
+    }
+}
+
+async function getSchedule() {
+    try {
+        const res = await fetch("/api/schedule");
+
+        if (!res.ok) {
+            alert("Server error!");
+            async () => {
+                const err = await res.text();
+
+                throw new Error(err)
+            }
+        }
+
+        const jsonData = await res.json();
+
+        const s = document.getElementById("schedule");
+
+        s.innerHTML = `
+        <h3>Current Settings</h3>
+        <p>${jsonData.timespan} ${jsonData.timeInterval}</p>
+        <label>Timespan</label>
+        <input id="timespan" type="range" min="1" max="60" value="${jsonData.timespan}" required>
+        <label>Interval (Seconds, Minutes, Hours</label>
+        <input id="timeInterval" name="interval" type="text" required>
+        <button onclick="updateSchedule()">Update</button>
+        `;
+    } catch (err) {
+        console.error("Error fetching service data:", err);
+    }
 }
