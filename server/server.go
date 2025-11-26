@@ -1,12 +1,13 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"goUp/scheduler"
 	"goUp/utils"
 	"io/fs"
 	"net/http"
 	"os"
-	"encoding/json"
 )
 
 var svcData []utils.ServiceData;
@@ -55,11 +56,42 @@ func Api(w http.ResponseWriter, req *http.Request) {
     }
 }
 
+func ScheduleApi(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "POST":
+		dec := json.NewDecoder(req.Body)
+		var json utils.ParamtersData
+		dec.Decode(&json)
+
+		ScheduleUpdater(json.Span, json.Interval)
+	case "GET":
+		if err := json.NewEncoder(w).Encode(ScheduleGetter()); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+    }
+	default:
+		http.Error(w, "Invalid API Request", http.StatusInternalServerError)
+		return
+	}
+}
+
+func ScheduleUpdater(span int, interval string) bool {
+	scheduler.UpdateParamters(span, interval)
+
+	return true
+}
+
+func ScheduleGetter() utils.ParamtersData {
+	out := scheduler.GetParameters()
+	return out
+}
+
 
 func Start(svd []utils.ServiceData) (string, error) {
 	svcData = svd
 	http.HandleFunc("/", Root)
 	http.HandleFunc("/api", Api)
+	http.HandleFunc("/api/schedule", ScheduleApi)
 	fmt.Println("Starting server at http://localhost:8080/ . . .")
 	http.ListenAndServe(":8080", nil)
 

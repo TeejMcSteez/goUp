@@ -32,6 +32,6 @@ type ScheduleParamters struct {
 }
 
 type ParamtersData struct {
-	Span int
-	Interval string
+	Span int `json:"timespan"`
+	Interval string `json:"timeInterval"`
 }
