@@ -41,10 +41,15 @@ func GetServiceData(serviceEndpoints []Service) []ServiceData{
             if err != nil {
                 panic(err)
             }
-            apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
+
+            if serviceEndpoints[i].API_KEY != nil {
+                apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
+            }
+
             apiReq.Header.Set("Content-Type", "application/json")
 
             apiRes, apiErr := http.DefaultClient.Do(apiReq)
+            
             if apiErr != nil {
                 panic(apiErr)
             }
