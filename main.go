@@ -8,9 +8,7 @@ import (
 	"slices"
 )
 
-var serviceEndpoints []string = []string{}
-
-
+var serviceEndpoints []utils.Service = []utils.Service{}
 
 func main() {
 	fmt.Print("Loading Config . . .\n\n")
@@ -20,9 +18,9 @@ func main() {
 		panic(err)
 	}
 	for name, svc := range cfg.Services {
-		if !slices.Contains(serviceEndpoints, svc.URL) {
+		if !slices.Contains(serviceEndpoints, utils.Service{URL: svc.URL}) {
 			fmt.Println("Adding ", name, "to service endpoints")
-			serviceEndpoints = append(serviceEndpoints, svc.URL)
+			serviceEndpoints = append(serviceEndpoints, utils.Service{URL: svc.URL, API_URL: svc.API_URL, API_KEY: svc.API_KEY})
 		}
 	}
 	// Get current service data before full launch
