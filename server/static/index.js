@@ -31,6 +31,10 @@ async function init() {
     try {
         const jsonData = await getServiceData();
 
+        if (!jsonData) {
+            cards.innerHTML = "<div class=\"card\"><p>No Service Data to Display</p></div>"
+        }
+
         if (Array.isArray(jsonData)) {
             jsonData.forEach((svc, idx) => {
                 cards.innerHTML += `
