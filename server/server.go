@@ -42,6 +42,7 @@ func Api(w http.ResponseWriter, req *http.Request) {
         jsonSvcData = append(jsonSvcData, utils.ServiceData{
             ServiceName:     svcData[i].ServiceName,
             ServiceHTTPResponse: svcData[i].ServiceHTTPResponse,
+			ServiceAPIResponse: svcData[i].ServiceAPIResponse,
         })
     }
 
