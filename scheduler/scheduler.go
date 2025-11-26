@@ -1,42 +1,58 @@
 package scheduler
 
 import (
-	"fmt"
-	"goUp/utils"
-	"strings"
-	"sync"
-	"time"
+    "fmt"
+    "goUp/utils"
+    "strings"
+    "sync"
+    "time"
 )
 
-// Default Timespan:
-var s int = 30
-var i string = "Seconds"
-var mux sync.RWMutex
-var schedule utils.ScheduleParameters = utils.ScheduleParameters{Span: &s, Interval: &i, Mux: &mux}
+// Holds the scheduling parameters and a mutex.
+type scheduleState struct {
+    mu       sync.RWMutex
+    span     int
+    interval string
+}
 
-var ticker time.Ticker
+var schedule = scheduleState{
+    span:     30,
+    interval: "seconds",
+}
 
-/*
- Start's a goroutine with a ticker which every 30 seconds gets and updates service data in main
-*/
-func StartScheduler(serviceEndpoints []utils.Service, currData *utils.SharedData) {
-    fmt.Println("Starting service data ticker")
-    span := time.Duration(*schedule.Span)
-    var dur time.Duration
-    switch strings.ToLower(i)[0] {
+// computeDuration converts the current span/interval to time.Duration.
+func computeDuration(span int, interval string) time.Duration {
+    d := time.Duration(span)
+    switch strings.ToLower(interval)[0] {
     case 's':
-        dur = span * time.Second
-    case 'h':
-        dur = span * time.Hour
+        return d * time.Second
     case 'm':
-        dur = span * time.Minute
+        return d * time.Minute
+    case 'h':
+        return d * time.Hour
     default:
-        panic("Invalid time input")
+        panic("invalid interval (expected something like seconds/minutes/hours)")
     }
+}
 
-    ticker = *time.NewTicker(dur)
+// StartScheduler runs forever in a goroutine, fetching data on a schedule.
+func StartScheduler(serviceEndpoints []utils.Service, currData *utils.SharedData) {
+    fmt.Println("Starting service data scheduler")
+
     go func() {
-        for range ticker.C {
+        for {
+            // Read current parameters under read lock
+            schedule.mu.RLock()
+            span := schedule.span
+            interval := schedule.interval
+            schedule.mu.RUnlock()
+
+            dur := computeDuration(span, interval)
+
+            // Sleep for the computed duration
+            time.Sleep(dur)
+
+            // Do the work
             data := utils.GetServiceData(serviceEndpoints)
             currData.Set(data)
             fmt.Println("Fetched data")
@@ -44,26 +60,24 @@ func StartScheduler(serviceEndpoints []utils.Service, currData *utils.SharedData
     }()
 }
 
-func UpdateParamters(span int, interval string) {
-    fmt.Println("Stopping ticker")
-    ticker.Stop()
-    fmt.Println("Updating ticker parameters")
-    schedule.Mux.Lock()
+// UpdateParameters changes the schedule.
+func UpdateParameters(span int, interval string) {
+    schedule.mu.Lock()
+    defer schedule.mu.Unlock()
 
-    defer schedule.Mux.Unlock()
+    schedule.span = span
+    schedule.interval = interval
 
-    *schedule.Span = span
-    *schedule.Interval =interval
-
-    fmt.Println("Schedule update completed")
+    fmt.Println("Schedule updated to:", span, interval)
 }
 
+// GetParameters returns a copy of the current parameters.
 func GetParameters() utils.ParamtersData {
-    schedule.Mux.Lock()
+    schedule.mu.RLock()
+    defer schedule.mu.RUnlock()
 
-    defer schedule.Mux.Unlock()
-
-    out := utils.ParamtersData{ Span: *schedule.Span, Interval: *schedule.Interval }
-
-    return out
+    return utils.ParamtersData{
+        Span:     schedule.span,
+        Interval: schedule.interval,
+    }
 }
