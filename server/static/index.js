@@ -103,13 +103,22 @@ async function getSchedule() {
         s.innerHTML = `
         <h3>Current Settings</h3>
         <p>${jsonData.timespan} ${jsonData.timeInterval}</p>
-        <label>Timespan</label>
-        <input id="timespan" type="range" min="1" max="60" value="${jsonData.timespan}" required>
-        <label>Interval (Seconds, Minutes, Hours</label>
-        <input id="timeInterval" name="interval" type="text" required>
+        <form id="scheduleForm">
+            <label>Timespan</label>
+            <p id="sliderValue">Slider Value: </p>
+            <input id="timespan" type="range" min="1" max="60" default="30" value="${jsonData.timespan}" required>
+            <label>Interval (sec, min, hr)</label>
+            <input id="timeInterval" name="interval" type="text" required>
+        </form>
         <button onclick="updateSchedule()">Update</button>
         `;
     } catch (err) {
         console.error("Error fetching service data:", err);
     }
+
+    const timespanEl = document.getElementById("timespan");
+
+    timespanEl.addEventListener('input', () => {
+        document.getElementById("sliderValue").innerText = `Slider Value: ${timespanEl.value}`;
+    })
 }

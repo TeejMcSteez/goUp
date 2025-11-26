@@ -1,3 +1,9 @@
+:root {
+    --slider-background: #ddd;
+    --slider-height: 8px;
+    --slider-br: 4px;
+}
+
 body {
     min-height: 100vh;
     width: 100vw;
@@ -102,4 +108,93 @@ body {
 .svcData:hover {
     border: 1px solid #ff0000;
     background-color: #647bac;
+}
+/* Schedule Styles */
+#schedule {
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    padding: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+#schedule input[type="range"] {
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    cursor: pointer;
+    border: none;
+}
+
+#schedule input[type="range"]::-webkit-slider-runnable-track {
+    background-color: var(--slider-background);
+    height: var(--slider-height);
+    border-radius: var(--slider-br);
+}
+
+#schedule input[type="range"]::-moz-range-track {
+    background-color: var(--slider-background);
+    height: var(--slider-height);
+    border-radius: var(--slider-br);
+}
+
+#schedule input[type="range"]::-ms-track {
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+    height: var(--slider-height);
+}
+
+#schedule input[type="range"]::-ms-fill-lower {
+    background: var(--slider-background);
+    border-radius: var(--slider-br);
+}
+
+#schedule input[type="range"]::-ms-fill-upper {
+    background: var(--slider-background);
+    border-radius: var(--slider-br);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ff0000;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  margin-top: -6px;
+  border: 1px solid #0056b3;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: #ff0000;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 1px solid #0056b3;
+}
+
+input[type="range"]::-ms-thumb {
+  background: #ff0000;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  border: 1px solid #0056b3;
+}
+
+#schedule input[type="text"] {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 1rem;
+}
+
+#schedule button {
+    margin: .5rem;
+    padding: .5rem;
+}
+
+#scheduleForm {
+    display: flex;
+    flex-direction: column;
 }
