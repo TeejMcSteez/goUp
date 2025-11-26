@@ -45,9 +45,7 @@ Write-Host "  Output dir: $OutputDir`n"
 foreach ($os in $OS_LIST) {
     foreach ($arch in $ARCH_LIST) {
         # Create target folder and binary path
-        $binDir  = Join-Path $OutputDir "${os}_${arch}"
-        New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-        $binPath = Join-Path $binDir ("$($script:AppName)$exeExt")
+        $binPath = Join-Path $OutputDir ("$($script:AppName)")
 
         # Run the build in a subshell so env vars are local
         & {
@@ -57,7 +55,7 @@ foreach ($os in $OS_LIST) {
             $env:CGO_ENABLED   = 0
             $env:GOARM         = ($arch -eq 'arm') ? '7' : $null
 
-            go build -o $binPath
+            go build -o "$binPath/goUp-$os-$arch"
 
             Write-Host "  → Built: $binPath"
         }
