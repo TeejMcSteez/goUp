@@ -33,6 +33,8 @@ async function init() {
                         <h1 class="svcName">Server URL: <a href="${svc.name}">${svc.name}</a></h1>
                         <p>Status: ${svc.response === "200" ? "✅" : "❌"}</p>
                         <p class="svcHttpRes">HTTP Response: ${svc.response}</p>
+                        <h2>API Response</h2>
+                        <div class="svcData">${svc.data ? svc.data : "No API setup in configuration"}</div>
                     </div>
                 `;
             });
