@@ -17,6 +17,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if cfg.Services == nil {
+		panic("No services specified in the configuration file!")
+	}
 	for name, svc := range cfg.Services {
 		if !slices.Contains(serviceEndpoints, utils.Service{URL: svc.URL}) {
 			fmt.Println("Adding ", name, "to service endpoints")
