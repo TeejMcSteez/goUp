@@ -23,8 +23,9 @@ func Root(w http.ResponseWriter, req *http.Request) {
 	case "/index.js":
 		path = "index.js"
 	case "/favicon.ico":
-		http.NotFound(w, req)
-		return
+		path = "goUp.png"
+	case "/goUp.png":
+		path = "goUp.png"
 	case "/styles.css":
 		path = "styles.css"
 	default:

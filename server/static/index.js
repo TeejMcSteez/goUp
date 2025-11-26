@@ -1,6 +1,11 @@
 // Wait until the DOM is ready before grabbing elements
+let translationAmnt = 10;
+
 document.addEventListener("DOMContentLoaded", () => {
     init();
+    setTimeout(() => {
+        animate();
+    }, 2500)
 });
 
 async function getServiceData() {
@@ -44,4 +49,16 @@ async function init() {
     } catch (err) {
         console.error("Error fetching service data:", err);
     }
+}
+
+function animate() {
+    translationAmnt += 5;    
+    document.getElementById("logo").style.transform =
+        `translateY(-${translationAmnt}px)`;
+    if (translationAmnt < 500) {
+        requestAnimationFrame(animate);
+    } else {
+        document.getElementById("logo").style.display = "none";
+    }
+    
 }
