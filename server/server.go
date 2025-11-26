@@ -76,7 +76,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 func ScheduleUpdater(span int, interval string) bool {
-	scheduler.UpdateParamters(span, interval)
+	scheduler.UpdateParameters(span, interval)
 
 	return true
 }
