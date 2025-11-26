@@ -1,6 +1,8 @@
 package utils
 
-import "sync"
+import (
+	"sync"
+)
 
 type Config struct {
 	Services map[string]Service `yaml:"services"`
@@ -8,11 +10,14 @@ type Config struct {
 
 type Service struct {
 	URL string `yaml:"url"`
+	API_URL *string `yaml:"api_url"`
+	API_KEY *string `yaml:"api_key"`
 }
 
 type ServiceData struct {
 	ServiceName         string `json:"name"`
 	ServiceHTTPResponse string    `json:"response"`
+	ServiceAPIResponse string `json:"data"`
 }
 
 type SharedData struct {
