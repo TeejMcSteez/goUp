@@ -67,7 +67,16 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
         	return
 		}
 
-		ScheduleUpdater(jsonData.Span, jsonData.Interval)
+		updated := ScheduleUpdater(jsonData.Span, jsonData.Interval)
+
+		if updated {
+			w.Header().Add("Content-Type", "application/json")
+			w.Write([]byte("{ \"updated\": true }"))
+		} else {
+			w.Header().Add("Content-Type", "application/json")
+			http.Error(w, "{ \"updated\": false }", http.StatusBadRequest)
+			return
+		}
 	case "GET":
 		if err := json.NewEncoder(w).Encode(ScheduleGetter()); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,9 +89,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 func ScheduleUpdater(span int, interval string) bool {
-	scheduler.UpdateParameters(span, interval)
-
-	return true
+	return scheduler.UpdateParameters(span, interval)
 }
 
 func ScheduleGetter() utils.ParamtersData {

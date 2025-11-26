@@ -61,7 +61,24 @@ func StartScheduler(serviceEndpoints []utils.Service, currData *utils.SharedData
 }
 
 // UpdateParameters changes the schedule.
-func UpdateParameters(span int, interval string) {
+func UpdateParameters(span int, interval string) bool {
+
+    if (
+        span < 1 ||
+        span > 60) {
+        return false
+    }
+
+    low := strings.ToLower(interval)
+    if len(low) == 0 {
+        return false
+    }
+
+    first := low[0]
+    if first != 's' && first != 'm' && first != 'h' {
+        return false
+    }
+
     schedule.mu.Lock()
     defer schedule.mu.Unlock()
 
@@ -69,6 +86,7 @@ func UpdateParameters(span int, interval string) {
     schedule.interval = interval
 
     fmt.Println("Schedule updated to:", span, interval)
+    return true
 }
 
 // GetParameters returns a copy of the current parameters.

@@ -67,7 +67,13 @@ function animate() {
 }
 
 async function updateSchedule() {
+    /**
+     * @type {string}
+     */
     const ts = document.getElementById("timespan").value;
+    /**
+     * @type {string}
+     */
     const ti = document.getElementById("timeInterval").value;
 
     const req = await fetch("/api/schedule", {
@@ -81,6 +87,19 @@ async function updateSchedule() {
     if (!req.ok) {
         alert("Update failed!");
     }
+    const timeCalc = () => {
+        switch (ti.charAt(0).toLowerCase()) {
+            case 's':
+                return "seconds"
+            case 'm':
+                return "minutes"
+            case 'h':
+                return "hours"
+            default:
+                return "Undefined"
+        }
+    }
+    document.getElementById("currentSchedule").innerHTML = `${ts} ${timeCalc()}`;
 }
 
 async function getSchedule() {
@@ -102,7 +121,7 @@ async function getSchedule() {
 
         s.innerHTML = `
         <h3>Current Settings</h3>
-        <p>${jsonData.timespan} ${jsonData.timeInterval}</p>
+        <p id="currentSchedule">${jsonData.timespan} ${jsonData.timeInterval}</p>
         <form id="scheduleForm">
             <label>Timespan</label>
             <p id="sliderValue">Slider Value: </p>
