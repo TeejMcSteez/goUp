@@ -60,10 +60,14 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		dec := json.NewDecoder(req.Body)
-		var json utils.ParamtersData
-		dec.Decode(&json)
+		var jsonData utils.ParamtersData
 
-		ScheduleUpdater(json.Span, json.Interval)
+		if err := dec.Decode(&jsonData); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+        	return
+		}
+
+		ScheduleUpdater(jsonData.Span, jsonData.Interval)
 	case "GET":
 		if err := json.NewEncoder(w).Encode(ScheduleGetter()); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
