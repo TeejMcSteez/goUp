@@ -31,7 +31,7 @@ func GetServiceData(serviceEndpoints []Service) []ServiceData{
         
 
 		if (resType == 200) {
-			fmt.Println("Service ", serviceEndpoints[i], "responded with 200, Ok ️✅")
+			fmt.Println("Service ", serviceEndpoints[i].URL, "responded with 200, Ok ️✅")
 		} else {
             fmt.Println("response type was invalid: ", serviceEndpoints[i], "->", resType, "❌")
         }
