@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-var svcData []utils.ServiceData;
+var svcData []utils.ServiceData
 
 var rootFs fs.FS = os.DirFS("server/static")
 
@@ -38,22 +38,15 @@ func Root(w http.ResponseWriter, req *http.Request) {
 }
 
 func Api(w http.ResponseWriter, req *http.Request) {
-    jsonSvcData := make([]utils.ServiceData, 0, len(svcData))
+	jsonSvcData := make([]utils.ServiceData, 0, len(svcData))
 
-    for i := range svcData {
-        jsonSvcData = append(jsonSvcData, utils.ServiceData{
-            ServiceName:     svcData[i].ServiceName,
-            ServiceHTTPResponse: svcData[i].ServiceHTTPResponse,
-			ServiceAPIResponse: svcData[i].ServiceAPIResponse,
-        })
-    }
+	copy(jsonSvcData, svcData)
+	w.Header().Set("Content-Type", "application/json")
 
-    w.Header().Set("Content-Type", "application/json")
-
-    if err := json.NewEncoder(w).Encode(jsonSvcData); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	if err := json.NewEncoder(w).Encode(jsonSvcData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func ScheduleApi(w http.ResponseWriter, req *http.Request) {
@@ -64,7 +57,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 
 		if err := dec.Decode(&jsonData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-        	return
+			return
 		}
 
 		updated := ScheduleUpdater(jsonData.Span, jsonData.Interval)
@@ -79,9 +72,9 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 		}
 	case "GET":
 		if err := json.NewEncoder(w).Encode(ScheduleGetter()); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-    }
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	default:
 		http.Error(w, "Invalid API Request", http.StatusInternalServerError)
 		return
@@ -97,7 +90,6 @@ func ScheduleGetter() utils.ParamtersData {
 	return out
 }
 
-
 func Start(svd []utils.ServiceData) (string, error) {
 	svcData = svd
 	http.HandleFunc("/", Root)
@@ -108,3 +100,4 @@ func Start(svd []utils.ServiceData) (string, error) {
 
 	return "Started", nil
 }
+
