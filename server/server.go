@@ -83,7 +83,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	default:
-		http.Error(w, "Invalid API Request", http.StatusInternalServerError)
+		http.Error(w, "Invalid API Request", http.StatusBadRequest)
 		return
 	}
 }
