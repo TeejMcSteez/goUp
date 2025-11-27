@@ -40,7 +40,14 @@ func Root(w http.ResponseWriter, req *http.Request) {
 func Api(w http.ResponseWriter, req *http.Request) {
 	jsonSvcData := make([]utils.ServiceData, 0, len(svcData))
 
-	copy(jsonSvcData, svcData)
+	for i := range svcData {
+		jsonSvcData = append(jsonSvcData, utils.ServiceData{
+			ServiceName:         svcData[i].ServiceName,
+			ServiceHTTPResponse: svcData[i].ServiceHTTPResponse,
+			ServiceAPIResponse:  svcData[i].ServiceAPIResponse,
+		})
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(jsonSvcData); err != nil {
@@ -100,4 +107,3 @@ func Start(svd []utils.ServiceData) (string, error) {
 
 	return "Started", nil
 }
-
