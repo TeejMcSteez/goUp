@@ -9,15 +9,20 @@ type Config struct {
 }
 
 type Service struct {
-	URL string `yaml:"url"`
+	URL     string  `yaml:"url"`
 	API_URL *string `yaml:"api_url"`
 	API_KEY *string `yaml:"api_key"`
 }
 
+type ServiceEndpoints struct {
+	Mux             *sync.RWMutex
+	ServiceEndpoint []Service
+}
+
 type ServiceData struct {
 	ServiceName         string `json:"name"`
-	ServiceHTTPResponse string    `json:"response"`
-	ServiceAPIResponse string `json:"data"`
+	ServiceHTTPResponse string `json:"response"`
+	ServiceAPIResponse  string `json:"data"`
 }
 
 type SharedData struct {
@@ -26,12 +31,12 @@ type SharedData struct {
 }
 
 type ScheduleParameters struct {
-	Span *int
+	Span     *int
 	Interval *string
-	Mux *sync.RWMutex
+	Mux      *sync.RWMutex
 }
 
 type ParamtersData struct {
-	Span int `json:"timespan"`
+	Span     int    `json:"timespan"`
 	Interval string `json:"timeInterval"`
 }

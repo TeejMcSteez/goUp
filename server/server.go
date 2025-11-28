@@ -97,11 +97,29 @@ func ScheduleGetter() utils.ParamtersData {
 	return out
 }
 
+func StatusApi(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "POST":
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	case "GET":
+		w.Header().Add("Content-Type", "application/json")
+		apiData := utils.GetServiceData(utils.GetServiceEndpoints())
+		if err := json.NewEncoder(w).Encode(apiData); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Bad request", http.StatusInternalServerError)
+		return
+	}
+}
+
 func Start(svd []utils.ServiceData) (string, error) {
 	svcData = svd
 	http.HandleFunc("/", Root)
 	http.HandleFunc("/api", Api)
 	http.HandleFunc("/api/schedule", ScheduleApi)
+	http.HandleFunc("/api/status", StatusApi)
 	fmt.Println("Starting server at http://localhost:8080/ . . .")
 	http.ListenAndServe(":8080", nil)
 
