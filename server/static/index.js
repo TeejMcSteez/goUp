@@ -59,9 +59,9 @@ async function init() {
 }
 
 function animate() {
-    translationAmnt += 5;    
+    translationAmnt += 1;    
     document.getElementById("logo").style.transform =
-        `translateY(-${translationAmnt}px)`;
+        `translate(${translationAmnt}px, -${translationAmnt}px)`;
     if (translationAmnt < 500) {
         requestAnimationFrame(animate);
     } else {
