@@ -71,7 +71,9 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 
 		if updated {
 			w.Header().Add("Content-Type", "application/json")
-			w.Write([]byte("{ \"updated\": true }"))
+			if _, err := w.Write([]byte("{ \"updated\": true }")); err != nil {
+				panic(err)
+			}
 		} else {
 			w.Header().Add("Content-Type", "application/json")
 			http.Error(w, "{ \"updated\": false }", http.StatusBadRequest)
@@ -121,7 +123,9 @@ func Start(svd []utils.ServiceData) (string, error) {
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
 	fmt.Println("Starting server at http://localhost:8080/ . . .")
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 
 	return "Started", nil
 }

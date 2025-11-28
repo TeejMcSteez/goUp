@@ -84,7 +84,12 @@ func GetServiceData() []ServiceData {
 				return svcData
 			}
 
-			defer apiRes.Body.Close()
+			defer func() {
+				if err := apiRes.Body.Close(); err != nil {
+					fmt.Println("Error closing body: " + err.Error())
+				}
+			}()
+
 			apiBody, err := io.ReadAll(apiRes.Body)
 			if err != nil {
 				fmt.Println("Error reading response body")
