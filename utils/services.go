@@ -5,25 +5,44 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"sync"
 )
 
 var mu sync.RWMutex
-var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu, ServiceEndpoint: make([]Service, 0)}
+var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
 
-func GetServiceData(serviceEndpoints []Service) []ServiceData {
-	var svcData []ServiceData
-
-	d := make([]Service, len(serviceEndpoints))
-	copy(d, serviceEndpoints)
-
+func Setup() {
 	svcEndpoints.Mux.Lock()
-	svcEndpoints.ServiceEndpoint = d
-	svcEndpoints.Mux.Unlock()
+	defer svcEndpoints.Mux.Unlock()
+
+	fmt.Print("Loading Config . . .\n\n")
+	cfg, err := LoadConfig("services.yml")
+
+	if err != nil {
+		panic(err)
+	}
+	if cfg.Services == nil {
+		panic("No services specified in the configuration file!")
+	}
+	for name, svc := range cfg.Services {
+		if !slices.Contains(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL}) {
+			fmt.Println("Adding ", name, "to service endpoints")
+			svcEndpoints.ServiceEndpoint = append(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL, API_URL: svc.API_URL, API_KEY: svc.API_KEY})
+		}
+	}
+}
+
+func GetServiceData() []ServiceData {
+	var svcData []ServiceData
+	if len(svcEndpoints.ServiceEndpoint) == 0 {
+		fmt.Println("No service endpoints found looking for config . . .")
+		Setup()
+	}
 
 	fmt.Println("Scanning services HTTP endpoints . . .")
-	for i, endpoint := range d {
+	for i, endpoint := range svcEndpoints.ServiceEndpoint {
 		res, err := http.Get(endpoint.URL)
 		if err != nil {
 			log.Printf("error fetching %s: %v %s", endpoint.URL, err, "❌")
@@ -38,21 +57,21 @@ func GetServiceData(serviceEndpoints []Service) []ServiceData {
 		resType := res.StatusCode
 
 		var sd ServiceData
-		sd.ServiceName = d[i].URL
+		sd.ServiceName = svcEndpoints.ServiceEndpoint[i].URL
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)
 
 		if resType == 200 {
-			fmt.Println("Service ", d[i].URL, "responded with 200, Ok ️✅")
+			fmt.Println("Service ", svcEndpoints.ServiceEndpoint[i].URL, "responded with 200, Ok ️✅")
 		} else {
-			fmt.Println("response type was invalid: ", d[i], "->", resType, "❌")
+			fmt.Println("response type was invalid: ", svcEndpoints.ServiceEndpoint[i], "->", resType, "❌")
 		}
-		if d[i].API_URL != nil {
+		if svcEndpoints.ServiceEndpoint[i].API_URL != nil {
 			apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
 			if err != nil {
 				panic(err)
 			}
 
-			if d[i].API_KEY != nil {
+			if svcEndpoints.ServiceEndpoint[i].API_KEY != nil {
 				apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
 			}
 
@@ -61,13 +80,15 @@ func GetServiceData(serviceEndpoints []Service) []ServiceData {
 			apiRes, apiErr := http.DefaultClient.Do(apiReq)
 
 			if apiErr != nil {
-				panic(apiErr)
+				fmt.Println("Api Response Error")
+				return svcData
 			}
 
 			defer apiRes.Body.Close()
 			apiBody, err := io.ReadAll(apiRes.Body)
 			if err != nil {
-				panic(err)
+				fmt.Println("Error reading response body")
+				return svcData
 			}
 			sd.ServiceAPIResponse = string(apiBody)
 		}
@@ -85,4 +106,11 @@ func GetServiceEndpoints() []Service {
 	copy(out, svcEndpoints.ServiceEndpoint)
 
 	return out
+}
+
+func SetServiceEndpoints(svcs []Service) {
+	svcEndpoints.Mux.Lock()
+	defer svcEndpoints.Mux.Unlock()
+
+	svcEndpoints.ServiceEndpoint = svcs
 }
