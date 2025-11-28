@@ -1,0 +1,19 @@
+{
+  "name": "goUp",
+  "version": "0.0.1",
+  "description": "Simple server monitor written in Go",
+  "main": "index.js",
+  "scripts": {
+    "lint_go": "golangci-lint run",
+    "lint_js": "pnpm dlx eslint"
+  },
+  "keywords": [],
+  "author": "TeejMcSteez",
+  "license": "ISC",
+  "packageManager": "pnpm@10.21.0",
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0"
+  }
+}
