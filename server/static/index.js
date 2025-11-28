@@ -36,7 +36,7 @@ async function init() {
         }
 
         if (Array.isArray(jsonData)) {
-            jsonData.forEach((svc, idx) => {
+            jsonData.forEach(svc => {
                 cards.innerHTML += `
                     <div class="card">
                         <h1 class="svcName">Server URL: <a href="${svc.name}">${svc.name}</a></h1>
@@ -69,7 +69,7 @@ function animate() {
     }
     
 }
-
+// eslint-disable-next-line no-unused-vars
 async function updateSchedule() {
     /**
      * @type {string}
