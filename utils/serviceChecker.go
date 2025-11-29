@@ -19,7 +19,7 @@ func Check(data []ServiceData) []ServiceData {
 		}
 	}
 	if badRes {
-		FireMqtt(ret)
+		Fire(ret)
 	}
 	return ret
 }

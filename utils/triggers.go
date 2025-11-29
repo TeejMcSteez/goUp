@@ -15,6 +15,13 @@ func SetupTrigger(cfg *Config) {
 	fmt.Println("Triggers setup")
 }
 
+// Takes service data and fires all triggers
+func Fire(data []ServiceData) {
+	if triggers.Mqtt_broker != nil {
+		FireMqtt(data)
+	}
+}
+
 // Takes current bad service data and fires message to configured mqtt broker
 func FireMqtt(data []ServiceData) {
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
