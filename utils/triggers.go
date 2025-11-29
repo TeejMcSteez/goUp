@@ -43,7 +43,7 @@ func FireMqtt(data []ServiceData) {
 		var message string
 
 		for _, c := range data {
-			message += "Name: " + c.ServiceName + " HTTPResponse: " + c.ServiceHTTPResponse + " APIResponse: " + c.ServiceAPIResponse
+			message += "Name: " + c.ServiceName + "\nHTTPResponse: " + c.ServiceHTTPResponse + "\nAPIResponse: " + c.ServiceAPIResponse
 		}
 
 		token := client.Publish("goUp status", 0, false, message)
@@ -53,6 +53,8 @@ func FireMqtt(data []ServiceData) {
 		if err := token.Error(); err != nil {
 			panic(err)
 		}
+		fmt.Println("Disconnecting from MQTT broker, sent message complete")
+		client.Disconnect(250)
 	} else {
 		fmt.Println("No MQTT broker setup")
 	}
