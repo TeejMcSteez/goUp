@@ -55,7 +55,7 @@ func StartScheduler(currData *utils.SharedData) {
 			// Do the work
 			data := utils.GetServiceData()
 			currData.Set(data)
-			fmt.Println("Fetched data")
+			fmt.Println("Scheduler fetched service data successfully")
 		}
 	}()
 }

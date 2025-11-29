@@ -7,6 +7,7 @@ import (
 
 var triggers *Trigger
 
+// Copies Trigger config from configuration to use in triggers
 func SetupTrigger(cfg *Config) {
 
 	triggers = &cfg.Triggers
@@ -14,6 +15,7 @@ func SetupTrigger(cfg *Config) {
 	fmt.Println("Triggers setup")
 }
 
+// Takes current bad service data and fires message to configured mqtt broker
 func FireMqtt(data []ServiceData) {
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 		fmt.Println("Connected to MQTT Broker")

@@ -13,6 +13,7 @@ import (
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
 
+// Sets up service and trigger endpoints from configuration
 func Setup() {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
@@ -37,6 +38,8 @@ func Setup() {
 	}
 }
 
+// Gets service data from endpoints
+// Also Checks the data before returning for any bad HTTP errors
 func GetServiceData() []ServiceData {
 	var svcData []ServiceData
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
@@ -107,6 +110,7 @@ func GetServiceData() []ServiceData {
 	return svcData
 }
 
+// Returns current service endpoints for fetching
 func GetServiceEndpoints() []Service {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
@@ -117,6 +121,7 @@ func GetServiceEndpoints() []Service {
 	return out
 }
 
+// Sets service endpoints (for later frontend use)
 func SetServiceEndpoints(svcs []Service) {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()

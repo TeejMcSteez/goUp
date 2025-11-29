@@ -14,6 +14,7 @@ var svcData []utils.ServiceData
 
 var rootFs fs.FS = os.DirFS("server/static")
 
+// Client HTML server
 func Root(w http.ResponseWriter, req *http.Request) {
 
 	path := req.URL.Path
@@ -37,6 +38,7 @@ func Root(w http.ResponseWriter, req *http.Request) {
 	http.ServeFileFS(w, req, rootFs, path)
 }
 
+// Basic API server, returns current service data
 func Api(w http.ResponseWriter, req *http.Request) {
 	jsonSvcData := make([]utils.ServiceData, 0, len(svcData))
 
@@ -56,6 +58,7 @@ func Api(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Schedule API server, returns current schedule parameters
 func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -90,15 +93,18 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Updates schedule parameters
 func ScheduleUpdater(span int, interval string) bool {
 	return scheduler.UpdateParameters(span, interval)
 }
 
+// Gets current schedule parameters
 func ScheduleGetter() utils.ParamtersData {
 	out := scheduler.GetParameters()
 	return out
 }
 
+// Gets current status in JSON format for automated fetching
 func StatusApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -116,6 +122,7 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Starts server with all handler functions
 func Start(svd []utils.ServiceData) (string, error) {
 	svcData = svd
 	http.HandleFunc("/", Root)

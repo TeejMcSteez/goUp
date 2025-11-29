@@ -1,10 +1,12 @@
 package utils
 
+// Creates a new empty data store for ServiceData
 func NewStore() *SharedData {
 	return &SharedData{
 		data: make([]ServiceData, 0),
 	}
 }
+
 // Writer: Sets new data
 func (s *SharedData) Set(data []ServiceData) {
 	s.mu.Lock()
@@ -14,10 +16,11 @@ func (s *SharedData) Set(data []ServiceData) {
 
 // Reader: get a copy of the current slice
 func (s *SharedData) Get() []ServiceData {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-    out := make([]ServiceData, len(s.data))
-    copy(out, s.data)
-    return out
+	out := make([]ServiceData, len(s.data))
+	copy(out, s.data)
+	return out
 }
+
