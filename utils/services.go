@@ -20,6 +20,9 @@ func Setup() {
 	fmt.Print("Loading Config . . .\n\n")
 	cfg, err := LoadConfig("services.yml")
 
+	fmt.Println("Setting up triggers")
+	SetupTrigger(cfg)
+
 	if err != nil {
 		panic(err)
 	}
@@ -100,6 +103,7 @@ func GetServiceData() []ServiceData {
 		svcData = append(svcData, sd)
 
 	}
+	Check(svcData)
 	return svcData
 }
 

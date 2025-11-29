@@ -6,6 +6,13 @@ import (
 
 type Config struct {
 	Services map[string]Service `yaml:"services"`
+	Triggers Trigger            `yaml:"triggers"`
+}
+
+type Trigger struct {
+	Mqtt_broker   *string `yaml:"mqtt_broker"`
+	Mqtt_username *string `yaml:"mqtt_user"`
+	Mqtt_key      *string `yaml:"mqtt_key"`
 }
 
 type Service struct {
