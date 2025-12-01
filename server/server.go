@@ -8,10 +8,11 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strconv"
 )
 
-var svcData []utils.ServiceData
-
+var svcData *[]utils.ServiceData
+var scd *scheduler.Scheduler
 var rootFs fs.FS = os.DirFS("server/static")
 
 // Client HTML server
@@ -40,13 +41,13 @@ func Root(w http.ResponseWriter, req *http.Request) {
 
 // Basic API server, returns current service data
 func Api(w http.ResponseWriter, req *http.Request) {
-	jsonSvcData := make([]utils.ServiceData, 0, len(svcData))
-
-	for i := range svcData {
+	data := *svcData
+	jsonSvcData := make([]utils.ServiceData, 0, len(data))
+	for i := range data {
 		jsonSvcData = append(jsonSvcData, utils.ServiceData{
-			ServiceName:         svcData[i].ServiceName,
-			ServiceHTTPResponse: svcData[i].ServiceHTTPResponse,
-			ServiceAPIResponse:  svcData[i].ServiceAPIResponse,
+			ServiceName:         data[i].ServiceName,
+			ServiceHTTPResponse: data[i].ServiceHTTPResponse,
+			ServiceAPIResponse:  data[i].ServiceAPIResponse,
 		})
 	}
 
@@ -83,10 +84,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	case "GET":
-		if err := json.NewEncoder(w).Encode(ScheduleGetter()); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// Add Get case in scheduler
 	default:
 		http.Error(w, "Invalid API Request", http.StatusBadRequest)
 		return
@@ -95,13 +93,9 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 
 // Updates schedule parameters
 func ScheduleUpdater(span int, interval string) bool {
-	return scheduler.UpdateParameters(span, interval)
-}
+	ok := scd.Update(span, interval)
 
-// Gets current schedule parameters
-func ScheduleGetter() utils.ParamtersData {
-	out := scheduler.GetParameters()
-	return out
+	return ok
 }
 
 // Gets current status in JSON format for automated fetching
@@ -123,8 +117,9 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Starts server with all handler functions
-func Start(svd []utils.ServiceData) (string, error) {
+func Start(svd *[]utils.ServiceData, sch *scheduler.Scheduler) (string, error) {
 	svcData = svd
+	scd = sch
 	http.HandleFunc("/", Root)
 	http.HandleFunc("/api", Api)
 	http.HandleFunc("/api/schedule", ScheduleApi)

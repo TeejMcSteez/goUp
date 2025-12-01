@@ -14,10 +14,12 @@ func main() {
 	dataStore := utils.NewStore()
 	// Set current data to most recent fetch
 	dataStore.Set(svcData)
-	// Start's scheduler
-	scheduler.StartScheduler(dataStore)
+	// Starts scheduler
+	sch := scheduler.NewScheduler(dataStore, 30, "seconds")
+	defer sch.Stop()
+
 	// Starts http server
-	ret, err := server.Start(svcData)
+	ret, err := server.Start(&svcData, sch)
 	if err != nil {
 		panic(err)
 	} else {

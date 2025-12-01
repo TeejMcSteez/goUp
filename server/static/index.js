@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function getServiceData() {
-    const res = await fetch("http://localhost:8080/api");
+    const res = await fetch("http://localhost:8101/api");
 
     if (!res.ok) {
         alert("Server error!");
