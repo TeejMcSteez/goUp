@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 var svcData *[]utils.ServiceData
