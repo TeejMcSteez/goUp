@@ -129,8 +129,8 @@ func Start(svd []utils.ServiceData) (string, error) {
 	http.HandleFunc("/api", Api)
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
-	fmt.Println("Starting server at http://localhost:8080/ . . .")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("Starting server at http://localhost:8101/ . . .")
+	if err := http.ListenAndServe(":8101", nil); err != nil {
 		panic(err)
 	}
 
