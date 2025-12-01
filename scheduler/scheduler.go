@@ -4,23 +4,20 @@ import (
 	"fmt"
 	"goUp/utils"
 	"strings"
-	"sync"
 	"time"
 )
 
 // Holds the scheduling parameters and a mutex.
 type scheduleState struct {
-	mu       sync.RWMutex
 	span     int
 	interval string
 }
 
-var schedule = scheduleState{
-	span:     30,
-	interval: "seconds",
+type Scheduler struct {
+	state chan scheduleState
+	stop  chan struct{}
 }
 
-// computeDuration converts the current span/interval to time.Duration.
 func computeDuration(span int, interval string) time.Duration {
 	d := time.Duration(span)
 	switch strings.ToLower(interval)[0] {
@@ -31,40 +28,73 @@ func computeDuration(span int, interval string) time.Duration {
 	case 'h':
 		return d * time.Hour
 	default:
-		panic("invalid interval (expected something like seconds/minutes/hours)")
+		panic("Invalid interval (expected seconds/minutes/hours)")
 	}
 }
 
-// StartScheduler runs forever in a goroutine, fetching data on a schedule.
-func StartScheduler(currData *utils.SharedData) {
+func NewScheduler(currData *utils.SharedData, initialSpan int, initialInterval string) *Scheduler {
+	s := &Scheduler{
+		state: make(chan scheduleState),
+		stop:  make(chan struct{}),
+	}
+
+	go s.StartScheduler(currData, initialSpan, initialInterval)
+
+	return s
+}
+
+func (s *Scheduler) StartScheduler(currData *utils.SharedData, span int, interval string) {
 	fmt.Println("Starting service data scheduler")
 
-	go func() {
-		for {
-			// Read current parameters under read lock
-			schedule.mu.RLock()
-			span := schedule.span
-			interval := schedule.interval
-			schedule.mu.RUnlock()
+	dur := computeDuration(span, interval)
+	timer := time.NewTimer(dur)
 
-			dur := computeDuration(span, interval)
+	for {
+		select {
+		case <-s.stop:
+			// clean shutdown: stop timer and drain channel if needed
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			fmt.Println("Scheduler stopping")
+			return
 
-			// Sleep for the computed duration
-			time.Sleep(dur)
+		case upd := <-s.state:
+			// update schedule parameters
+			span = upd.span
+			interval = upd.interval
+			dur = computeDuration(span, interval)
 
-			// Do the work
+			// interrupt current wait and restart with new duration
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(dur)
+			fmt.Println("Schedule updated to:", span, interval)
+
+		case <-timer.C:
+			// time to fetch data
 			data := utils.GetServiceData()
 			currData.Set(data)
 			fmt.Println("Scheduler fetched service data successfully")
+
+			// schedule next run based on the *current* span/interval
+			dur = computeDuration(span, interval)
+			timer.Reset(dur)
 		}
-	}()
+	}
 }
 
-// UpdateParameters changes the schedule.
-func UpdateParameters(span int, interval string) bool {
+// TODO: Add get handler in scheduler to copy current channel state to get on frontend
 
-	if span < 1 ||
-		span > 60 {
+func (s *Scheduler) Update(span int, interval string) bool {
+	if span < 1 || span > 60 {
 		return false
 	}
 
@@ -78,23 +108,14 @@ func UpdateParameters(span int, interval string) bool {
 		return false
 	}
 
-	schedule.mu.Lock()
-	defer schedule.mu.Unlock()
+	s.state <- scheduleState{
+		span:     span,
+		interval: interval,
+	}
 
-	schedule.span = span
-	schedule.interval = interval
-
-	fmt.Println("Schedule updated to:", span, interval)
 	return true
 }
 
-// GetParameters returns a copy of the current parameters.
-func GetParameters() utils.ParamtersData {
-	schedule.mu.RLock()
-	defer schedule.mu.RUnlock()
-
-	return utils.ParamtersData{
-		Span:     schedule.span,
-		Interval: schedule.interval,
-	}
+func (s *Scheduler) Stop() {
+	close(s.stop)
 }
