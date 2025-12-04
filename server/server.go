@@ -84,6 +84,11 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 		}
 	case "GET":
 		// Add Get case in scheduler
+		w.Header().Add("Content-Type", "application/json")
+		var state scheduler.ScheduleState = scd.Get()
+		if _, err := w.Write([]byte("{ \"timespan\":" + fmt.Sprint(state.Span) +", \"timeInterval\": \"" + state.Interval + "\" }")); err != nil {
+			panic(err)
+		}
 	default:
 		http.Error(w, "Invalid API Request", http.StatusBadRequest)
 		return
