@@ -7,12 +7,15 @@ import (
 	"goUp/utils"
 	"io/fs"
 	"net/http"
-	"os"
+	"embed"
 )
 
 var svcData *[]utils.ServiceData
 var scd *scheduler.Scheduler
-var rootFs fs.FS = os.DirFS("server/static")
+
+//go:embed static/index.html static/index.js static/styles.css static/goUp.png
+var content embed.FS
+var rootFs fs.FS = content
 
 // Client HTML server
 func Root(w http.ResponseWriter, req *http.Request) {
@@ -21,15 +24,15 @@ func Root(w http.ResponseWriter, req *http.Request) {
 
 	switch path {
 	case "/":
-		path = "index.html"
+		path = "static/index.html"
 	case "/index.js":
-		path = "index.js"
+		path = "static/index.js"
 	case "/favicon.ico":
-		path = "goUp.png"
+		path = "static/goUp.png"
 	case "/goUp.png":
-		path = "goUp.png"
+		path = "static/goUp.png"
 	case "/styles.css":
-		path = "styles.css"
+		path = "static/styles.css"
 	default:
 		http.NotFound(w, req)
 		return
