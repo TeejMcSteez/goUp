@@ -58,8 +58,7 @@ body {
   max-width: 1000px;
   padding: 1rem 1.5rem 3rem;
 
-  display: flex;
-  flex-direction: row;
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.25rem;
 }
