@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"database/sql"
 	"fmt"
 	"goUp/utils"
 	"strings"
@@ -36,20 +37,20 @@ func computeDuration(Span int, Interval string) time.Duration {
 		panic("Invalid Interval (expected seconds/minutes/hours)")
 	}
 }
-
-func NewScheduler(currData *utils.SharedData, initialSpan int, initialInterval string) *Scheduler {
+// TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
+func NewScheduler(currData *utils.SharedData, db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
 	s := &Scheduler{
 		state: make(chan ScheduleState),
 		get: make(chan GetState),
 		stop:  make(chan struct{}),
 	}
 
-	go s.StartScheduler(currData, initialSpan, initialInterval)
+	go s.StartScheduler(currData, db, initialSpan, initialInterval)
 
 	return s
 }
-
-func (s *Scheduler) StartScheduler(currData *utils.SharedData, Span int, Interval string) {
+// TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
+func (s *Scheduler) StartScheduler(currData *utils.SharedData, db *sql.DB, Span int, Interval string) {
 	fmt.Println("Starting service data scheduler")
 
 	dur := computeDuration(Span, Interval)
@@ -65,7 +66,7 @@ func (s *Scheduler) StartScheduler(currData *utils.SharedData, Span int, Interva
 				default:
 				}
 			}
-			fmt.Println("Scheduler stopping")
+			fmt.Println("Scheduler stopped")
 			return
 
 		case upd := <-s.state:
@@ -88,7 +89,9 @@ func (s *Scheduler) StartScheduler(currData *utils.SharedData, Span int, Interva
 		case <-timer.C:
 			// time to fetch data
 			data := utils.GetServiceData()
-			currData.Set(data)
+			for _, d := range data {
+				utils.InsertData(db, d)
+			}
 			fmt.Println("Scheduler fetched service data successfully")
 
 			// schedule next run based on the *current* Span/Interval
