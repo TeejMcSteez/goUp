@@ -5,33 +5,50 @@ import (
 	"goUp/scheduler"
 	"goUp/server"
 	"goUp/utils"
-
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	// Get current service data before full launch
-	svcData := utils.GetServiceData()
 	// Create blank data store
 	db := utils.InitDB()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("error closing db: %s", err)
+		}
+		fmt.Println("Database connection closed")
+	}()
+
+	// Get current service data before full launch
+	svcData := utils.GetServiceData()
 	// Adds recently fetched data to the database
 	for data := range svcData {
 		utils.InsertData(db, svcData[data])
 	}
-	// For now keep in memory store but moving toward db only store
-	// Keeping it because I will also need to re-write logic of scheduler to insert data . . .
-	// instead of using shared in-memory data
-	dataStore := utils.NewStore()
-	dataStore.Set(svcData)
+
 	// Starts scheduler
-	sch := scheduler.NewScheduler(dataStore, 30, "seconds")
+	sch := scheduler.NewScheduler(nil, db, 30, "seconds")
 	defer sch.Stop()
+	
 
-	// Starts http server
-	ret, err := server.Start(&svcData, sch)
-	if err != nil {
-		panic(err)
-	} else {
-		fmt.Println(ret)
-	}
+	// Channel to listen for OS signals
+	// listening for SIGINT (Ctrl+C) and SIGTERM
+	// A buffered channel is used to avoid missing signals
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
+	// Starts http server in a go routine
+	go func() {
+		fmt.Println("starting server on port 8080")
+		if err := server.Start(db, sch); err != nil {
+			log.Fatalf("server failed to start: %v", err)
+		}
+		fmt.Println("Server started")
+	}()
+
+	// Block until a signal is received
+	sig := <-shutdown
+	log.Printf("caught signal: %v, starting graceful shutdown", sig)
 }
