@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"goUp/scheduler"
@@ -10,7 +11,7 @@ import (
 	"embed"
 )
 
-var svcData *[]utils.ServiceData
+var db *sql.DB
 var scd *scheduler.Scheduler
 
 //go:embed static/index.html static/index.js static/styles.css static/goUp.png
@@ -43,7 +44,7 @@ func Root(w http.ResponseWriter, req *http.Request) {
 
 // Basic API server, returns current service data
 func Api(w http.ResponseWriter, req *http.Request) {
-	data := *svcData
+	data := utils.GetRecentData(db)
 	jsonSvcData := make([]utils.ServiceData, 0, len(data))
 	for i := range data {
 		jsonSvcData = append(jsonSvcData, utils.ServiceData{
@@ -124,8 +125,8 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Starts server with all handler functions
-func Start(svd *[]utils.ServiceData, sch *scheduler.Scheduler) (string, error) {
-	svcData = svd
+func Start(database *sql.DB, sch *scheduler.Scheduler) error {
+	db = database
 	scd = sch
 	http.HandleFunc("/", Root)
 	http.HandleFunc("/api", Api)
@@ -133,8 +134,8 @@ func Start(svd *[]utils.ServiceData, sch *scheduler.Scheduler) (string, error) {
 	http.HandleFunc("/api/status", StatusApi)
 	fmt.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
-		panic(err)
+		return err
 	}
 
-	return "Started", nil
+	return nil
 }
