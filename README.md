@@ -2,6 +2,8 @@
 
 ***Under-Development!***
 
+**[Todo](TODO.md)**
+
 Basic server monitor with HTTP web display and API routes, future implementation will also monitor uptime, response time, etc. 
 
 Currently built to learn Go as well as some other protocols (MQTT currently) and technologies and it's something I will genuinely use for my homelab services. 
@@ -45,4 +47,3 @@ triggers:
   mqtt_user: "USER"
   mqtt_key: "PASSWORD"
 ```
-
