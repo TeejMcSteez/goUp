@@ -10,26 +10,11 @@ Currently built to learn Go as well as some other protocols (MQTT currently) and
 
 ![Example Image](.github/image.png)
 
-## Triggers
-
-### MQTT Trigger
-
-Client ID: goUp MQTT
-State Topic: goUp status
-
-Username and password credentials will only be used if they are provided in services.yml otherwise it will attempt a basic un-authorized tcp connection.
-
-Will publish to the broker specified under the "goUp status" topic
-
 ## Example services.yml
 
 Services provide the name and url of the service to monitor currently just makes a basic HTTP request and make sure it responds with 200.
 
 Triggers will provide information and credentials for managing triggers fired when a scrape happens to tell the user about a failed server(s). 
-
-### Triggers
-
-Currently only MQTT is setup for my Home Assistant instance but if viable would wish to add more such as Email, Telegram, etc. but that is more on the integration than logic side.
 
 ### Example
 
@@ -47,3 +32,30 @@ triggers:
   mqtt_user: "USER"
   mqtt_key: "PASSWORD"
 ```
+
+## Storage
+
+Uses SQLite with Go [database/sql](https://pkg.go.dev/database/sql) package and https://github.com/mattn/go-sqlite3 driver 
+
+Schema: 
+
+```sql
+"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+"service_name" TEXT,
+"service_HTTP_response" TEXT,
+"service_API_response" TEXT,
+"service_response_time" TEXT
+```
+
+## Triggers
+
+### MQTT Trigger
+
+Client ID: goUp MQTT
+State Topic: goUp status
+
+Username and password credentials will only be used if they are provided in services.yml otherwise it will attempt a basic un-authorized tcp connection.
+
+Will publish to the broker specified under the "goUp status" topic
+
+Currently only MQTT is setup for my Home Assistant instance but if viable would wish to add more such as Email, Telegram, etc. but that is more on the integration than logic side.
