@@ -108,7 +108,11 @@ func FireWebhook(data []ServiceData) {
 			log.Printf("Error sending webhook: %v\n", err)
 			return
 		}
-		defer res.Body.Close()
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				fmt.Printf("Error closing webhook request: %v", err)
+			}
+		}()
 
 		fmt.Printf("Webhook sent, status: %s\n", res.Status)		
 	
