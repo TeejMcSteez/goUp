@@ -4,3 +4,4 @@ services.yml
 *.exe
 *.db
 *.db-journal
+dist
