@@ -20,7 +20,7 @@ type GetState struct {
 
 type Scheduler struct {
 	state chan ScheduleState
-	get chan GetState
+	get   chan GetState
 	stop  chan struct{}
 }
 
@@ -37,11 +37,12 @@ func computeDuration(Span int, Interval string) time.Duration {
 		panic("Invalid Interval (expected seconds/minutes/hours)")
 	}
 }
+
 // TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
 func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
 	s := &Scheduler{
 		state: make(chan ScheduleState),
-		get: make(chan GetState),
+		get:   make(chan GetState),
 		stop:  make(chan struct{}),
 	}
 
@@ -49,6 +50,7 @@ func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Schedule
 
 	return s
 }
+
 // TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	fmt.Println("Starting service data scheduler")
@@ -84,7 +86,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			}
 			timer.Reset(dur)
 			fmt.Println("Schedule updated to:", Span, Interval)
-		case req := <- s.get:
+		case req := <-s.get:
 			req.res <- ScheduleState{Span: Span, Interval: Interval}
 		case <-timer.C:
 			// time to fetch data
