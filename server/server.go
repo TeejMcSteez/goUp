@@ -90,7 +90,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	case "GET":
 		// Add Get case in scheduler
 		w.Header().Add("Content-Type", "application/json")
-		var state scheduler.ScheduleState = scd.Get()
+		state  := scd.Get()
 		if _, err := w.Write([]byte("{ \"timespan\":" + fmt.Sprint(state.Span) +", \"timeInterval\": \"" + state.Interval + "\" }")); err != nil {
 			panic(err)
 		}
@@ -131,7 +131,7 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
-		var endpoints []utils.Service = utils.GetServiceEndpoints()
+		 endpoints := utils.GetServiceEndpoints()
 		var avgData []utils.AverageData
 		for idx := range endpoints {
 			endpointName := endpoints[idx].URL

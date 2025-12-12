@@ -37,7 +37,11 @@ func InsertData(db *sql.DB, sd ServiceData) {
 		log.Fatal(err)
 	}
 
-	defer statement.Close()
+	defer func() {
+		if err := statement.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime)
 	if err != nil {
@@ -52,7 +56,11 @@ func GetData(db *sql.DB) []ServiceData {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer row.Close()
+	defer func() {
+		if err := row.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	for row.Next() {
 		var id int
@@ -77,7 +85,11 @@ func GetRecentData(db *sql.DB) []ServiceData {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer row.Close()
+	defer func() {
+		if err := row.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	for row.Next() {
 		var id int
@@ -103,7 +115,11 @@ func GetDataForService(db *sql.DB, name string) []ServiceData {
 		log.Fatal(err)
 	}
 
-	defer row.Close()
+	defer func() {
+		if err := row.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 	for row.Next() {
 		var id int
 		var s ServiceData

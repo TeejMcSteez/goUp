@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// Starts scheduler
-	sch := scheduler.NewScheduler(nil, db, 30, "seconds")
+	sch := scheduler.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
 	
 

@@ -38,19 +38,19 @@ func computeDuration(Span int, Interval string) time.Duration {
 	}
 }
 // TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
-func NewScheduler(currData *utils.SharedData, db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
+func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
 	s := &Scheduler{
 		state: make(chan ScheduleState),
 		get: make(chan GetState),
 		stop:  make(chan struct{}),
 	}
 
-	go s.StartScheduler(currData, db, initialSpan, initialInterval)
+	go s.StartScheduler(db, initialSpan, initialInterval)
 
 	return s
 }
 // TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
-func (s *Scheduler) StartScheduler(currData *utils.SharedData, db *sql.DB, Span int, Interval string) {
+func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	fmt.Println("Starting service data scheduler")
 
 	dur := computeDuration(Span, Interval)

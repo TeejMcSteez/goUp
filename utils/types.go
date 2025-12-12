@@ -38,12 +38,6 @@ type ServiceData struct {
 	ServiceResponseTime string `json:"response_time"`
 }
 
-// Shared service data struct
-type SharedData struct {
-	mu   sync.RWMutex
-	data []ServiceData
-}
-
 // Shared paramters used in scheduler
 type ScheduleParameters struct {
 	Span     *int
