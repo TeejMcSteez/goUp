@@ -35,6 +35,7 @@ type ServiceData struct {
 	ServiceName         string `json:"name"`
 	ServiceHTTPResponse string `json:"response"`
 	ServiceAPIResponse  string `json:"data"`
+	ServiceResponseTime string `json:"response_time"`
 }
 
 // Shared service data struct

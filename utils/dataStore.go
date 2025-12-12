@@ -17,8 +17,10 @@ func InitDB() *sql.DB {
 		"id" INTEGER PRIMARY KEY AUTOINCREMENT,
 		"service_name" TEXT,
 		"service_HTTP_response" TEXT,
-		"service_API_response" TEXT
+		"service_API_response" TEXT,
+		"service_response_time" TEXT
 	);`
+
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
 		log.Fatal(err)
@@ -29,7 +31,7 @@ func InitDB() *sql.DB {
 }
 
 func InsertData(db *sql.DB, sd ServiceData) {
-	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response) VALUES (?, ?, ?)`
+	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time) VALUES (?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +39,7 @@ func InsertData(db *sql.DB, sd ServiceData) {
 
 	defer statement.Close()
 
-	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse)
+	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +48,7 @@ func InsertData(db *sql.DB, sd ServiceData) {
 func GetData(db *sql.DB) []ServiceData {
 	sd := []ServiceData{}
 
-	row, err := db.Query("SELECT id, service_name, service_HTTP_response, service_API_response FROM service_data;")
+	row, err := db.Query("SELECT * FROM service_data;")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,14 +56,12 @@ func GetData(db *sql.DB) []ServiceData {
 
 	for row.Next() {
 		var id int
-		var svc_name string
-		var svc_http_res string
-		var svc_api_res string
-		err = row.Scan(&id, &svc_name, &svc_http_res, &svc_api_res)
+		var s ServiceData
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
 		if err != nil {
 			log.Fatal(err)
 		}
-		sd = append(sd, ServiceData{ServiceName: svc_name, ServiceHTTPResponse: svc_http_res, ServiceAPIResponse: svc_api_res})
+		sd = append(sd, ServiceData{ServiceName: s.ServiceName, ServiceHTTPResponse: s.ServiceHTTPResponse, ServiceAPIResponse: s.ServiceAPIResponse, ServiceResponseTime: s.ServiceResponseTime})
 	}
 
 	return sd
@@ -81,14 +81,13 @@ func GetRecentData(db *sql.DB) []ServiceData {
 
 	for row.Next() {
 		var id int
-		var svc_name string
-		var svc_http_res string
-		var svc_api_res string
-		err = row.Scan(&id, &svc_name, &svc_http_res, &svc_api_res)
+		var s ServiceData
+		// Might implement a scanner for service data so I can just pass in struct
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
 		if err != nil {
 			log.Fatal(err)
 		}
-		sd = append(sd, ServiceData{ServiceName: svc_name, ServiceHTTPResponse: svc_http_res, ServiceAPIResponse: svc_api_res})
+		sd = append(sd, ServiceData{ServiceName: s.ServiceName, ServiceHTTPResponse: s.ServiceHTTPResponse, ServiceAPIResponse: s.ServiceAPIResponse, ServiceResponseTime: s.ServiceResponseTime})
 	}
 	return sd
 

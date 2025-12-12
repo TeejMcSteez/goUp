@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"time"
 )
 
 var mu sync.RWMutex
@@ -49,6 +50,7 @@ func GetServiceData() []ServiceData {
 
 	fmt.Println("Scanning services HTTP endpoints . . .")
 	for i, endpoint := range svcEndpoints.ServiceEndpoint {
+		start := time.Now()
 		res, err := http.Get(endpoint.URL)
 		if err != nil {
 			log.Printf("error fetching %s: %v %s", endpoint.URL, err, "❌")
@@ -56,6 +58,8 @@ func GetServiceData() []ServiceData {
 			sd.ServiceName = endpoint.URL
 			sd.ServiceHTTPResponse = err.Error()
 			sd.ServiceAPIResponse = ""
+			elapsed := time.Since(start)
+			sd.ServiceResponseTime = elapsed.String()
 			svcData = append(svcData, sd)
 			continue
 		}
@@ -103,6 +107,9 @@ func GetServiceData() []ServiceData {
 			}
 			sd.ServiceAPIResponse = string(apiBody)
 		}
+		elapsed := time.Since(start)
+		fmt.Printf("Request took: %v", elapsed)
+		sd.ServiceResponseTime = elapsed.String()
 		svcData = append(svcData, sd)
 
 	}
