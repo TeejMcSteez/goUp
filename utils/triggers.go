@@ -1,7 +1,12 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -9,16 +14,26 @@ var triggers *Trigger
 
 // Copies Trigger config from configuration to use in triggers
 func SetupTrigger(cfg *Config) {
-
 	triggers = &cfg.Triggers
+	if triggers.Mqtt_broker == nil {
+		fmt.Println("No MQTT Broker Found in Configuration")
+	}
+	if triggers.Webhook_url == nil {
+		fmt.Println("No Webhook Found in Configuration")
+	}
 
 	fmt.Println("Triggers setup")
 }
 
 // Takes service data and fires all triggers
 func Fire(data []ServiceData) {
-	if triggers.Mqtt_broker != nil {
-		FireMqtt(data)
+	if triggers != nil {
+		if triggers.Mqtt_broker != nil {
+			FireMqtt(data)
+		}
+		if triggers.Webhook_url != nil {
+			FireWebhook(data)
+		}
 	}
 }
 
@@ -67,5 +82,37 @@ func FireMqtt(data []ServiceData) {
 		client.Disconnect(250)
 	} else {
 		fmt.Println("No MQTT broker setup")
+	}
+}
+
+func FireWebhook(data []ServiceData) {
+	if triggers.Webhook_url != nil {
+		jsonSvcData, err := json.Marshal(data)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		fmt.Println("Firing webhook")
+
+		req, err := http.NewRequest("POST", *triggers.Webhook_url, bytes.NewBuffer(jsonSvcData))	
+		if err != nil {
+			log.Printf("Error creating webhook request: %v\n", err)
+			return
+		}	
+		req.Header.Add("Content-Type", "application/json")
+		if triggers.Webhook_key != nil {
+			req.Header.Add("Authorization", "Basic " + *triggers.Webhook_key)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Printf("Error sending webhook: %v\n", err)
+			return
+		}
+		defer res.Body.Close()
+
+		fmt.Printf("Webhook sent, status: %s\n", res.Status)		
+	
+	} else {
+		fmt.Println("No webhook setup")
 	}
 }

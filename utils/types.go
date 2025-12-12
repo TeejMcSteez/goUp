@@ -15,6 +15,8 @@ type Trigger struct {
 	Mqtt_broker   *string `yaml:"mqtt_broker"`
 	Mqtt_username *string `yaml:"mqtt_user"`
 	Mqtt_key      *string `yaml:"mqtt_key"`
+	Webhook_url *string `yaml:"webhook_url"`
+	Webhook_key *string `yaml:"webhook_key"`
 }
 
 // Data for service endponts
