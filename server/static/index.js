@@ -167,7 +167,11 @@ async function getUptimeAverages() {
         xLabels.push(json[i].name)
         yLabels.push(json[i].average)
     }
-
+    /**
+     * Chart is imported from https://cdn.jsdelivr.net/npm/chart.js CDN
+     * Used to display average information in chart form
+     */
+    /* global Chart */
     new Chart(ctx, {
         type: 'bar',
         data: {
