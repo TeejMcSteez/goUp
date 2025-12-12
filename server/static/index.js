@@ -55,6 +55,7 @@ async function init() {
     }
 
     await getSchedule();
+    await getUptimeAverages()
     
 }
 
@@ -144,4 +145,51 @@ async function getSchedule() {
     timespanEl.addEventListener('input', () => {
         document.getElementById("sliderValue").innerText = `Slider Value: ${timespanEl.value}`;
     })
+}
+
+async function getUptimeAverages() {
+    const ctx = document.getElementById('averageChart')
+
+    const res = await fetch("/api/uptime", {
+        method: "GET"
+    });
+
+    if (!res.ok) {
+        console.log(`Error fetching data: ${res.statusText}`)
+    }
+
+    const json = await res.json()
+    
+    let xLabels = []
+    let yLabels = []
+
+    for (let i = 0; i < json.length; i++) {
+        xLabels.push(json[i].name)
+        yLabels.push(json[i].average)
+    }
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+        labels: xLabels, // X-axis labels
+        datasets: [{
+            label: 'Total Uptime Average',
+            data: yLabels, // Y-axis data
+            backgroundColor: [
+            'red',
+            'blue',
+            'black',
+            'white'
+            ],
+            borderWidth: 1
+        }]
+        },
+        options: {
+        scales: {
+        y: { beginAtZero: true }
+        }
+    }
+    }
+    );
+
 }

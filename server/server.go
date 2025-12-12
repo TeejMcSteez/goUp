@@ -125,6 +125,28 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func UptimeAPI(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "POST":
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	case "GET":
+		w.Header().Add("Content-Type", "application/json")
+		var endpoints []utils.Service = utils.GetServiceEndpoints()
+		var avgData []utils.AverageData
+		for idx := range endpoints {
+			endpointName := endpoints[idx].URL
+			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverages(db, endpointName)})
+		}
+		if err := json.NewEncoder(w).Encode(avgData); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Bad request", http.StatusInternalServerError)
+		return
+	}
+}
+
 // Starts server with all handler functions
 func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	db = database
@@ -133,6 +155,7 @@ func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	http.HandleFunc("/api", Api)
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
+	http.HandleFunc("/api/uptime", UptimeAPI)
 	fmt.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err

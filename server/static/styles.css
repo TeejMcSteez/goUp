@@ -202,3 +202,9 @@ input[type="range"]::-ms-thumb {
   display: flex;
   flex-direction: column;
 }
+
+#uptimeChart {
+  display: flex;
+  margin: 5rem;
+  padding: 2rem;
+}

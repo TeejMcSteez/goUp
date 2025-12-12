@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="index.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="styles.css">
   <title>GoUp</title>
 </head>
@@ -34,6 +35,11 @@
     <h1>Current Services</h1>
     <div id="cards">
       <!-- Service Data Cards Go Here -->
+    </div>
+    <h1>Uptime Data</h1>
+    <div id="uptimeChart">
+      <canvas id="averageChart" style="width: 100%;max-width: 1200px;"></canvas>
+      <!-- Uptime averages go here -->
     </div>
   </div>
 
