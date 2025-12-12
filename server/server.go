@@ -51,6 +51,7 @@ func Api(w http.ResponseWriter, req *http.Request) {
 			ServiceName:         data[i].ServiceName,
 			ServiceHTTPResponse: data[i].ServiceHTTPResponse,
 			ServiceAPIResponse:  data[i].ServiceAPIResponse,
+			ServiceResponseTime: data[i].ServiceResponseTime,
 		})
 	}
 
