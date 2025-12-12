@@ -2,13 +2,13 @@ package server
 
 import (
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"goUp/scheduler"
 	"goUp/utils"
 	"io/fs"
 	"net/http"
-	"embed"
 )
 
 var db *sql.DB
@@ -90,8 +90,8 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	case "GET":
 		// Add Get case in scheduler
 		w.Header().Add("Content-Type", "application/json")
-		state  := scd.Get()
-		if _, err := w.Write([]byte("{ \"timespan\":" + fmt.Sprint(state.Span) +", \"timeInterval\": \"" + state.Interval + "\" }")); err != nil {
+		state := scd.Get()
+		if _, err := w.Write([]byte("{ \"timespan\":" + fmt.Sprint(state.Span) + ", \"timeInterval\": \"" + state.Interval + "\" }")); err != nil {
 			panic(err)
 		}
 	default:
@@ -131,7 +131,7 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
-		 endpoints := utils.GetServiceEndpoints()
+		endpoints := utils.GetServiceEndpoints()
 		var avgData []utils.AverageData
 		for idx := range endpoints {
 			endpointName := endpoints[idx].URL

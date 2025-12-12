@@ -94,14 +94,14 @@ func FireWebhook(data []ServiceData) {
 		}
 		fmt.Println("Firing webhook")
 
-		req, err := http.NewRequest("POST", *triggers.Webhook_url, bytes.NewBuffer(jsonSvcData))	
+		req, err := http.NewRequest("POST", *triggers.Webhook_url, bytes.NewBuffer(jsonSvcData))
 		if err != nil {
 			log.Printf("Error creating webhook request: %v\n", err)
 			return
-		}	
+		}
 		req.Header.Add("Content-Type", "application/json")
 		if triggers.Webhook_key != nil {
-			req.Header.Add("Authorization", "Basic " + *triggers.Webhook_key)
+			req.Header.Add("Authorization", "Basic "+*triggers.Webhook_key)
 		}
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -114,8 +114,8 @@ func FireWebhook(data []ServiceData) {
 			}
 		}()
 
-		fmt.Printf("Webhook sent, status: %s\n", res.Status)		
-	
+		fmt.Printf("Webhook sent, status: %s\n", res.Status)
+
 	} else {
 		fmt.Println("No webhook setup")
 	}

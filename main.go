@@ -31,7 +31,6 @@ func main() {
 	// Starts scheduler
 	sch := scheduler.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
-	
 
 	// Channel to listen for OS signals
 	// listening for SIGINT (Ctrl+C) and SIGTERM

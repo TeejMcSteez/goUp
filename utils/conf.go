@@ -3,8 +3,8 @@ package utils
 import (
 	"gopkg.in/yaml.v3"
 	"os"
-
 )
+
 /*
 Parses yml file for service information
 */
