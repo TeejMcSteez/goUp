@@ -61,7 +61,7 @@ func GetData(db *sql.DB) []ServiceData {
 		if err != nil {
 			log.Fatal(err)
 		}
-		sd = append(sd, ServiceData{ServiceName: s.ServiceName, ServiceHTTPResponse: s.ServiceHTTPResponse, ServiceAPIResponse: s.ServiceAPIResponse, ServiceResponseTime: s.ServiceResponseTime})
+		sd = append(sd, s)
 	}
 
 	return sd
@@ -87,8 +87,31 @@ func GetRecentData(db *sql.DB) []ServiceData {
 		if err != nil {
 			log.Fatal(err)
 		}
-		sd = append(sd, ServiceData{ServiceName: s.ServiceName, ServiceHTTPResponse: s.ServiceHTTPResponse, ServiceAPIResponse: s.ServiceAPIResponse, ServiceResponseTime: s.ServiceResponseTime})
+		sd = append(sd, s)
 	}
 	return sd
 
+}
+
+func GetDataForService(db *sql.DB, name string) []ServiceData {
+	sd := []ServiceData{}
+
+	statement := "SELECT * FROM service_data WHERE service_name = ? ORDER BY id DESC"
+
+	row, err := db.Query(statement, name)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer row.Close()
+	for row.Next() {
+		var id int
+		var s ServiceData
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
+		if err != nil {
+			log.Fatal(err)
+		}
+		sd = append(sd, s)
+	}
+	return sd
 }

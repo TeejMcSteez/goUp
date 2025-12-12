@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"database/sql"
 )
 
 // Takes in service data and checks for any bad responses
@@ -24,3 +25,16 @@ func Check(data []ServiceData) []ServiceData {
 	return ret
 }
 
+func GetUptimeAverages(db *sql.DB, name string) float64 {
+	data := GetDataForService(db, name)
+	var total float64 = 0
+	for idx := range data {
+		if (data[idx].ServiceHTTPResponse == "200") {
+			total += 1
+		}
+	}
+	if len(data) == 0 {
+		return 0.0
+	}
+	return total / float64(len(data))
+}

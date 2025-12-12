@@ -56,3 +56,8 @@ type ParamtersData struct {
 	Span     int    `json:"timespan"`
 	Interval string `json:"timeInterval"`
 }
+
+type AverageData struct {
+	Name string `json:"name"`
+	Average float64 `json:"average"`
+}
