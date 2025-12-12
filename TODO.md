@@ -16,7 +16,7 @@ This file outlines potential areas for improvement in the `goUp` project.
 - [ ] Add more notification triggers, such as:
     - [ ] Email notifications
     - [ ] Slack notifications
-    - [ ] Webhook notifications
+    - [x] Webhook notifications
 - [ ] Make the trigger system even more modular to allow users to easily add their own custom triggers.
 
 ## Error Handling #4
