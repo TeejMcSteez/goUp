@@ -4,12 +4,12 @@ This file outlines potential areas for improvement in the `goUp` project.
 
 ## Data Persistence #1
 - [x] Replace the in-memory data store with a database like SQLite or PostgreSQL to persist historical uptime data.
-- [ ] Uptime percentage calculations and long-term performance monitoring from database.
+- [x] Uptime percentage calculations and long-term performance monitoring from database.
 
 ## Frontend #2/3
 - [ ] Improve the user experience of the frontend
 - [ ] Add features like sorting, filtering, and searching for services.
-- [ ] Display historical uptime data for each service in a chart or graph.
+- [x] Display historical uptime data for each service in a chart or graph.
 - [ ] Consider adding a dark mode to the UI.
 
 ## Extensibility #2/3
