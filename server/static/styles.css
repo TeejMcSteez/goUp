@@ -1,210 +1,292 @@
 :root {
-  --slider-background: #ddd;
-  --slider-height: 8px;
-  --slider-br: 4px;
+  --background: #0a0a0a;
+  --surface: #1a1a1a;
+  --primary: #38bdf8; /* sky-400 */
+  --secondary: #a78bfa; /* violet-400 */
+  --text-primary: #f8fafc; /* slate-50 */
+  --text-secondary: #94a3b8; /* slate-400 */
+  --border: #27272a; /* zinc-800 */
+  --success: #22c55e; /* green-500 */
+  --danger: #ef4444; /* red-500 */
+
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 body {
   min-height: 100vh;
   width: 100vw;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e5e7eb;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--background);
   margin: 0;
   padding: 0;
-  background: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background: #0f172a;
+  padding: 2rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 #logoContainer {
   position: absolute;
-  top: 0;
-  left: 0;
-  padding: 1rem;
-  margin: 1rem;
+  top: 1rem;
+  left: 1rem;
 }
 
 #logo {
-  max-height: 150px;
-  max-width: auto;
+  height: 80px;
+  width: auto;
+  opacity: 0.8;
 }
 
 #heading {
-  max-width: 800px;
   text-align: center;
-  margin: 2rem 1rem 1rem;
+  margin: 4rem 0 3rem;
   padding: 1.5rem;
 }
 
-#heading h1 {
+h1, h2, h3, h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 2.5rem;
   margin-bottom: 0.5rem;
-  font-size: 2.25rem;
 }
 
-#heading p {
-  margin: 0;
-  color: #9ca3af;
+h2 {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 0;
 }
 
-/* Cards container */
+p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--secondary);
+  text-decoration: underline;
+}
+
+/* Cards */
 #cards {
   width: 100%;
-  max-width: 1000px;
-  padding: 1rem 1.5rem 3rem;
-
+  padding: 1rem 0 3rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
-/* Individual card */
 .card {
-  background: #111827;
-  border-radius: 0.9rem;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
-  border: 1px solid #1f2937;
-
+  background: var(--surface);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out,
-    border-color 0.15s ease-out, background 0.15s ease-out;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-/* Hover “pop” effect */
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  border-color: #38bdf8;
-  background: #020617;
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: var(--primary);
 }
 
-/* Service name */
-.svcName {
+.card .svcName {
   font-size: 1.1rem;
   font-weight: 600;
-  text-decoration: none;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.5rem;
 }
 
-/* HTTP status / extra info */
+.card p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.online {
+  background-color: var(--success);
+}
+
+.status-indicator.offline {
+  background-color: var(--danger);
+}
+
 .svcHttpRes {
   font-size: 0.9rem;
-  text-decoration: solid;
-  color: #9ca3af;
+  color: var(--text-secondary);
 }
 
 .svcData {
-  background-color: #7589b9;
+  background-color: var(--background);
   padding: 1rem;
-  margin: 1rem;
-  border-radius: 1rem;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  word-wrap: break-word;
 }
 
-.svcData:hover {
-  border: 1px solid #ff0000;
-  background-color: #647bac;
-}
-
-/* Schedule Styles */
+/* Schedule Section */
 #schedule {
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
-#schedule input[type="range"] {
-  appearance: none;
-  width: 100%;
-  background: transparent;
-  cursor: pointer;
-  border: none;
-}
-
-#schedule input[type="range"]::-webkit-slider-runnable-track {
-  background-color: var(--slider-background);
-  height: var(--slider-height);
-  border-radius: var(--slider-br);
-}
-
-#schedule input[type="range"]::-moz-range-track {
-  background-color: var(--slider-background);
-  height: var(--slider-height);
-  border-radius: var(--slider-br);
-}
-
-#schedule input[type="range"]::-ms-track {
-  background: transparent;
-  border-color: transparent;
-  color: transparent;
-  height: var(--slider-height);
-}
-
-#schedule input[type="range"]::-ms-fill-lower {
-  background: var(--slider-background);
-  border-radius: var(--slider-br);
-}
-
-#schedule input[type="range"]::-ms-fill-upper {
-  background: var(--slider-background);
-  border-radius: var(--slider-br);
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  background: #ff0000;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  margin-top: -6px;
-  border: 1px solid #0056b3;
-}
-
-input[type="range"]::-moz-range-thumb {
-  background: #ff0000;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  border: 1px solid #0056b3;
-}
-
-input[type="range"]::-ms-thumb {
-  background: #ff0000;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  border: 1px solid #0056b3;
-}
-
-#schedule input[type="text"] {
-  margin: 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
-}
-
-#schedule button {
-  margin: .5rem;
-  padding: .5rem;
+#schedule h3 {
+  margin-top: 0;
+  font-size: 1.25rem;
 }
 
 #scheduleForm {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  gap: 1rem;
+  margin: 1rem 0;
 }
 
+#schedule label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+#schedule input[type="text"] {
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#schedule input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+#schedule button {
+  background-color: var(--primary);
+  color: var(--background);
+  font-weight: 600;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+}
+
+#schedule button:hover {
+  background-color: var(--secondary);
+}
+
+/* Range Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  cursor: pointer;
+  margin-top: -7px;
+  transition: background-color 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--secondary);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: var(--secondary);
+}
+
+#sliderValue {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Uptime Chart */
 #uptimeChart {
-  display: flex;
-  margin: 5rem;
+  width: 100%;
+  margin: 3rem 0;
   padding: 2rem;
+  background: var(--surface);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+#averageChart {
+    max-width: 100%;
+}
+
+/* Add a title for sections */
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 3rem 0 1rem;
+  color: var(--text-primary);
 }
