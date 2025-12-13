@@ -104,7 +104,7 @@ export default function Update() {
                         <option value="hours">Hours</option>
                     </select>
                 </form>
-                <button onClick={handleUpdateSchedule}>Update</button>
+                <button id="updateButton" onClick={handleUpdateSchedule}>Update</button>
             </div>
         </div>
     );

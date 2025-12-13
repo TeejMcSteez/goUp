@@ -7,7 +7,8 @@ function Card({ service }) {
     return (
         <div className="card">
             <h3 className="svcName">Server URL: <a href={name} target="_blank" rel="noopener noreferrer">{name}</a></h3>
-            <p>Status: {isSuccess ? "✅" : "❌"} in {response_time}</p>
+            <p>Status: {isSuccess ? "✅ Operational" : "❌ Error"}</p>
+            <p>Response Time: {response_time}</p>
             <p className="svcHttpRes">HTTP Response: {response}</p>
             <h2>API Response</h2>
             <div className="svcData">{data ? data : "No API setup in configuration"}</div>

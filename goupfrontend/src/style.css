@@ -67,3 +67,38 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   border-color: var(--primary);
 }
+
+.svcHttpRes {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+}
+
+#updateButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    text-align: center;
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+#selectTimespan {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+#uptimeChart {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    margin: 1rem;
+}
