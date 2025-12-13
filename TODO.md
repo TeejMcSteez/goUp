@@ -6,6 +6,7 @@ This file outlines potential areas for improvement in the `goUp` project.
 - [ ] Improve the user experience of the frontend
 - [ ] Add features like sorting, filtering, and searching for services.
 - [ ] Consider adding a dark mode to the UI.
+- [ ] Add quick look for down detection with a link to the service card that is down at the top of the screen maybe in nav or in another section
 
 ## Extensibility #2
 - [ ] Add more notification triggers, such as:
