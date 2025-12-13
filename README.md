@@ -31,11 +31,13 @@ triggers:
   mqtt_broker: "URL"
   mqtt_user: "USER"
   mqtt_key: "PASSWORD"
+  webhook_url: "https://yourwebhook.com/webhook-id"
+  webhook_key: "<Bearer Key (optional)>"
 ```
 
 ## Storage
 
-Uses SQLite with Go [database/sql](https://pkg.go.dev/database/sql) package and https://github.com/mattn/go-sqlite3 driver 
+Uses SQLite with Go [database/sql](https://pkg.go.dev/database/sql) package and https://github.com/mattn/go-sqlite3 driver as a dependency
 
 Schema: 
 
@@ -59,3 +61,9 @@ Username and password credentials will only be used if they are provided in serv
 Will publish to the broker specified under the "goUp status" topic
 
 Currently only MQTT is setup for my Home Assistant instance but if viable would wish to add more such as Email, Telegram, etc. but that is more on the integration than logic side.
+
+### Webhook Trigger
+
+Will send bad service data as JSON to the specified webhook URL
+
+It will use the  `Authorization: Bearer <key>` header if a webhook key is valid for basic authentication for webhook request's 
