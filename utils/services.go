@@ -108,7 +108,7 @@ func GetServiceData() []ServiceData {
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
-		fmt.Printf("Request took: %v", elapsed)
+		fmt.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
 		svcData = append(svcData, sd)
 
