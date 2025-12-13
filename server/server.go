@@ -14,33 +14,8 @@ import (
 var db *sql.DB
 var scd *scheduler.Scheduler
 
-//go:embed static/index.html static/index.js static/styles.css static/goUp.png
+//go:embed all:static
 var content embed.FS
-var rootFs fs.FS = content
-
-// Client HTML server
-func Root(w http.ResponseWriter, req *http.Request) {
-
-	path := req.URL.Path
-
-	switch path {
-	case "/":
-		path = "static/index.html"
-	case "/index.js":
-		path = "static/index.js"
-	case "/favicon.ico":
-		path = "static/goUp.png"
-	case "/goUp.png":
-		path = "static/goUp.png"
-	case "/styles.css":
-		path = "static/styles.css"
-	default:
-		http.NotFound(w, req)
-		return
-	}
-
-	http.ServeFileFS(w, req, rootFs, path)
-}
 
 // Basic API server, returns current service data
 func Api(w http.ResponseWriter, req *http.Request) {
@@ -151,7 +126,13 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	db = database
 	scd = sch
-	http.HandleFunc("/", Root)
+
+	staticFS, err := fs.Sub(content, "static")
+	if err != nil {
+		return err
+	}
+
+	http.Handle("/", http.FileServer(http.FS(staticFS)))
 	http.HandleFunc("/api", Api)
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
