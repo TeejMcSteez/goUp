@@ -7,7 +7,7 @@ on:
   push:
     branches: [ "master" ]
     tags:
-      - 'v*.*.*'
+      - 'V*.*.*'
   pull_request:
     branches: [ "master" ]
 
