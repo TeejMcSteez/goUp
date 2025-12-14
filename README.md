@@ -54,11 +54,11 @@ Schema:
 ### MQTT Trigger
 
 Client ID: goUp MQTT
-State Topic: goUp status
+State Topic: goup_status
 
 Username and password credentials will only be used if they are provided in services.yml otherwise it will attempt a basic un-authorized tcp connection.
 
-Will publish to the broker specified under the "goUp status" topic
+Will publish to the broker specified under the "goup_status" topic
 
 Currently only MQTT is setup for my Home Assistant instance but if viable would wish to add more such as Email, Telegram, etc. but that is more on the integration than logic side.
 
