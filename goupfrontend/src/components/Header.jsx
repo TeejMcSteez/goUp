@@ -1,11 +1,8 @@
 export default function Header() {
     return(
         <div id="heading">
-            <h1>Welcome to GoUp!</h1>
-            <h2>This is a simple software written in Go and HTML/CSS/JS</h2>
-            <p>It is (1) used to learn Go and (2) to monitor servers from a configuration file (services.yml)</p>
-            <p>It's queries a server and ensures the server respond's with a 200 with a pretty web UI to boot</p>
-            <p>This is a side project but like with all thing's if it's popular or useful enough it may develop into more</p>
+            <h1>GoUp</h1>
+            <h2>Monitor services below</h2>
         </div>
     );
 }
