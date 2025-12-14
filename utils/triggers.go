@@ -64,22 +64,22 @@ func FireMqtt(data []ServiceData) {
 			fmt.Println("Error pushing to MQTT client: " + token.Error().Error())
 		}
 
-		var message string
+		if jsonData, err := json.Marshal(data); err != nil {
+			fmt.Printf("Error formatting service data into JSON: %v\n", err)
+		} else {
+			// Keep retain to true to store last known good message
+			token := client.Publish("goup_status", 0, true, jsonData)
+			fmt.Printf("Published Message: %v\n", data)
 
-		for _, c := range data {
-			message += "Name: " + c.ServiceName + "\nHTTPResponse: " + c.ServiceHTTPResponse + "\nAPIResponse: " + c.ServiceAPIResponse
+			token.Done()
+			// TODO: If connection fails will panic out
+			if err := token.Error(); err != nil {
+				fmt.Printf("Error with MQTT token: %v\n", err)
+			}
+			fmt.Println("Disconnecting from MQTT broker, sent message complete")
 		}
-
-		token := client.Publish("goUp status", 0, false, message)
-		fmt.Println("Published Message: " + message)
-
-		token.Done()
-		// TODO: If connection fails will panic out
-		if err := token.Error(); err != nil {
-			panic(err)
-		}
-		fmt.Println("Disconnecting from MQTT broker, sent message complete")
-		client.Disconnect(250)
+		
+		client.Disconnect(500)
 	} else {
 		fmt.Println("No MQTT broker setup")
 	}
