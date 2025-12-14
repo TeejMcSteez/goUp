@@ -120,15 +120,8 @@ func GetServiceData() []ServiceData {
 	return svcData
 }
 
-func GetServiceFavicons() []FaviconData {
-	// Need to change to test different endpoints
-	// Some websites store there images at /assets/favicon.ico, /static/assets/favicon.png, etc.
-	// Request most common and keep URL that responds with 200 and (maybe) valid image data
-	var imageData []FaviconData
-	if len(svcEndpoints.ServiceEndpoint) == 0 {
-		fmt.Println("No service endpoints found looking for config . . .")
-		Setup()
-	}
+func findValidFaviconEndpoints() []Service {
+	validServices := []Service{}
 
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
 		u, err := url.Parse(endpoint.URL)
@@ -137,8 +130,55 @@ func GetServiceFavicons() []FaviconData {
 			continue
 		}
 
+		assets := u.JoinPath("assets/favicon.ico")
+		static := u.JoinPath("static/assets/favicon.ico")
 		u = u.JoinPath("favicon.ico")
-		imageData = append(imageData, FaviconData{FaviconURL: u.String()})
+		
+		if res, err := http.Get(assets.String()); err != nil {
+			fmt.Printf("Error checking assets favicon endpoint: %v\n", err)
+		} else {
+			if res.StatusCode == 200 {
+				validServices = append(validServices, Service{URL: assets.String()})
+				continue
+			}
+		}
+
+		if res, err := http.Get(static.String()); err != nil {
+			fmt.Printf("Error checking static/assets favicon endpoint: %v\n", err)
+		} else {
+			if res.StatusCode == 200 {
+				validServices = append(validServices, Service{URL: static.String()})
+				continue
+			}
+		}
+
+		if res, err := http.Get(u.String()); err != nil {
+			fmt.Printf("Error checking basic favicon endpoint: %v\n", err)
+		} else {
+			if res.StatusCode == 200 {
+				validServices = append(validServices, Service{URL: u.String()})
+				continue
+			}
+		}
+	}
+
+	return validServices
+}
+
+func GetServiceFavicons() []FaviconData {
+	// Need to change to test different endpoints
+	// Some websites store there images at /assets/favicon.ico, /static/assets/favicon.png, etc.
+	// Request most common and keep URL that responds with 200 and (maybe) valid image data
+	var imageData []FaviconData
+	
+	validEndpoints := findValidFaviconEndpoints()
+
+	if len(validEndpoints) == 0 {
+		fmt.Println("No valid favicon endpoint found . . .")
+		return []FaviconData{}
+	}
+	for _, endpoint := range validEndpoints {
+		imageData = append(imageData, FaviconData{FaviconURL: endpoint.URL})
 	}
 
 	return imageData
@@ -156,9 +196,9 @@ func GetServiceEndpoints() []Service {
 }
 
 // Sets service endpoints (for later frontend use)
-func SetServiceEndpoints(svcs []Service) {
+func SetServiceEndpoints(validServices []Service) {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
-	svcEndpoints.ServiceEndpoint = svcs
+	svcEndpoints.ServiceEndpoint = validServices
 }
