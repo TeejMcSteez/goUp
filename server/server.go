@@ -122,6 +122,19 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func ImageAPI(w http.ResponseWriter, req *http.Request) {
+	imageData := utils.GetServiceFavicons()
+
+	imageJson, err := json.Marshal(imageData)
+	
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(imageJson)
+}	
+
 // Starts server with all handler functions
 func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	db = database
@@ -137,6 +150,7 @@ func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
 	http.HandleFunc("/api/uptime", UptimeAPI)
+	http.HandleFunc("/api/images", ImageAPI)
 	fmt.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err

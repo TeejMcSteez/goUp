@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"sync"
@@ -22,15 +23,17 @@ func Setup() {
 	fmt.Print("Loading Config . . .\n\n")
 	cfg, err := LoadConfig("services.yml")
 
-	fmt.Println("Setting up triggers")
-	SetupTrigger(cfg)
-
 	if err != nil {
 		panic(err)
 	}
+
 	if cfg.Services == nil {
 		panic("No services specified in the configuration file!")
 	}
+
+	fmt.Println("Setting up triggers")
+	SetupTrigger(cfg)
+
 	for name, svc := range cfg.Services {
 		if !slices.Contains(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL}) {
 			fmt.Println("Adding ", name, "to service endpoints")
@@ -115,6 +118,27 @@ func GetServiceData() []ServiceData {
 	}
 	Check(svcData)
 	return svcData
+}
+
+func GetServiceFavicons() []FaviconData {
+	var imageData []FaviconData
+	if len(svcEndpoints.ServiceEndpoint) == 0 {
+		fmt.Println("No service endpoints found looking for config . . .")
+		Setup()
+	}
+
+	for _, endpoint := range svcEndpoints.ServiceEndpoint {
+		u, err := url.Parse(endpoint.URL)
+		if err != nil {
+			fmt.Printf("Error parsing URL %s: %v\n", endpoint.URL, err)
+			continue
+		}
+
+		u = u.JoinPath("favicon.ico")
+		imageData = append(imageData, FaviconData{FaviconURL: u.String()})
+	}
+
+	return imageData
 }
 
 // Returns current service endpoints for fetching

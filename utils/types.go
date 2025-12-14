@@ -57,3 +57,7 @@ type AverageData struct {
 	Name    string  `json:"name"`
 	Average float64 `json:"average"`
 }
+
+type FaviconData struct {
+	FaviconURL string `json:"url"`
+}
