@@ -1,12 +1,13 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Go Build and Release
 
 on:
   push:
     branches: [ "master" ]
     tags:
+      - 'v*.*.*'
       - 'V*.*.*'
   pull_request:
     branches: [ "master" ]
@@ -17,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
@@ -26,60 +26,91 @@ jobs:
       uses: pnpm/action-setup@v4
       with:
         version: '9.x'
-
-    - name: Install Node Modules && Build static assets for client
+    - name: Install Node Modules && Build static assets
       run: cd goupfrontend && pnpm i && pnpm build
-
-    - name: Test Go Build Before Release
+    - name: Test build
       run: go build -v ./...
-
-    - name: Upload static assets for Release
+    - name: Upload static assets
       uses: actions/upload-artifact@v4
       with:
         name: static-assets
         path: server/static
 
   release:
+    name: Release Build
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-latest
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-latest-arm64
+          - goos: windows
+            goarch: amd64
+            runner: windows-latest
+          - goos: windows
+            goarch: arm64
+            runner: windows-latest-arm64
+    runs-on: ${{ matrix.runner }}
     steps:
-    - uses: actions/checkout@v4
-
+    - name: Checkout
+      uses: actions/checkout@v4
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.22.x'
-
     - name: Download static assets
       uses: actions/download-artifact@v4
       with:
         name: static-assets
         path: server/static
-
-    - name: Build release binaries
+    - name: Build release binary
+      shell: pwsh
       run: |
         mkdir release
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o release/goup-linux-amd64 .
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o release/goup-linux-arm64 .
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o release/goup-windows-amd64.exe .
-        GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o release/goup-windows-arm64.exe .
+        $ext = ""
+        if ("${{ runner.os }}" -eq "Windows") { $ext = ".exe" }
+        go build -ldflags="-s -w" -o "release/goup-${{ matrix.goos }}-${{ matrix.goarch }}${ext}" .
+    - name: Archive release binary (Linux)
+      if: runner.os == 'Linux'
+      run: tar -czvf release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C release goup-${{ matrix.goos }}-${{ matrix.goarch }}
+    - name: Archive release binary (Windows)
+      if: runner.os == 'Windows'
+      run: Compress-Archive -Path release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.exe -DestinationPath release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+    - name: Upload release artifact (Linux)
+      if: runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifact-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+    - name: Upload release artifact (Windows)
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifact-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.zip
 
-    - name: Archive release binaries
-      run: |
-        cd release
-        tar -czvf goup-linux-amd64.tar.gz goup-linux-amd64
-        tar -czvf goup-linux-arm64.tar.gz goup-linux-arm64
-        zip goup-windows-amd64.zip goup-windows-amd64.exe
-        zip goup-windows-arm64.zip goup-windows-arm64.exe
-
+  create-release:
+    name: Create Release
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download all release artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-artifacts
+        pattern: release-artifact-*
+        merge-multiple: true
+    - name: List downloaded files
+      run: ls -R release-artifacts
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: |
-          release/goup-linux-amd64.tar.gz
-          release/goup-linux-arm64.tar.gz
-          release/goup-windows-amd64.zip
-          release/goup-windows-arm64.zip
+        files: release-artifacts/*
