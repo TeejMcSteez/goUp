@@ -121,6 +121,9 @@ func GetServiceData() []ServiceData {
 }
 
 func GetServiceFavicons() []FaviconData {
+	// Need to change to test different endpoints
+	// Some websites store there images at /assets/favicon.ico, /static/assets/favicon.png, etc.
+	// Request most common and keep URL that responds with 200 and (maybe) valid image data
 	var imageData []FaviconData
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		fmt.Println("No service endpoints found looking for config . . .")
