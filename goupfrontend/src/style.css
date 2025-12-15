@@ -17,6 +17,22 @@ body {
     background: #0f172a;
 }
 
+#quickServices {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 1rem;
+    padding: 1rem;
+}
+
+#quickServicesCard {
+    text-decoration: none;
+    text-align: center;
+    font-size: large;
+}
+
 #schedule {
     display: flex;
     flex-direction: column;
