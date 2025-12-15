@@ -91,7 +91,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		case <-timer.C:
 			// time to fetch data
 			data := utils.GetServiceData()
-			for _, d := range data {
+			for _, d := range data.AllServices {
 				utils.InsertData(db, d)
 			}
 			fmt.Println("Scheduler fetched service data successfully")

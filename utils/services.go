@@ -22,15 +22,17 @@ func Setup() {
 	fmt.Print("Loading Config . . .\n\n")
 	cfg, err := LoadConfig("services.yml")
 
-	fmt.Println("Setting up triggers")
-	SetupTrigger(cfg)
-
 	if err != nil {
 		panic(err)
 	}
+
 	if cfg.Services == nil {
 		panic("No services specified in the configuration file!")
 	}
+
+	fmt.Println("Setting up triggers")
+	SetupTrigger(cfg)
+
 	for name, svc := range cfg.Services {
 		if !slices.Contains(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL}) {
 			fmt.Println("Adding ", name, "to service endpoints")
@@ -41,8 +43,8 @@ func Setup() {
 
 // Gets service data from endpoints
 // Also Checks the data before returning for any bad HTTP errors
-func GetServiceData() []ServiceData {
-	var svcData []ServiceData
+func GetServiceData() ServiceResponse {
+	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		fmt.Println("No service endpoints found looking for config . . .")
 		Setup()
@@ -60,7 +62,7 @@ func GetServiceData() []ServiceData {
 			sd.ServiceAPIResponse = ""
 			elapsed := time.Since(start)
 			sd.ServiceResponseTime = elapsed.String()
-			svcData = append(svcData, sd)
+			svcResponse.AllServices = append(svcResponse.AllServices, sd)
 			continue
 		}
 
@@ -91,7 +93,6 @@ func GetServiceData() []ServiceData {
 
 			if apiErr != nil {
 				fmt.Println("Api Response Error")
-				return svcData
 			}
 
 			defer func() {
@@ -103,18 +104,17 @@ func GetServiceData() []ServiceData {
 			apiBody, err := io.ReadAll(apiRes.Body)
 			if err != nil {
 				fmt.Println("Error reading response body")
-				return svcData
 			}
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
 		fmt.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
-		svcData = append(svcData, sd)
+		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
 	}
-	Check(svcData)
-	return svcData
+	svcResponse.DownServices = Check(svcResponse.AllServices)
+	return svcResponse
 }
 
 // Returns current service endpoints for fetching
@@ -129,9 +129,9 @@ func GetServiceEndpoints() []Service {
 }
 
 // Sets service endpoints (for later frontend use)
-func SetServiceEndpoints(svcs []Service) {
+func SetServiceEndpoints(validServices []Service) {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
-	svcEndpoints.ServiceEndpoint = svcs
+	svcEndpoints.ServiceEndpoint = validServices
 }

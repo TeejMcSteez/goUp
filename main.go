@@ -24,8 +24,8 @@ func main() {
 	// Get current service data before full launch
 	svcData := utils.GetServiceData()
 	// Adds recently fetched data to the database
-	for data := range svcData {
-		utils.InsertData(db, svcData[data])
+	for data := range svcData.AllServices {
+		utils.InsertData(db, svcData.AllServices[data])
 	}
 
 	// Starts scheduler
