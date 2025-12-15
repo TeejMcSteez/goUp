@@ -4,17 +4,18 @@
 
 **[Todo](TODO.md)**
 
-Basic server monitor with HTTP web display and API routes, future implementation will also monitor uptime, response time, etc. 
-
-Currently built to learn Go as well as some other protocols (MQTT currently) and technologies and it's something I will genuinely use for my homelab services. 
+Server monitor with HTTP web display and API routes for uptime, response time, status, and more! 
 
 ![Example Image](.github/image.png)
 
 ## Example services.yml
 
 Services provide the name and url of the service to monitor currently just makes a basic HTTP request and make sure it responds with 200.
+  - Future updates will include a configurable server response as well as retry mechanisms
 
-Triggers will provide information and credentials for managing triggers fired when a scrape happens to tell the user about a failed server(s). 
+Triggers will provide information and credentials for managing triggers fired when a scrape happens to tell the user or other servers about a failed server(s). 
+
+Current configurable triggers are listed below . . . 
 
 ### Example
 
