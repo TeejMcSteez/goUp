@@ -79,10 +79,15 @@ body {
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    width: 100%;
+    width: 80%;
     text-align: center;
     border-radius: 1rem;
     padding: 1rem;
+}
+
+#updateButton:hover {
+    border-color: var(--primary);
+    transform: translateY(-5px);
 }
 
 #selectTimespan {
@@ -90,12 +95,12 @@ body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    border-radius: 1rem;
-    padding: 1rem;
+    border-radius: .5rem;
+    padding: .5rem;
 }
 
 #uptimeChart {
-    width: 100%;
+    width: 80%;
     display: flex;
     align-items: center;
     justify-content: center;
