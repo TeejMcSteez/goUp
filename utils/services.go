@@ -43,8 +43,8 @@ func Setup() {
 
 // Gets service data from endpoints
 // Also Checks the data before returning for any bad HTTP errors
-func GetServiceData() []ServiceData {
-	var svcData []ServiceData
+func GetServiceData() ServiceResponse {
+	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		fmt.Println("No service endpoints found looking for config . . .")
 		Setup()
@@ -62,7 +62,7 @@ func GetServiceData() []ServiceData {
 			sd.ServiceAPIResponse = ""
 			elapsed := time.Since(start)
 			sd.ServiceResponseTime = elapsed.String()
-			svcData = append(svcData, sd)
+			svcResponse.AllServices = append(svcResponse.AllServices, sd)
 			continue
 		}
 
@@ -93,7 +93,6 @@ func GetServiceData() []ServiceData {
 
 			if apiErr != nil {
 				fmt.Println("Api Response Error")
-				return svcData
 			}
 
 			defer func() {
@@ -105,18 +104,17 @@ func GetServiceData() []ServiceData {
 			apiBody, err := io.ReadAll(apiRes.Body)
 			if err != nil {
 				fmt.Println("Error reading response body")
-				return svcData
 			}
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
 		fmt.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
-		svcData = append(svcData, sd)
+		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
 	}
-	Check(svcData)
-	return svcData
+	svcResponse.DownServices = Check(svcResponse.AllServices)
+	return svcResponse
 }
 
 // Returns current service endpoints for fetching
