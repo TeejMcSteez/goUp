@@ -3,18 +3,26 @@ package utils
 import (
 	"database/sql"
 	"fmt"
+	"slices"
 )
 
 // Takes in service data and checks for any bad responses
 // Upon bad responses will fire trigger events if any and return bad responses or nil
 func Check(data []ServiceData) []ServiceData {
-
 	fmt.Println("Checking service data for errors")
 
 	badRes := false
 	var ret []ServiceData
 	for _, el := range data {
-		if el.ServiceHTTPResponse != "200" {
+		var valid_responses []string
+
+		service_config, ok := Current_Config.Services[el.ServiceName]
+		if ok && service_config.Valid_Responses != nil && len(*service_config.Valid_Responses) > 0 {
+			valid_responses = *service_config.Valid_Responses
+		} else {
+			valid_responses = []string{"200"}
+		}
+		if !slices.Contains(valid_responses, el.ServiceHTTPResponse) {
 			badRes = true
 			ret = append(ret, el)
 		}

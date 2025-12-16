@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -13,6 +12,7 @@ import (
 
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
+var Current_Config *Config
 
 // Sets up service and trigger endpoints from configuration
 func Setup() {
@@ -30,13 +30,23 @@ func Setup() {
 		panic("No services specified in the configuration file!")
 	}
 
+	Current_Config = cfg
+	fmt.Println("Configuration setup finished")
 	fmt.Println("Setting up triggers")
 	SetupTrigger(cfg)
 
 	for name, svc := range cfg.Services {
-		if !slices.Contains(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL}) {
+		found := false
+		for _, es := range svcEndpoints.ServiceEndpoint {
+			if es.URL == svc.URL {
+				found = true
+				break
+			}
+		}
+		if !found {
 			fmt.Println("Adding ", name, "to service endpoints")
-			svcEndpoints.ServiceEndpoint = append(svcEndpoints.ServiceEndpoint, Service{URL: svc.URL, API_URL: svc.API_URL, API_KEY: svc.API_KEY})
+			svc.Name = name
+			svcEndpoints.ServiceEndpoint = append(svcEndpoints.ServiceEndpoint, svc)
 		}
 	}
 }
@@ -51,13 +61,13 @@ func GetServiceData() ServiceResponse {
 	}
 
 	fmt.Println("Scanning services HTTP endpoints . . .")
-	for i, endpoint := range svcEndpoints.ServiceEndpoint {
+	for _, endpoint := range svcEndpoints.ServiceEndpoint {
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
 		if err != nil {
 			log.Printf("error fetching %s: %v %s", endpoint.URL, err, "❌")
 			var sd ServiceData
-			sd.ServiceName = endpoint.URL
+			sd.ServiceName = endpoint.Name
 			sd.ServiceHTTPResponse = err.Error()
 			sd.ServiceAPIResponse = ""
 			elapsed := time.Since(start)
@@ -69,21 +79,22 @@ func GetServiceData() ServiceResponse {
 		resType := res.StatusCode
 
 		var sd ServiceData
-		sd.ServiceName = svcEndpoints.ServiceEndpoint[i].URL
+		sd.ServiceName = endpoint.Name
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)
 
-		if resType == 200 {
-			fmt.Println("Service ", svcEndpoints.ServiceEndpoint[i].URL, "responded with 200, Ok ️✅")
-		} else {
-			fmt.Println("response type was invalid: ", svcEndpoints.ServiceEndpoint[i], "->", resType, "❌")
-		}
-		if svcEndpoints.ServiceEndpoint[i].API_URL != nil {
+		// if resType == 200 {
+		// 	fmt.Println("Service ", svcEndpoints.ServiceEndpoint[i].URL, "responded with 200, Ok ️✅")
+		// } else {
+		// 	fmt.Println("response type was invalid: ", svcEndpoints.ServiceEndpoint[i], "->", resType, "❌")
+		// }
+
+		if endpoint.API_URL != nil {
 			apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
 			if err != nil {
 				panic(err)
 			}
 
-			if svcEndpoints.ServiceEndpoint[i].API_KEY != nil {
+			if endpoint.API_KEY != nil {
 				apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
 			}
 
@@ -108,7 +119,7 @@ func GetServiceData() ServiceResponse {
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
-		fmt.Printf("Request took: %v\n", elapsed)
+		// fmt.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
 		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
