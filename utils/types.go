@@ -21,9 +21,11 @@ type Trigger struct {
 
 // Data for service endponts
 type Service struct {
-	URL     string  `yaml:"url"`
-	API_URL *string `yaml:"api_url"`
-	API_KEY *string `yaml:"api_key"`
+	Name            string
+	URL             string    `yaml:"url"`
+	API_URL         *string   `yaml:"api_url"`
+	API_KEY         *string   `yaml:"api_key"`
+	Valid_Responses *[]string `yaml:"valid_responses"`
 }
 
 // Shared service endpoint struct
