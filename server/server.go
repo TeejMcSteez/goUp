@@ -89,7 +89,7 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
-		apiData := utils.GetServiceData()
+		apiData := utils.Check(utils.GetRecentData(db))
 		if err := json.NewEncoder(w).Encode(apiData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
