@@ -12,8 +12,8 @@ export default function QuickServices() {
                     throw new Error(`Server error: ${res.status}`);
                 }
                 const data = await res.json();
-                if (Array.isArray(data.downed_services)) {
-                    setQs(data.downed_services)
+                if (Array.isArray(data)) {
+                    setQs(data)
                 } else {
                     console.error(`Expected array from /api/status, got: ${data}`)
                 }
