@@ -94,6 +94,10 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			for _, d := range data.AllServices {
 				utils.InsertData(db, d)
 			}
+			checkedData := utils.Check(data.AllServices)
+			if len(checkedData) > 0 {
+				utils.Fire(checkedData)
+			}
 			fmt.Println("Scheduler fetched service data successfully")
 
 			// schedule next run based on the *current* Span/Interval
