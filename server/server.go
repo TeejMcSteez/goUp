@@ -109,8 +109,8 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		endpoints := utils.GetServiceEndpoints()
 		var avgData []utils.AverageData
 		for idx := range endpoints {
-			endpointName := endpoints[idx].URL
-			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverages(db, endpointName)})
+			endpointName := endpoints[idx].Name
+			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverage(db, endpointName)})
 		}
 		if err := json.NewEncoder(w).Encode(avgData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

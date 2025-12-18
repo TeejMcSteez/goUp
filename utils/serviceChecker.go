@@ -26,16 +26,13 @@ func Check(data []ServiceData) []ServiceData {
 	return ret
 }
 
-func GetUptimeAverages(db *sql.DB, name string) float64 {
+func GetUptimeAverage(db *sql.DB, name string) float64 {
 	data := GetDataForService(db, name)
-	var total float64 = 0
-	for idx := range data {
-		if data[idx].ServiceHTTPResponse == "200" {
-			total += 1
-		}
-	}
-	if len(data) == 0 {
+	numberDown := len(Check(data))
+	totalNumber := len(data)
+	if totalNumber == 0 {
 		return 0.0
 	}
-	return total / float64(len(data))
+	average := float64(numberDown) / float64(totalNumber)
+	return average
 }
