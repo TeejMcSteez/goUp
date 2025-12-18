@@ -29,10 +29,10 @@ func SetupTrigger(cfg *Config) {
 func Fire(data []ServiceData) {
 	if triggers != nil {
 		if triggers.Mqtt_broker != nil {
-			FireMqtt(data)
+			go FireMqtt(data)
 		}
 		if triggers.Webhook_url != nil {
-			FireWebhook(data)
+			go FireWebhook(data)
 		}
 	}
 }

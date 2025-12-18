@@ -39,7 +39,7 @@ export default function UptimeChart() {
                     setChartData({
                         labels,
                         datasets: [{
-                            label: 'Total Uptime Average',
+                            label: 'Total Failure Average',
                             data,
                             backgroundColor: [
                                 'rgba(255, 99, 132, 0.5)',
@@ -88,7 +88,7 @@ export default function UptimeChart() {
 
     return (
         <>
-            <h1>Uptime Data</h1>
+            <h1>Failure Graph</h1>
             <div id="uptimeChart">
                 <Bar 
                     data={chartData}

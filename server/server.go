@@ -89,7 +89,7 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
-		apiData := utils.GetServiceData()
+		apiData := utils.Check(utils.GetRecentData(db))
 		if err := json.NewEncoder(w).Encode(apiData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -109,8 +109,8 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		endpoints := utils.GetServiceEndpoints()
 		var avgData []utils.AverageData
 		for idx := range endpoints {
-			endpointName := endpoints[idx].URL
-			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverages(db, endpointName)})
+			endpointName := endpoints[idx].Name
+			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverage(db, endpointName)})
 		}
 		if err := json.NewEncoder(w).Encode(avgData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
