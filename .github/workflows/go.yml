@@ -27,7 +27,7 @@ jobs:
       with:
         version: '9.x'
     - name: Install Node Modules && Build static assets
-      run: cd goupfrontend && pnpm i && pnpm build
+      run: cd frontend && pnpm i && pnpm build
     - name: Test build
       run: go build -v ./...
     - name: Upload static assets
