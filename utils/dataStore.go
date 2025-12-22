@@ -3,12 +3,12 @@ package utils
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"log"
 )
 
 func InitDB() *sql.DB {
-	db, err := sql.Open("sqlite3", "./serviceData.db")
+	db, err := sql.Open("sqlite", "./serviceData.db")
 	if err != nil {
 		log.Fatal(err)
 	}
