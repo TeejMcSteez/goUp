@@ -19,6 +19,7 @@ function Card({ service }) {
 export default function Services() {
     const [services, setServices] = useState([]);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const getServiceData = async () => {
@@ -47,22 +48,41 @@ export default function Services() {
         return () => clearInterval(intervalId); // Cleanup on component unmount
     }, []);
 
-    if (error) {
-        return <div id="cards"><p>Error loading service data: {error}</p></div>;
-    }
+    const filteredServices = services.filter(service =>
+        service.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    if (services.length === 0) {
-        return <div id="cards"><div className="card"><p>No Service Data to Display</p></div></div>;
-    }
+    const renderCards = () => {
+        if (error) {
+            return <div className="card"><p>Error loading service data: {error}</p></div>;
+        }
+
+        if (services.length === 0) {
+            return <div className="card"><p>No Service Data to Display</p></div>;
+        }
+
+        if (filteredServices.length === 0) {
+            return <div className="card"><p>No services match your search.</p></div>;
+        }
+
+        return filteredServices.map((svc, index) => (
+            <Card key={index} service={svc} />
+        ));
+    };
 
     return (
-        <>
+        <div className="services-wrapper">
             <h1>Current Services</h1>
+            <input
+                type="text"
+                placeholder="Search services..."
+                className="search-bar"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
             <div id="cards">
-                {services.map((svc, index) => (
-                    <Card key={index} service={svc} />
-                ))}
+                {renderCards()}
             </div>
-        </>
+        </div>
     );
 }
