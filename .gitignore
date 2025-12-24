@@ -6,6 +6,8 @@ services.yml
 *.db
 *.db-journal
 dist
+*.db-shm
+*.db-wal
 
 # Logs
 logs
