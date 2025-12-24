@@ -38,7 +38,7 @@ triggers:
 
 ## Storage
 
-Uses SQLite with Go [database/sql](https://pkg.go.dev/database/sql) package and https://github.com/mattn/go-sqlite3 driver as a dependency
+Uses SQLite with Go [database/sql](https://pkg.go.dev/database/sql) package and [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) driver as a dependency
 
 Schema: 
 
