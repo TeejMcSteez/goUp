@@ -8,7 +8,8 @@ import (
 )
 
 func InitDB() *sql.DB {
-	db, err := sql.Open("sqlite", "./serviceData.db")
+	db, err := sql.Open("sqlite", "./serviceData.db?_pragma=journal_mode(WAL)")
+	db.SetMaxOpenConns(1)
 	if err != nil {
 		log.Fatal(err)
 	}
