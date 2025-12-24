@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"goUp/utils"
+	"log"
 	"strings"
 	"time"
 )
@@ -94,7 +95,11 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			for _, d := range data.AllServices {
 				utils.InsertData(db, d)
 			}
-			checkedData := utils.Check(data.AllServices)
+			checkedData, err := utils.Check(data.AllServices)
+			if err != nil {
+				log.Print("Received error from checking data in scheduler")
+				continue
+			}
 			if len(checkedData) > 0 {
 				utils.Fire(checkedData)
 			}

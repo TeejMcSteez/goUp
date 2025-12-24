@@ -19,7 +19,11 @@ var content embed.FS
 
 // Basic API server, returns current service data
 func Api(w http.ResponseWriter, req *http.Request) {
-	data := utils.GetRecentData(db)
+	data, err := utils.GetRecentData(db)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	jsonSvcData := make([]utils.ServiceData, 0, len(data))
 	for i := range data {
 		jsonSvcData = append(jsonSvcData, utils.ServiceData{
@@ -89,7 +93,20 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
-		apiData := utils.Check(utils.GetRecentData(db))
+
+		recData, err := utils.GetRecentData(db)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		apiData, err := utils.Check(recData)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		
 		if err := json.NewEncoder(w).Encode(apiData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -110,7 +127,12 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		var avgData []utils.AverageData
 		for idx := range endpoints {
 			endpointName := endpoints[idx].Name
-			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: utils.GetUptimeAverage(db, endpointName)})
+			upAvg, err := utils.GetUptimeAverage(db, endpointName)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: upAvg})
 		}
 		if err := json.NewEncoder(w).Encode(avgData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

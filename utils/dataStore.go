@@ -29,36 +29,38 @@ func InitDB() *sql.DB {
 	fmt.Println("Database and table ready for queries")
 	return db
 }
-
-func InsertData(db *sql.DB, sd ServiceData) {
+// Re-write to return error
+func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time) VALUES (?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	defer func() {
 		if err := statement.Close(); err != nil {
-			log.Fatal(err)
+			retErr = err
 		}
 	}()
 
 	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
-func GetData(db *sql.DB) []ServiceData {
+func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
 	row, err := db.Query("SELECT * FROM service_data;")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer func() {
 		if err := row.Close(); err != nil {
-			log.Fatal(err)
+			retErr = err
 		}
 	}()
 
@@ -67,15 +69,15 @@ func GetData(db *sql.DB) []ServiceData {
 		var s ServiceData
 		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		sd = append(sd, s)
 	}
 
-	return sd
+	return sd, retErr
 }
 
-func GetRecentData(db *sql.DB) []ServiceData {
+func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	numOfServices := len(GetServiceEndpoints())
 	sd := []ServiceData{}
 
@@ -83,11 +85,11 @@ func GetRecentData(db *sql.DB) []ServiceData {
 
 	row, err := db.Query(statement)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer func() {
 		if err := row.Close(); err != nil {
-			log.Fatal(err)
+			retErr = err
 		}
 	}()
 
@@ -97,27 +99,27 @@ func GetRecentData(db *sql.DB) []ServiceData {
 		// Might implement a scanner for service data so I can just pass in struct
 		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		sd = append(sd, s)
 	}
-	return sd
+	return sd, retErr
 
 }
 
-func GetDataForService(db *sql.DB, name string) []ServiceData {
+func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
 	statement := "SELECT * FROM service_data WHERE service_name = ? ORDER BY id DESC"
 
 	row, err := db.Query(statement, name)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	defer func() {
 		if err := row.Close(); err != nil {
-			log.Fatal(err)
+			retErr = err
 		}
 	}()
 	for row.Next() {
@@ -125,9 +127,9 @@ func GetDataForService(db *sql.DB, name string) []ServiceData {
 		var s ServiceData
 		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		sd = append(sd, s)
 	}
-	return sd
+	return sd, retErr
 }

@@ -124,7 +124,11 @@ func GetServiceData() ServiceResponse {
 		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
 	}
-	svcResponse.DownServices = Check(svcResponse.AllServices)
+	if s, err := Check(svcResponse.AllServices); err != nil {
+		log.Fatalf("Error occured while getting service data: %v", err)
+	} else {
+		svcResponse.DownServices = s
+	}
 	return svcResponse
 }
 

@@ -11,7 +11,11 @@ func TestServiceCheck(t *testing.T) {
 		{ServiceName: "test2", ServiceHTTPResponse: "303", ServiceAPIResponse: "", ServiceResponseTime: ""},
 	}
 
-	res := utils.Check(sd)
+	res, err := utils.Check(sd)
+
+	if err != nil {
+		t.Error("Error checking data")
+	}
 
 	if len(res) > 1 {
 		t.Error("Should only be one error")
