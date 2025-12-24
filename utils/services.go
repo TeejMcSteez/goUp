@@ -68,10 +68,9 @@ func GetServiceData() ServiceResponse {
 			log.Printf("error fetching %s: %v %s", endpoint.URL, err, "❌")
 			var sd ServiceData
 			sd.ServiceName = endpoint.Name
-			sd.ServiceHTTPResponse = err.Error()
+			sd.ServiceHTTPResponse = "Fetch Error, Check Logs"
 			sd.ServiceAPIResponse = ""
-			elapsed := time.Since(start)
-			sd.ServiceResponseTime = elapsed.String()
+			sd.ServiceResponseTime = time.Since(start).String()
 			svcResponse.AllServices = append(svcResponse.AllServices, sd)
 			continue
 		}
@@ -81,12 +80,6 @@ func GetServiceData() ServiceResponse {
 		var sd ServiceData
 		sd.ServiceName = endpoint.Name
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)
-
-		// if resType == 200 {
-		// 	fmt.Println("Service ", svcEndpoints.ServiceEndpoint[i].URL, "responded with 200, Ok ️✅")
-		// } else {
-		// 	fmt.Println("response type was invalid: ", svcEndpoints.ServiceEndpoint[i], "->", resType, "❌")
-		// }
 
 		if endpoint.API_URL != nil {
 			apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
