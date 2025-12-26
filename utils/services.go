@@ -26,29 +26,49 @@ func Setup() error {
 		return err
 	}
 
-	if cfg.Services == nil {
-		return err
-	}
-
 	Current_Config = cfg
 	fmt.Println("Configuration setup finished")
 	fmt.Println("Setting up triggers")
 	SetupTrigger(cfg)
 
-	for name, svc := range cfg.Services {
-		found := false
-		for _, es := range svcEndpoints.ServiceEndpoint {
-			if es.URL == svc.URL {
-				found = true
-				break
-			}
-		}
-		if !found {
-			fmt.Println("Adding ", name, "to service endpoints")
-			svc.Name = name
-			svcEndpoints.ServiceEndpoint = append(svcEndpoints.ServiceEndpoint, svc)
+	configServices := make(map[string]struct{})
+	// Sets each value in the map to the URL of the service
+	if cfg.Services != nil {
+		for _, svc := range cfg.Services {
+			configServices[svc.URL] = struct{}{}
 		}
 	}
+
+	// Remove endpoints that are no longer in the config.
+	var updatedEndpoints []Service
+	for _, endpoint := range svcEndpoints.ServiceEndpoint {
+		if _, found := configServices[endpoint.URL]; found {
+			updatedEndpoints = append(updatedEndpoints, endpoint)
+		} else {
+			fmt.Println("Removing", endpoint.Name, "from service endpoints")
+		}
+	}
+
+	// Add new endpoints from the config.
+	if cfg.Services != nil {
+		for name, svc := range cfg.Services {
+			found := false
+			for _, endpoint := range updatedEndpoints {
+				if endpoint.URL == svc.URL {
+					found = true
+					break
+				}
+			}
+			if !found {
+				fmt.Println("Adding", name, "to service endpoints")
+				svc.Name = name
+				updatedEndpoints = append(updatedEndpoints, svc)
+			}
+		}
+	}
+
+	svcEndpoints.ServiceEndpoint = updatedEndpoints
+
 	return nil
 }
 
