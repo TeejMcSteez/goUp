@@ -12,9 +12,17 @@ type Config struct {
 
 // Endpoints and data for triggers
 type Trigger struct {
+	MQTT MQTTTrigger
+	Webhook WebhookTrigger
+}
+
+type MQTTTrigger struct {
 	Mqtt_broker   *string `yaml:"mqtt_broker"`
 	Mqtt_username *string `yaml:"mqtt_user"`
 	Mqtt_key      *string `yaml:"mqtt_key"`
+}
+
+type WebhookTrigger struct {
 	Webhook_url   *string `yaml:"webhook_url"`
 	Webhook_key   *string `yaml:"webhook_key"`
 }

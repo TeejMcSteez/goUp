@@ -15,10 +15,10 @@ var triggers *Trigger
 // Copies Trigger config from configuration to use in triggers
 func SetupTrigger(cfg *Config) {
 	triggers = &cfg.Triggers
-	if triggers.Mqtt_broker == nil {
+	if triggers.MQTT.Mqtt_broker == nil {
 		fmt.Println("No MQTT Broker Found in Configuration")
 	}
-	if triggers.Webhook_url == nil {
+	if triggers.Webhook.Webhook_url == nil {
 		fmt.Println("No Webhook Found in Configuration")
 	}
 
@@ -28,10 +28,10 @@ func SetupTrigger(cfg *Config) {
 // Takes service data and fires all triggers
 func Fire(data []ServiceData) {
 	if triggers != nil {
-		if triggers.Mqtt_broker != nil {
+		if triggers.MQTT.Mqtt_broker != nil {
 			go FireMqtt(data)
 		}
-		if triggers.Webhook_url != nil {
+		if triggers.Webhook.Webhook_url != nil {
 			go FireWebhook(data)
 		}
 	}
@@ -47,15 +47,15 @@ func FireMqtt(data []ServiceData) {
 		fmt.Println("Connection Lost: " + err.Error())
 	}
 
-	if triggers.Mqtt_broker != nil {
+	if triggers.MQTT.Mqtt_broker != nil {
 		opts := mqtt.NewClientOptions()
-		opts.AddBroker(*triggers.Mqtt_broker)
+		opts.AddBroker(*triggers.MQTT.Mqtt_broker)
 		opts.SetClientID("goUp MQTT")
 		opts.OnConnect = connectHandler
 		opts.OnConnectionLost = lostHandler
-		if triggers.Mqtt_username != nil || triggers.Mqtt_key != nil {
-			opts.SetUsername(*triggers.Mqtt_username)
-			opts.SetPassword(*triggers.Mqtt_key)
+		if triggers.MQTT.Mqtt_username != nil || triggers.MQTT.Mqtt_key != nil {
+			opts.SetUsername(*triggers.MQTT.Mqtt_username)
+			opts.SetPassword(*triggers.MQTT.Mqtt_key)
 		}
 
 		client := mqtt.NewClient(opts)
@@ -86,7 +86,7 @@ func FireMqtt(data []ServiceData) {
 }
 
 func FireWebhook(data []ServiceData) {
-	if triggers.Webhook_url != nil {
+	if triggers.Webhook.Webhook_url != nil {
 		jsonSvcData, err := json.Marshal(data)
 		if err != nil {
 			log.Fatal(err)
@@ -94,14 +94,14 @@ func FireWebhook(data []ServiceData) {
 		}
 		fmt.Println("Firing webhook")
 
-		req, err := http.NewRequest("POST", *triggers.Webhook_url, bytes.NewBuffer(jsonSvcData))
+		req, err := http.NewRequest("POST", *triggers.Webhook.Webhook_url, bytes.NewBuffer(jsonSvcData))
 		if err != nil {
 			log.Printf("Error creating webhook request: %v\n", err)
 			return
 		}
 		req.Header.Add("Content-Type", "application/json")
-		if triggers.Webhook_key != nil {
-			req.Header.Add("Authorization", "Basic "+*triggers.Webhook_key)
+		if triggers.Webhook.Webhook_key != nil {
+			req.Header.Add("Authorization", "Basic "+*triggers.Webhook.Webhook_key)
 		}
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
