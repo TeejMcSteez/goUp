@@ -15,7 +15,7 @@ var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
 var Current_Config *Config
 
 // Sets up service and trigger endpoints from configuration
-func Setup() {
+func Setup() error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
@@ -23,11 +23,11 @@ func Setup() {
 	cfg, err := LoadConfig("services.yml")
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if cfg.Services == nil {
-		panic("No services specified in the configuration file!")
+		return err
 	}
 
 	Current_Config = cfg
@@ -49,6 +49,7 @@ func Setup() {
 			svcEndpoints.ServiceEndpoint = append(svcEndpoints.ServiceEndpoint, svc)
 		}
 	}
+	return nil
 }
 
 // Gets service data from endpoints
@@ -57,7 +58,10 @@ func GetServiceData() ServiceResponse {
 	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		fmt.Println("No service endpoints found looking for config . . .")
-		Setup()
+		err := Setup()
+		if err != nil {
+			log.Fatalf("Error in in setting up config while fetching service data!\n%v", err)
+		}
 	}
 
 	fmt.Println("Scanning services HTTP endpoints . . .")

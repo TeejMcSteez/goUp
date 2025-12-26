@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"goUp/scheduler"
+	"goUp/workers"
 	"goUp/server"
 	"goUp/utils"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"context"
 )
 
 func main() {
@@ -37,6 +38,10 @@ func main() {
 	// A buffered channel is used to avoid missing signals
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go scheduler.StartHotReloader("services.yml", ctx)
 
 	// Starts http server in a go routine
 	go func() {
@@ -50,4 +55,5 @@ func main() {
 	// Block until a signal is received
 	sig := <-shutdown
 	log.Printf("caught signal: %v, starting graceful shutdown", sig)
+	cancel()
 }

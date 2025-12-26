@@ -24,7 +24,7 @@ This file outlines potential areas for improvement in the `goUp` project.
 
 ## Configuration #4
 - [ ] For projects with many services, the `services.yml` file could become hard to manage. Consider adding a UI or a CLI to manage the list of services.
-- [ ] Add support for dynamic configuration reloading without restarting the application.
+- [x] Add support for dynamic configuration reloading without restarting the application.
 
 ## Testing #5
 - [ ] Add unit tests for the Go backend, especially for the utility functions (`utils/*.go`).

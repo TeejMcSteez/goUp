@@ -5,7 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"goUp/scheduler"
+	"goUp/workers"
 	"goUp/utils"
 	"io/fs"
 	"net/http"
