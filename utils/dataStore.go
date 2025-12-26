@@ -30,7 +30,7 @@ func InitDB() *sql.DB {
 	fmt.Println("Database and table ready for queries")
 	return db
 }
-// Re-write to return error
+
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time) VALUES (?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)

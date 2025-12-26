@@ -21,6 +21,24 @@ This file outlines potential areas for improvement in the `goUp` project.
     - For example, instead of immediately marking a service as down after one failed check, allow for a configurable number of retries.
 - [ ] Add more detailed error messages to the frontend to help with debugging.
     - [/] Removing fatal errors and panics and handling errors to frontend
+        - service.go
+            - [x] Setup
+            - [ ] GetServiceData
+            - [ ] GetServiceEndpoints
+            - [ ] SetServiceEndpoints
+        - dataStore.go
+            - [ ] InitDB
+            - [x] InsertData
+            - [x] GetData
+            - [x] GetRecentData
+            - [x] GetDataForService
+        - serviceChecker.go
+            - [x] Check
+            - [x] GetUptimeAverage
+        - conf.go
+            - [x] LoadConfig
+        - server.go
+            - [x] Start
 
 ## Configuration #4
 - [ ] For projects with many services, the `services.yml` file could become hard to manage. Consider adding a UI or a CLI to manage the list of services.

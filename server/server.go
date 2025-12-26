@@ -5,8 +5,8 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"goUp/workers"
 	"goUp/utils"
+	scheduler "goUp/workers"
 	"io/fs"
 	"net/http"
 )
@@ -106,7 +106,7 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		
+
 		if err := json.NewEncoder(w).Encode(apiData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

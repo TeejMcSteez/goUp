@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// Holds the scheduling parameters and a mutex.
 type ScheduleState struct {
 	Span     int
 	Interval string
@@ -39,7 +38,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 	}
 }
 
-// TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
+// TODO: Replace updating span and inteval from the sharedData struct to the sqlite db
 func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
 	s := &Scheduler{
 		state: make(chan ScheduleState),
@@ -52,7 +51,7 @@ func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Schedule
 	return s
 }
 
-// TODO: REplace updating span and inteval from the sharedData struct to the sqlite db
+// TODO: Replace updating span and inteval from the sharedData struct to the sqlite db
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	fmt.Println("Starting service data scheduler")
 
@@ -113,7 +112,6 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 }
 
 // TODO: Add get handler in scheduler to copy current channel state to get on frontend
-
 func (s *Scheduler) Update(Span int, Interval string) bool {
 	if Span < 1 || Span > 60 {
 		return false
