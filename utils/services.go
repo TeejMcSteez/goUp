@@ -74,13 +74,14 @@ func Setup() error {
 
 // Gets service data from endpoints
 // Also Checks the data before returning for any bad HTTP errors
-func GetServiceData() ServiceResponse {
+func GetServiceData() (data *ServiceResponse, retErr error) {
 	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		fmt.Println("No service endpoints found looking for config . . .")
 		err := Setup()
 		if err != nil {
-			log.Fatalf("Error in in setting up config while fetching service data!\n%v", err)
+			log.Printf("Error in in setting up config while fetching service data!\n%v", err)
+			return nil, err
 		}
 	}
 
@@ -108,7 +109,7 @@ func GetServiceData() ServiceResponse {
 		if endpoint.API_URL != nil {
 			apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 
 			if endpoint.API_KEY != nil {
@@ -120,18 +121,18 @@ func GetServiceData() ServiceResponse {
 			apiRes, apiErr := http.DefaultClient.Do(apiReq)
 
 			if apiErr != nil {
-				fmt.Println("Api Response Error")
+				return nil, err
 			}
 
 			defer func() {
 				if err := apiRes.Body.Close(); err != nil {
-					fmt.Println("Error closing body: " + err.Error())
+					retErr = err
 				}
 			}()
 
 			apiBody, err := io.ReadAll(apiRes.Body)
 			if err != nil {
-				fmt.Println("Error reading response body")
+				return nil, err
 			}
 			sd.ServiceAPIResponse = string(apiBody)
 		}
@@ -142,11 +143,13 @@ func GetServiceData() ServiceResponse {
 
 	}
 	if s, err := Check(svcResponse.AllServices); err != nil {
-		log.Fatalf("Error occured while getting service data: %v", err)
+		log.Printf("Error occured while checking service data: %v", err)
+		return nil, err
 	} else {
 		svcResponse.DownServices = s
 	}
-	return svcResponse
+	data = &svcResponse
+	return data, retErr
 }
 
 // Returns current service endpoints for fetching

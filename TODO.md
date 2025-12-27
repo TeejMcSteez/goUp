@@ -13,10 +13,10 @@ This file outlines potential areas for improvement in the `goUp` project.
 ## Extensibility #2
 - [ ] For ease of development and to ensure I can maintain this project, I will be doing MQTT triggers and/or Webhook triggers as most emails, slack messages, etc. can be fired from webhooks and MQTT is a light protocol for simple messaging.
     - [ ] Increase modularity of webhook Fire
-        - [ ] Add more auth types other than basic token auth
-            - [ ] Custom Access Token Header
-            - [ ] Digest Token
-            - [ ] Bearer Token
+        - [x] Add more auth types other than basic token auth
+            - [x] Custom Access Token Header
+            - [x] Digest Token
+            - [x] Bearer Token
         - [ ] Custom Webhook Messages?
 
 ## Error Handling #3
@@ -26,9 +26,9 @@ This file outlines potential areas for improvement in the `goUp` project.
     - [/] Removing fatal errors and panics and handling errors to frontend
         - service.go
             - [x] Setup
-            - [ ] GetServiceData
-            - [ ] GetServiceEndpoints
-            - [ ] SetServiceEndpoints
+            - [x] GetServiceData
+            - [x] GetServiceEndpoints - Neither of these will fail out as they just copy memory values to another address on a mutex
+            - [x] SetServiceEndpoints - Neither of these will fail out as they just copy memory values to another address on a mutex
         - dataStore.go
             - [ ] InitDB
             - [x] InsertData

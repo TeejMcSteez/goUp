@@ -23,7 +23,10 @@ func main() {
 	}()
 
 	// Get current service data before full launch
-	svcData := utils.GetServiceData()
+	svcData, err := utils.GetServiceData()
+	if err != nil {
+		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
+	}
 	// Adds recently fetched data to the database
 	for data := range svcData.AllServices {
 		utils.InsertData(db, svcData.AllServices[data])

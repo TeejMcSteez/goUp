@@ -90,7 +90,11 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			req.res <- ScheduleState{Span: Span, Interval: Interval}
 		case <-timer.C:
 			// time to fetch data
-			data := utils.GetServiceData()
+			data, err := utils.GetServiceData()
+			if err != nil {
+				log.Printf("Failed fetching service data in scheduler: %v\n", err)
+				continue
+			}
 			for _, d := range data.AllServices {
 				utils.InsertData(db, d)
 			}
