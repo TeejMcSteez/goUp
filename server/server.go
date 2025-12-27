@@ -47,14 +47,14 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		dec := json.NewDecoder(req.Body)
-		var jsonData utils.ParamtersData
+		var jsonData scheduler.ScheduleState
 
 		if err := dec.Decode(&jsonData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		updated := ScheduleUpdater(jsonData.Span, jsonData.Interval)
+		updated := ScheduleUpdater(jsonData)
 
 		if updated {
 			w.Header().Add("Content-Type", "application/json")
@@ -70,7 +70,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 		// Add Get case in scheduler
 		w.Header().Add("Content-Type", "application/json")
 		state := scd.Get()
-		if _, err := w.Write([]byte("{ \"timespan\":" + fmt.Sprint(state.Span) + ", \"timeInterval\": \"" + state.Interval + "\" }")); err != nil {
+		if err := json.NewEncoder(w).Encode(state); err != nil {
 			panic(err)
 		}
 	default:
@@ -80,8 +80,8 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Updates schedule parameters
-func ScheduleUpdater(span int, interval string) bool {
-	ok := scd.Update(span, interval)
+func ScheduleUpdater(state scheduler.ScheduleState) bool {
+	ok := scd.Update(state)
 
 	return ok
 }

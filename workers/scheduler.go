@@ -10,8 +10,10 @@ import (
 )
 
 type ScheduleState struct {
-	Span     int
-	Interval string
+	// Number (30, 60, etc.)
+	Span     int `json:"timespan"`
+	// Interval of time (sec, min, hrs)
+	Interval string `json:"interval"`
 }
 
 type GetState struct {
@@ -116,12 +118,12 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 }
 
 // TODO: Add get handler in scheduler to copy current channel state to get on frontend
-func (s *Scheduler) Update(Span int, Interval string) bool {
-	if Span < 1 || Span > 60 {
+func (s *Scheduler) Update(state ScheduleState) bool {
+	if state.Span < 1 || state.Span > 60 {
 		return false
 	}
 
-	low := strings.ToLower(Interval)
+	low := strings.ToLower(state.Interval)
 	if len(low) == 0 {
 		return false
 	}
@@ -132,8 +134,8 @@ func (s *Scheduler) Update(Span int, Interval string) bool {
 	}
 
 	s.state <- ScheduleState{
-		Span:     Span,
-		Interval: Interval,
+		Span:     state.Span,
+		Interval: state.Interval,
 	}
 
 	return true

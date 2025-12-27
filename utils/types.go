@@ -64,11 +64,6 @@ type ScheduleParameters struct {
 	Mux      *sync.RWMutex
 }
 
-// Base parameter struct used in shared parameters
-type ParamtersData struct {
-	Span     int    `json:"timespan"`
-	Interval string `json:"timeInterval"`
-}
 // Average data for frontend graph
 type AverageData struct {
 	Name    string  `json:"name"`

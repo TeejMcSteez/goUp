@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 export default function Update() {
     const [schedule, setSchedule] = useState(null);
     const [timespan, setTimespan] = useState(30);
-    const [timeInterval, setTimeInterval] = useState("seconds");
+    const [interval, setInterval] = useState("seconds");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -17,7 +17,7 @@ export default function Update() {
             const json = await res.json();
             setSchedule(json);
             setTimespan(json.timespan);
-            setTimeInterval(json.timeInterval);
+            setInterval(json.interval);
             setError(null);
         } catch (err) {
             setError(err.message);
@@ -36,7 +36,7 @@ export default function Update() {
                 method: "POST",
                 body: JSON.stringify({
                     timespan: Number(timespan),
-                    timeInterval: timeInterval,
+                    interval: interval,
                 }),
             });
 
@@ -79,7 +79,7 @@ export default function Update() {
             <h2>Update Schedule</h2>
             <div id="schedule">
                 {schedule && (
-                    <p>Current: {schedule.timespan} {schedule.timeInterval}</p>
+                    <p>Current: {schedule.timespan} {schedule.interval}</p>
                 )}
                 <form id="scheduleForm">
                     <label htmlFor="timespan">Timespan: {timespan}</label>
@@ -92,12 +92,12 @@ export default function Update() {
                         onChange={(e) => setTimespan(e.target.value)}
                         required 
                     />
-                    <label htmlFor="selectTimespan">Interval</label>
+                    <label htmlFor="selectTimespan">interval</label>
                     <select 
                         name="timespans" 
                         id="selectTimespan" 
-                        value={timeInterval}
-                        onChange={(e) => setTimeInterval(e.target.value)}
+                        value={interval}
+                        onChange={(e) => setInterval(e.target.value)}
                     >
                         <option value="seconds">Seconds</option>
                         <option value="minutes">Minutes</option>
