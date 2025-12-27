@@ -24,7 +24,9 @@ type MQTTTrigger struct {
 
 type WebhookTrigger struct {
 	Webhook_url   *string `yaml:"webhook_url"`
-	Webhook_key   *string `yaml:"webhook_key"`
+	// Can use any authorization header string
+	// Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
+	Webhook_key_string   *string `yaml:"webhook_key"`
 }
 
 // Data for service endponts

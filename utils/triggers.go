@@ -100,8 +100,8 @@ func FireWebhook(data []ServiceData) {
 			return
 		}
 		req.Header.Add("Content-Type", "application/json")
-		if triggers.Webhook.Webhook_key != nil {
-			req.Header.Add("Authorization", "Basic "+*triggers.Webhook.Webhook_key)
+		if triggers.Webhook.Webhook_key_string != nil {
+			req.Header.Add("Authorization", *triggers.Webhook.Webhook_key_string)
 		}
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
