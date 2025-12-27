@@ -11,10 +11,13 @@ This file outlines potential areas for improvement in the `goUp` project.
 - [ ] Make the frontend "look good"
 
 ## Extensibility #2
-- [ ] Add more notification triggers, such as:
-    - [ ] Email notifications
-    - [ ] Slack notifications
-- [ ] Make the trigger system even more modular to allow users to easily add their own custom triggers.
+- [ ] For ease of development and to ensure I can maintain this project, I will be doing MQTT triggers and/or Webhook triggers as most emails, slack messages, etc. can be fired from webhooks and MQTT is a light protocol for simple messaging.
+    - [ ] Increase modularity of webhook Fire
+        - [ ] Add more auth types other than basic token auth
+            - [ ] Custom Access Token Header
+            - [ ] Digest Token
+            - [ ] Bearer Token
+        - [ ] Custom Webhook Messages?
 
 ## Error Handling #3
 - [ ] Implement a more sophisticated error handling and retry mechanism for service checks.
