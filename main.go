@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"goUp/workers"
 	"goUp/server"
 	"goUp/utils"
@@ -23,7 +22,7 @@ func main() {
 		if err := db.Close(); err != nil {
 			log.Fatalf("error closing db: %s", err)
 		}
-		fmt.Println("Database connection closed")
+		log.Println("Database connection closed")
 	}()
 
 	// Get current service data before full launch
@@ -50,11 +49,11 @@ func main() {
 
 	// Starts http server in a go routine
 	go func() {
-		fmt.Println("starting server on port 8080")
+		log.Println("starting server on port 8080")
 		if err := server.Start(db, sch); err != nil {
 			log.Fatalf("server failed to start: %v", err)
 		}
-		fmt.Println("Server started")
+		log.Println("Server started")
 	}()
 
 	// Block until a signal is received

@@ -106,7 +106,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			if len(checkedData) > 0 {
 				utils.Fire(checkedData)
 			}
-			fmt.Println("Scheduler fetched service data successfully")
+			log.Println("Scheduler fetched service data successfully")
 
 			// schedule next run based on the *current* Span/Interval
 			dur = computeDuration(Span, Interval)
