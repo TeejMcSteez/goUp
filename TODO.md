@@ -30,7 +30,7 @@ This file outlines potential areas for improvement in the `goUp` project.
             - [x] GetServiceEndpoints - Neither of these will fail out as they just copy memory values to another address on a mutex
             - [x] SetServiceEndpoints - Neither of these will fail out as they just copy memory values to another address on a mutex
         - dataStore.go
-            - [ ] InitDB
+            - [x] InitDB
             - [x] InsertData
             - [x] GetData
             - [x] GetRecentData

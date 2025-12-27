@@ -14,7 +14,11 @@ import (
 
 func main() {
 	// Create blank data store
-	db := utils.InitDB()
+	db, err := utils.InitDB()
+	if err != nil {
+		log.Print("Error initializing database")
+		panic(err)
+	}
 	defer func() {
 		if err := db.Close(); err != nil {
 			log.Fatalf("error closing db: %s", err)

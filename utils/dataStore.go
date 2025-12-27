@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	_ "modernc.org/sqlite"
-	"log"
 )
 
-func InitDB() *sql.DB {
+func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", "./serviceData.db?_pragma=journal_mode(WAL)")
 	db.SetMaxOpenConns(1)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	createTableSQL := `CREATE TABLE IF NOT EXISTS service_data (
@@ -24,11 +23,11 @@ func InitDB() *sql.DB {
 
 	_, err = db.Exec(createTableSQL)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	fmt.Println("Database and table ready for queries")
-	return db
+	return db, nil
 }
 
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
