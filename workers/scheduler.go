@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"database/sql"
-	"fmt"
 	"goUp/utils"
 	"log"
 	"strings"
@@ -53,7 +52,7 @@ func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Schedule
 }
 
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
-	fmt.Println("Starting service data scheduler")
+	log.Println("Starting service data scheduler")
 
 	dur := computeDuration(Span, Interval)
 	timer := time.NewTimer(dur)
@@ -68,7 +67,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				default:
 				}
 			}
-			fmt.Println("Scheduler stopped")
+			log.Println("Scheduler stopped")
 			return
 
 		case upd := <-s.state:
@@ -85,7 +84,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				}
 			}
 			timer.Reset(dur)
-			fmt.Println("Schedule updated to:", Span, Interval)
+			log.Println("Schedule updated to:", Span, Interval)
 		case req := <-s.get:
 			req.res <- ScheduleState{Span: Span, Interval: Interval}
 		case <-timer.C:

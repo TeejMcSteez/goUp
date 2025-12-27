@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -16,13 +15,13 @@ var triggers *Trigger
 func SetupTrigger(cfg *Config) {
 	triggers = &cfg.Triggers
 	if triggers.MQTT.Mqtt_broker == nil {
-		fmt.Println("No MQTT Broker Found in Configuration")
+		log.Println("No MQTT Broker Found in Configuration")
 	}
 	if triggers.Webhook.Webhook_url == nil {
-		fmt.Println("No Webhook Found in Configuration")
+		log.Println("No Webhook Found in Configuration")
 	}
 
-	fmt.Println("Triggers setup")
+	log.Println("Triggers setup")
 }
 
 // Takes service data and fires all triggers
@@ -40,11 +39,11 @@ func Fire(data []ServiceData) {
 // Takes current bad service data and fires message to configured mqtt broker
 func FireMqtt(data []ServiceData) {
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
-		fmt.Println("Connected to MQTT Broker")
+		log.Println("Connected to MQTT Broker")
 	}
 
 	var lostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
-		fmt.Println("Connection Lost: " + err.Error())
+		log.Println("Connection Lost: " + err.Error())
 	}
 
 	if triggers.MQTT.Mqtt_broker != nil {
@@ -61,27 +60,27 @@ func FireMqtt(data []ServiceData) {
 		client := mqtt.NewClient(opts)
 
 		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			fmt.Println("Error pushing to MQTT client: " + token.Error().Error())
+			log.Println("Error pushing to MQTT client: " + token.Error().Error())
 		}
 
 		if jsonData, err := json.Marshal(data); err != nil {
-			fmt.Printf("Error formatting service data into JSON: %v\n", err)
+			log.Printf("Error formatting service data into JSON: %v\n", err)
 		} else {
 			// Keep retain to true to store last known good message
 			token := client.Publish("goup_status", 0, true, jsonData)
-			fmt.Printf("Published Message: %v\n", data)
+			log.Printf("Published Message: %v\n", data)
 
 			token.Done()
 
 			if err := token.Error(); err != nil {
-				fmt.Printf("Error with MQTT token: %v\n", err)
+				log.Printf("Error with MQTT token: %v\n", err)
 			}
-			fmt.Println("Disconnecting from MQTT broker, sent message complete")
+			log.Println("Disconnecting from MQTT broker, sent message complete")
 		}
 		
 		client.Disconnect(500)
 	} else {
-		fmt.Println("No MQTT broker setup")
+		log.Println("No MQTT broker setup")
 	}
 }
 
@@ -92,7 +91,7 @@ func FireWebhook(data []ServiceData) {
 			log.Fatal(err)
 			return
 		}
-		fmt.Println("Firing webhook")
+		log.Println("Firing webhook")
 
 		req, err := http.NewRequest("POST", *triggers.Webhook.Webhook_url, bytes.NewBuffer(jsonSvcData))
 		if err != nil {
@@ -110,13 +109,13 @@ func FireWebhook(data []ServiceData) {
 		}
 		defer func() {
 			if err := res.Body.Close(); err != nil {
-				fmt.Printf("Error closing webhook request: %v", err)
+				log.Printf("Error closing webhook request: %v", err)
 			}
 		}()
 
-		fmt.Printf("Webhook sent, status: %s\n", res.Status)
+		log.Printf("Webhook sent, status: %s\n", res.Status)
 
 	} else {
-		fmt.Println("No webhook setup")
+		log.Println("No webhook setup")
 	}
 }

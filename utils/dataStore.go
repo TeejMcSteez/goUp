@@ -2,6 +2,7 @@ package utils
 
 import (
 	"database/sql"
+	"log"
 	"fmt"
 	_ "modernc.org/sqlite"
 )
@@ -26,7 +27,7 @@ func InitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	fmt.Println("Database and table ready for queries")
+	log.Println("Database and table ready for queries")
 	return db, nil
 }
 

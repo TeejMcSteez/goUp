@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
-	"fmt"
 	"goUp/utils"
 	scheduler "goUp/workers"
 	"io/fs"
+	"log"
 	"net/http"
 )
 
@@ -159,7 +159,7 @@ func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	http.HandleFunc("/api/schedule", ScheduleApi)
 	http.HandleFunc("/api/status", StatusApi)
 	http.HandleFunc("/api/uptime", UptimeAPI)
-	fmt.Println("Starting server at http://localhost:8101/ . . .")
+	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err
 	}

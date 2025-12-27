@@ -1,9 +1,8 @@
 package utils
 
 import (
-	"fmt"
-	"io"
 	"log"
+	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -19,7 +18,7 @@ func Setup() error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
-	fmt.Print("Loading Config . . .\n\n")
+	log.Print("Loading Config . . .\n\n")
 	cfg, err := LoadConfig("services.yml")
 
 	if err != nil {
@@ -27,8 +26,8 @@ func Setup() error {
 	}
 
 	Current_Config = cfg
-	fmt.Println("Configuration setup finished")
-	fmt.Println("Setting up triggers")
+	log.Println("Configuration setup finished")
+	log.Println("Setting up triggers")
 	SetupTrigger(cfg)
 
 	configServices := make(map[string]struct{})
@@ -45,7 +44,7 @@ func Setup() error {
 		if _, found := configServices[endpoint.URL]; found {
 			updatedEndpoints = append(updatedEndpoints, endpoint)
 		} else {
-			fmt.Println("Removing", endpoint.Name, "from service endpoints")
+			log.Println("Removing", endpoint.Name, "from service endpoints")
 		}
 	}
 
@@ -60,7 +59,7 @@ func Setup() error {
 				}
 			}
 			if !found {
-				fmt.Println("Adding", name, "to service endpoints")
+				log.Println("Adding", name, "to service endpoints")
 				svc.Name = name
 				updatedEndpoints = append(updatedEndpoints, svc)
 			}
@@ -77,7 +76,7 @@ func Setup() error {
 func GetServiceData() (data *ServiceResponse, retErr error) {
 	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
-		fmt.Println("No service endpoints found looking for config . . .")
+		log.Println("No service endpoints found looking for config . . .")
 		err := Setup()
 		if err != nil {
 			log.Printf("Error in in setting up config while fetching service data!\n%v", err)
@@ -85,7 +84,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		}
 	}
 
-	fmt.Println("Scanning services HTTP endpoints . . .")
+	log.Println("Scanning services HTTP endpoints . . .")
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
@@ -137,7 +136,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
-		// fmt.Printf("Request took: %v\n", elapsed)
+		// log.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
 		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
