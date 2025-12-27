@@ -33,9 +33,7 @@ func main() {
 	sch := scheduler.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
 
-	// Channel to listen for OS signals
 	// listening for SIGINT (Ctrl+C) and SIGTERM
-	// A buffered channel is used to avoid missing signals
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 	
