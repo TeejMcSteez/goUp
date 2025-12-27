@@ -40,22 +40,7 @@ jobs:
     name: Release Build
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            runner: ubuntu-latest
-          - goos: linux
-            goarch: arm64
-            runner: ubuntu-latest-arm64
-          - goos: windows
-            goarch: amd64
-            runner: windows-latest
-          - goos: windows
-            goarch: arm64
-            runner: windows-latest-arm64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -68,31 +53,37 @@ jobs:
       with:
         name: static-assets
         path: server/static
-    - name: Build release binary
-      shell: pwsh
+    - name: Cross-compile and Package
       run: |
-        mkdir release
-        $ext = ""
-        if ("${{ runner.os }}" -eq "Windows") { $ext = ".exe" }
-        go build -ldflags="-s -w" -o "release/goup-${{ matrix.goos }}-${{ matrix.goarch }}${ext}" .
-    - name: Archive release binary (Linux)
-      if: runner.os == 'Linux'
-      run: tar -czvf release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C release goup-${{ matrix.goos }}-${{ matrix.goarch }}
-    - name: Archive release binary (Windows)
-      if: runner.os == 'Windows'
-      run: Compress-Archive -Path release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.exe -DestinationPath release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.zip
-    - name: Upload release artifact (Linux)
-      if: runner.os == 'Linux'
+        mkdir -p dist
+        declare -a TARGETS=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64")
+
+        for TARGET in "${TARGETS[@]}"; do
+          IFS='/' read -r GOOS GOARCH <<< "$TARGET"
+          echo "Building for $GOOS/$GOARCH..."
+
+          OUTPUT_NAME="goup-${GOOS}-${GOARCH}"
+          BIN_DIR="dist"
+          BIN_PATH="$BIN_DIR/$OUTPUT_NAME"
+          ARCHIVE_PATH="$BIN_DIR/$OUTPUT_NAME"
+
+          if [ "$GOOS" = "windows" ]; then
+            BIN_PATH="${BIN_PATH}.exe"
+            ARCHIVE_PATH="${ARCHIVE_PATH}.zip"
+            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$BIN_PATH" .
+            zip -j "$ARCHIVE_PATH" "$BIN_PATH"
+          else
+            ARCHIVE_PATH="${ARCHIVE_PATH}.tar.gz"
+            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$BIN_PATH" .
+            tar -czvf "$ARCHIVE_PATH" -C "$BIN_DIR" $(basename "$BIN_PATH")
+          fi
+          echo "Created $ARCHIVE_PATH"
+        done
+    - name: Upload all release artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: release-artifact-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
-    - name: Upload release artifact (Windows)
-      if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-artifact-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: release/goup-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+        name: all-release-artifacts
+        path: dist/*
 
   create-release:
     name: Create Release
@@ -105,9 +96,8 @@ jobs:
     - name: Download all release artifacts
       uses: actions/download-artifact@v4
       with:
+        name: all-release-artifacts
         path: release-artifacts
-        pattern: release-artifact-*
-        merge-multiple: true
     - name: List downloaded files
       run: ls -R release-artifacts
     - name: Create Release
