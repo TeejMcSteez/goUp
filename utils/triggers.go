@@ -72,7 +72,7 @@ func FireMqtt(data []ServiceData) {
 			fmt.Printf("Published Message: %v\n", data)
 
 			token.Done()
-			// TODO: If connection fails will panic out
+
 			if err := token.Error(); err != nil {
 				fmt.Printf("Error with MQTT token: %v\n", err)
 			}

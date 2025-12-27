@@ -40,7 +40,6 @@ func computeDuration(Span int, Interval string) time.Duration {
 	}
 }
 
-// TODO: Replace updating span and inteval from the sharedData struct to the sqlite db
 func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
 	s := &Scheduler{
 		state: make(chan ScheduleState),
@@ -53,7 +52,6 @@ func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Schedule
 	return s
 }
 
-// TODO: Replace updating span and inteval from the sharedData struct to the sqlite db
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	fmt.Println("Starting service data scheduler")
 
@@ -117,7 +115,6 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	}
 }
 
-// TODO: Add get handler in scheduler to copy current channel state to get on frontend
 func (s *Scheduler) Update(state ScheduleState) bool {
 	if state.Span < 1 || state.Span > 60 {
 		return false
