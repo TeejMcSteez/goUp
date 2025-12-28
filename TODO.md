@@ -15,9 +15,6 @@ This file outlines potential areas for improvement in the `goUp` project.
         - [ ] Custom Webhook Messages
             - [ ] Create a message crafter to make a custom message to send to the trigger. Mainly for things like Email and Slack that take in custom messages.
 
-## Error Handling
-- [ ] Add more detailed error messages to the frontend to help with debugging.
-
 ## Testing
 - [ ] Add unit tests for the Go backend, especially for the utility functions (`utils/*.go`).
 - [ ] Add integration tests to ensure the different parts of the application (scheduler, data store, server) work correctly together.
