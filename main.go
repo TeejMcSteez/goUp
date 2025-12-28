@@ -44,15 +44,15 @@ func main() {
 	go scheduler.StartHotReloader("services.yml", ctx)
 
 	go func() {
-		log.Println("starting server on port 8080")
+		log.Println("Starting server on port 8080")
 		if err := server.NewServer(db, sch).Start(); err != nil {
-			log.Fatalf("server failed to start: %v", err)
+			log.Fatalf("Server failed to start: %v", err)
 		}
 		log.Println("Server started")
 	}()
 
 	// Block until a signal is received
 	sig := <-shutdown
-	log.Printf("caught signal: %v, starting graceful shutdown", sig)
+	log.Printf("Caught signal: %v, starting graceful shutdown", sig)
 	cancel()
 }

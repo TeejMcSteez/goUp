@@ -18,7 +18,7 @@ func Setup() error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
-	log.Print("Loading Config . . .\n\n")
+	log.Println("Loading Config . . .")
 	cfg, err := LoadConfig("services.yml")
 
 	if err != nil {
