@@ -50,7 +50,7 @@ func main() {
 	// Starts http server in a go routine
 	go func() {
 		log.Println("starting server on port 8080")
-		if err := server.Start(db, sch); err != nil {
+		if err := server.NewServer(db, sch).Start(); err != nil {
 			log.Fatalf("server failed to start: %v", err)
 		}
 		log.Println("Server started")

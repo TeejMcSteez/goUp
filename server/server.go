@@ -11,15 +11,17 @@ import (
 	"net/http"
 )
 
-var db *sql.DB
-var scd *scheduler.Scheduler
+type Server struct {
+	db *sql.DB
+	scd *scheduler.Scheduler
+}
 
 //go:embed all:static
 var content embed.FS
 
 // Basic API server, returns current service data
-func Api(w http.ResponseWriter, req *http.Request) {
-	data, err := utils.GetRecentData(db)
+func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
+	data, err := utils.GetRecentData(s.db)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -43,7 +45,7 @@ func Api(w http.ResponseWriter, req *http.Request) {
 }
 
 // Schedule API server, returns current schedule parameters
-func ScheduleApi(w http.ResponseWriter, req *http.Request) {
+func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		dec := json.NewDecoder(req.Body)
@@ -54,7 +56,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		updated := ScheduleUpdater(jsonData)
+		updated := s.ScheduleUpdater(jsonData)
 
 		if updated {
 			w.Header().Add("Content-Type", "application/json")
@@ -69,7 +71,7 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	case "GET":
 		// Add Get case in scheduler
 		w.Header().Add("Content-Type", "application/json")
-		state := scd.Get()
+		state := s.scd.Get()
 		if err := json.NewEncoder(w).Encode(state); err != nil {
 			panic(err)
 		}
@@ -80,21 +82,21 @@ func ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Updates schedule parameters
-func ScheduleUpdater(state scheduler.ScheduleState) bool {
-	ok := scd.Update(state)
+func (s *Server) ScheduleUpdater(state scheduler.ScheduleState) bool {
+	ok := s.scd.Update(state)
 
 	return ok
 }
 
 // Gets current status in JSON format for automated fetching
-func StatusApi(w http.ResponseWriter, req *http.Request) {
+func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
 
-		recData, err := utils.GetRecentData(db)
+		recData, err := utils.GetRecentData(s.db)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -117,7 +119,7 @@ func StatusApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func UptimeAPI(w http.ResponseWriter, req *http.Request) {
+func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		http.Error(w, "Invalid method", http.StatusBadRequest)
@@ -127,7 +129,7 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		var avgData []utils.AverageData
 		for idx := range endpoints {
 			endpointName := endpoints[idx].Name
-			upAvg, err := utils.GetUptimeAverage(db, endpointName)
+			upAvg, err := utils.GetUptimeAverage(s.db, endpointName)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -144,10 +146,12 @@ func UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
+	return &Server{db: db, scd: scd}
+}
+
 // Starts server with all handler functions
-func Start(database *sql.DB, sch *scheduler.Scheduler) error {
-	db = database
-	scd = sch
+func (s *Server) Start() error {
 
 	staticFS, err := fs.Sub(content, "static")
 	if err != nil {
@@ -155,10 +159,10 @@ func Start(database *sql.DB, sch *scheduler.Scheduler) error {
 	}
 
 	http.Handle("/", http.FileServer(http.FS(staticFS)))
-	http.HandleFunc("/api", Api)
-	http.HandleFunc("/api/schedule", ScheduleApi)
-	http.HandleFunc("/api/status", StatusApi)
-	http.HandleFunc("/api/uptime", UptimeAPI)
+	http.HandleFunc("/api", s.Api)
+	http.HandleFunc("/api/schedule", s.ScheduleApi)
+	http.HandleFunc("/api/status", s.StatusApi)
+	http.HandleFunc("/api/uptime", s.UptimeAPI)
 	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err
