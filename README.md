@@ -10,7 +10,7 @@ Server monitor with HTTP web display and API routes for uptime, response time, s
 
 ## Example services.yml
 
-Services provide the name and url of the service to monitor currently just makes a basic HTTP request and make sure it responds with 200.
+Services provide the name and url of the service to monitor currently just makes a basic HTTP request and make sure it responds with 200 or other configured valid responses.
   - Future updates will include a configurable server response as well as retry mechanisms
 
 Triggers will provide information and credentials for managing triggers fired when a scrape happens to tell the user or other servers about a failed server(s). 
@@ -22,18 +22,22 @@ Current configurable triggers are listed below . . .
 ```yaml
 services:
   home_assistant:
-    url: "https://example.com/"
-    api_url: "https://example.com/api"
-    api_key: "YOUR_API_KEY"
+    url: "https://ex.com/"
+    api_url: "http://ex.com/api/"
+    api_key: "<key>"
 
   truenas_scale:
-    url: "http://another-example.com/"
+    url: "http://ex-scale.com/"
+
 triggers:
-  mqtt_broker: "URL"
-  mqtt_user: "USER"
-  mqtt_key: "PASSWORD"
-  webhook_url: "https://yourwebhook.com/webhook-id"
-  webhook_key: "<Bearer Key (optional)>"
+  mqtt:
+    mqtt_broker: "<url>"
+    mqtt_user: "<user>"
+    mqtt_key: "<key>"
+  webhook:
+    webhook_url: "https://ex.com/"
+    webhook_key: "<key>"
+
 ```
 
 ## Storage
@@ -67,4 +71,4 @@ Currently only MQTT is setup for my Home Assistant instance but if viable would 
 
 Will send bad service data as JSON to the specified webhook URL
 
-It will use the  `Authorization: Bearer <key>` header if a webhook key is valid for basic authentication for webhook request's 
+The key provided will be injected as a `Authorization` header. Meaning it accepts Basic, Bearer, etc. as a string value in the YAML.
