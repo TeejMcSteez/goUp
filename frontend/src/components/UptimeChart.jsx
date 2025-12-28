@@ -68,6 +68,9 @@ export default function UptimeChart() {
         };
 
         getUptimeAverages();
+
+        const intervalId = setInterval(getUptimeAverages, 5000);
+        return () => clearInterval(intervalId);
     }, []);
 
     if (error) {
