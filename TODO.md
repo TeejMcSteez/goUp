@@ -16,8 +16,6 @@ This file outlines potential areas for improvement in the `goUp` project.
             - [ ] Create a message crafter to make a custom message to send to the trigger. Mainly for things like Email and Slack that take in custom messages.
 
 ## Error Handling
-- [ ] Implement a more sophisticated error handling and retry mechanism for service checks.
-    - For example, instead of immediately marking a service as down after one failed check, allow for a configurable number of retries.
 - [ ] Add more detailed error messages to the frontend to help with debugging.
 
 ## Testing

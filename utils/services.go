@@ -88,15 +88,27 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
+ 
 		if err != nil {
-			log.Printf("error fetching %s: %v %s", endpoint.URL, err, "❌")
-			var sd ServiceData
-			sd.ServiceName = endpoint.Name
-			sd.ServiceHTTPResponse = "Fetch Error, Check Logs"
-			sd.ServiceAPIResponse = ""
-			sd.ServiceResponseTime = time.Since(start).String()
-			svcResponse.AllServices = append(svcResponse.AllServices, sd)
-			continue
+			// If it errors initially and the user has a configured number of retries
+			// This will attempt to retry to get a new valid response the specified number of times
+			if endpoint.Retry_Requests != nil {
+				for range *endpoint.Retry_Requests {
+					log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, err, "❌")
+					retry_res, _ := http.Get(endpoint.URL)
+					res = retry_res
+				}
+			// If their are no retries configured it will simply return
+			} else {
+				log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
+				var sd ServiceData
+				sd.ServiceName = endpoint.Name
+				sd.ServiceHTTPResponse = "Fetch Error, Check Logs"
+				sd.ServiceAPIResponse = ""
+				sd.ServiceResponseTime = time.Since(start).String()
+				svcResponse.AllServices = append(svcResponse.AllServices, sd)
+				continue
+			}
 		}
 
 		resType := res.StatusCode

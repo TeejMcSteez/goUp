@@ -36,6 +36,7 @@ type Service struct {
 	API_URL         *string   `yaml:"api_url"`
 	API_KEY         *string   `yaml:"api_key"`
 	Valid_Responses *[]string `yaml:"valid_responses"`
+	Retry_Requests *int `yaml:"retry"`
 }
 
 // Shared service endpoint struct
