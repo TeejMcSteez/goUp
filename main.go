@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	// Create blank data store
 	db, err := utils.InitDB()
 	if err != nil {
 		log.Print("Error initializing database")
@@ -25,17 +24,14 @@ func main() {
 		log.Println("Database connection closed")
 	}()
 
-	// Get current service data before full launch
 	svcData, err := utils.GetServiceData()
 	if err != nil {
 		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
 	}
-	// Adds recently fetched data to the database
 	for data := range svcData.AllServices {
 		utils.InsertData(db, svcData.AllServices[data])
 	}
 
-	// Starts scheduler
 	sch := scheduler.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
 
@@ -47,7 +43,6 @@ func main() {
 
 	go scheduler.StartHotReloader("services.yml", ctx)
 
-	// Starts http server in a go routine
 	go func() {
 		log.Println("starting server on port 8080")
 		if err := server.NewServer(db, sch).Start(); err != nil {

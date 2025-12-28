@@ -5,39 +5,35 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
+	"io"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-var triggers *Trigger
-
-// Copies Trigger config from configuration to use in triggers
-func SetupTrigger(cfg *Config) {
-	triggers = &cfg.Triggers
-	if triggers.MQTT.Mqtt_broker == nil {
+// Copies Trigger config from configuration to use in t
+func SetupTrigger(cfg *Config) *Trigger {
+	if cfg.Triggers.MQTT.Mqtt_broker == nil {
 		log.Println("No MQTT Broker Found in Configuration")
 	}
-	if triggers.Webhook.Webhook_url == nil {
+	if cfg.Triggers.Webhook.Webhook_url == nil {
 		log.Println("No Webhook Found in Configuration")
 	}
 
 	log.Println("Triggers setup")
+	return &cfg.Triggers
 }
 
-// Takes service data and fires all triggers
-func Fire(data []ServiceData) {
-	if triggers != nil {
-		if triggers.MQTT.Mqtt_broker != nil {
-			go FireMqtt(data)
-		}
-		if triggers.Webhook.Webhook_url != nil {
-			go FireWebhook(data)
-		}
+// Takes service data and fires all t
+func (t *Trigger) Fire(data []ServiceData) {
+	if t.MQTT.Mqtt_broker != nil {
+		go t.FireMqtt(data)
+	}
+	if t.Webhook.Webhook_url != nil {
+		go t.FireWebhook(data)
 	}
 }
 
 // Takes current bad service data and fires message to configured mqtt broker
-func FireMqtt(data []ServiceData) {
+func (t *Trigger) FireMqtt(data []ServiceData) {
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 		log.Println("Connected to MQTT Broker")
 	}
@@ -46,15 +42,15 @@ func FireMqtt(data []ServiceData) {
 		log.Println("Connection Lost: " + err.Error())
 	}
 
-	if triggers.MQTT.Mqtt_broker != nil {
+	if t.MQTT.Mqtt_broker != nil {
 		opts := mqtt.NewClientOptions()
-		opts.AddBroker(*triggers.MQTT.Mqtt_broker)
+		opts.AddBroker(*t.MQTT.Mqtt_broker)
 		opts.SetClientID("goUp MQTT")
 		opts.OnConnect = connectHandler
 		opts.OnConnectionLost = lostHandler
-		if triggers.MQTT.Mqtt_username != nil || triggers.MQTT.Mqtt_key != nil {
-			opts.SetUsername(*triggers.MQTT.Mqtt_username)
-			opts.SetPassword(*triggers.MQTT.Mqtt_key)
+		if t.MQTT.Mqtt_username != nil || t.MQTT.Mqtt_key != nil {
+			opts.SetUsername(*t.MQTT.Mqtt_username)
+			opts.SetPassword(*t.MQTT.Mqtt_key)
 		}
 
 		client := mqtt.NewClient(opts)
@@ -83,24 +79,32 @@ func FireMqtt(data []ServiceData) {
 		log.Println("No MQTT broker setup")
 	}
 }
+// Takes in trigger message and checks config for any special message paramters
+func (t *Trigger) getWebhookMessage(data []ServiceData) (io.Reader, error) {
+	jsonSvcData, err := json.Marshal(data)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonSvcData), nil
+}
 
-func FireWebhook(data []ServiceData) {
-	if triggers.Webhook.Webhook_url != nil {
-		jsonSvcData, err := json.Marshal(data)
+func (t *Trigger) FireWebhook(data []ServiceData) {
+	if t.Webhook.Webhook_url != nil {
+		jsonMessage, err := t.getWebhookMessage(data)
 		if err != nil {
-			log.Fatal(err)
-			return
+			log.Printf("Failed parsing json service data message: %v", err)
 		}
 		log.Println("Firing webhook")
 
-		req, err := http.NewRequest("POST", *triggers.Webhook.Webhook_url, bytes.NewBuffer(jsonSvcData))
+		req, err := http.NewRequest("POST", *t.Webhook.Webhook_url, jsonMessage)
 		if err != nil {
 			log.Printf("Error creating webhook request: %v\n", err)
 			return
 		}
 		req.Header.Add("Content-Type", "application/json")
-		if triggers.Webhook.Webhook_key_string != nil {
-			req.Header.Add("Authorization", *triggers.Webhook.Webhook_key_string)
+		if t.Webhook.Webhook_key_string != nil {
+			req.Header.Add("Authorization", *t.Webhook.Webhook_key_string)
 		}
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {

@@ -6,7 +6,8 @@ import (
 	"fmt"
 	_ "modernc.org/sqlite"
 )
-
+// Returns a pointer to the db client
+// Db is in WAL mode and the maximum number of open connections are one
 func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", "./serviceData.db?_pragma=journal_mode(WAL)")
 	db.SetMaxOpenConns(1)

@@ -103,7 +103,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				continue
 			}
 			if len(checkedData) > 0 {
-				utils.Fire(checkedData)
+				utils.Current_Config.Triggers.Fire(checkedData)
 			}
 			log.Println("Scheduler fetched service data successfully")
 

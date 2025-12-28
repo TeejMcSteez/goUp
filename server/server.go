@@ -19,7 +19,7 @@ type Server struct {
 //go:embed all:static
 var content embed.FS
 
-// Basic API server, returns current service data
+// API handler, returns current service data from the database
 func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 	data, err := utils.GetRecentData(s.db)
 	if err != nil {
@@ -44,7 +44,10 @@ func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Schedule API server, returns current schedule parameters
+// Schedule API handler
+// POST: Will try to parse request body as JSON and update the current schedule, will respond with a boolean.
+// GET: Gets current schedule information and returns as JSON
+// Any other method gets a bad request response
 func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -81,7 +84,7 @@ func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Updates schedule parameters
+// Updates schedule parameters from schedule API
 func (s *Server) ScheduleUpdater(state scheduler.ScheduleState) bool {
 	ok := s.scd.Update(state)
 
@@ -89,6 +92,7 @@ func (s *Server) ScheduleUpdater(state scheduler.ScheduleState) bool {
 }
 
 // Gets current status in JSON format for automated fetching
+// Only accepts GET requests which will return currently down services
 func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -118,7 +122,7 @@ func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
-
+// Gets current uptime averages from the backend
 func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -151,6 +155,7 @@ func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 }
 
 // Starts server with all handler functions
+// Returns an error if a problem with the server occurs
 func (s *Server) Start() error {
 
 	staticFS, err := fs.Sub(content, "static")
