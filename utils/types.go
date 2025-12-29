@@ -28,6 +28,7 @@ type WebhookTrigger struct {
 	// Can use any authorization header string
 	// Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
 	Webhook_key_string   *string `yaml:"webhook_key"`
+	Custom_message *string `yaml:"custom_message"`
 }
 
 // Data for service endponts

@@ -10,12 +10,17 @@ Server monitor with HTTP web display and API routes for uptime, response time, s
 
 ## Example services.yml
 
-Services provide the name and url of the service to monitor currently just makes a basic HTTP request and make sure it responds with 200 or other configured valid responses.
-  - Future updates will include a configurable server response as well as retry mechanisms
+Services give url, api_url (if any), and api_key (if any) to the program nothing but the name and url are required.
 
-Triggers will provide information and credentials for managing triggers fired when a scrape happens to tell the user or other servers about a failed server(s). 
-
-Current configurable triggers are listed below . . . 
+Triggers contain information for firing
+  - mqtt
+    - mqtt_broker - URL of the MQTT broker
+    - mqtt_user - Username of the MQTT account if any
+    - mqtt_key - Key or password for the MQTT account
+  - webhook
+    - webhook_url - URL to send the webhook message to
+    - webhook_key - Authorization type (Bearer, Basic, etc.) and the key/connection string
+    - custom_message - Extra fields to add to the pre-defined JSON message
 
 ### Example
 
@@ -36,7 +41,8 @@ triggers:
     mqtt_key: "<key>"
   webhook:
     webhook_url: "https://ex.com/"
-    webhook_key: "<key>"
+    webhook_key: "<auth_type> <key>"
+    custom_message: '{ "example_tag": "data" }'
 
 ```
 
@@ -69,6 +75,6 @@ Currently only MQTT is setup for my Home Assistant instance but if viable would 
 
 ### Webhook Trigger
 
-Will send bad service data as JSON to the specified webhook URL
+Will send bad service data as JSON to the specified webhook URL, if the user has defined any custom messages it will add that custom message onto the JSON payload.
 
 The key provided will be injected as a `Authorization` header. Meaning it accepts Basic, Bearer, etc. as a string value in the YAML.

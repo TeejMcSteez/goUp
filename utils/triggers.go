@@ -81,9 +81,24 @@ func (t *Trigger) FireMqtt(data []ServiceData) {
 }
 // Takes in trigger message and checks config for any special message paramters
 func (t *Trigger) getWebhookMessage(data []ServiceData) (io.Reader, error) {
+	// If their is a custom message defined it will use that as a template to map into
+	if t.Webhook.Custom_message != nil {
+		var customData map[string]any
+		if err := json.Unmarshal([]byte(*t.Webhook.Custom_message), &customData); err != nil {
+			return nil, err
+		}
+		customData["services"] = data
+		finalJson, err := json.Marshal(customData)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewBuffer(finalJson), nil 
+	} 
+		
+
 	jsonSvcData, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error occured while parsing webhook message: %v\n", err)
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonSvcData), nil
@@ -93,7 +108,7 @@ func (t *Trigger) FireWebhook(data []ServiceData) {
 	if t.Webhook.Webhook_url != nil {
 		jsonMessage, err := t.getWebhookMessage(data)
 		if err != nil {
-			log.Printf("Failed parsing json service data message: %v", err)
+			log.Printf("Failed parsing json service data message: %v\n", err)
 		}
 		log.Println("Firing webhook")
 
