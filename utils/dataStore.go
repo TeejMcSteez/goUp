@@ -2,14 +2,25 @@ package utils
 
 import (
 	"database/sql"
-	"log"
 	"fmt"
+	"log"
+
 	_ "modernc.org/sqlite"
 )
+
 // Returns a pointer to the db client
 // Db is in WAL mode and the maximum number of open connections are one
 func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "./serviceData.db?_pragma=journal_mode(WAL)")
+	var conn_string string = "./serviceData.db?_pragma=journal_mode(WAL)"
+	if Current_Config == nil {
+		return nil, &NoConfigError{"Configuration", "Not found"}
+	}
+	if Current_Config.Database_Location != nil {
+		conn_string = *Current_Config.Database_Location + "?_pragma=journal_mode(WAL)"
+	} else {
+		return nil, &NoConfigError{"Configuration", "Not found"}
+	}
+	db, err := sql.Open("sqlite", conn_string)
 	db.SetMaxOpenConns(1)
 	if err != nil {
 		return nil, err

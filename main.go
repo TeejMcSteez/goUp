@@ -12,6 +12,11 @@ import (
 )
 
 func main() {
+	svcData, err := utils.GetServiceData()
+	if err != nil {
+		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
+	}
+
 	db, err := utils.InitDB()
 	if err != nil {
 		log.Print("Error initializing database")
@@ -24,10 +29,6 @@ func main() {
 		log.Println("Database connection closed")
 	}()
 
-	svcData, err := utils.GetServiceData()
-	if err != nil {
-		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
-	}
 	for data := range svcData.AllServices {
 		utils.InsertData(db, svcData.AllServices[data])
 	}

@@ -6,6 +6,7 @@ import (
 
 // Main yaml config
 type Config struct {
+	Database_Location *string `yaml:"db_path"`
 	Services map[string]Service `yaml:"services"`
 	Triggers Trigger            `yaml:"triggers"`
 }
