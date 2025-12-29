@@ -6,7 +6,7 @@ import (
 )
 
 func TestBadPath(t *testing.T) {
-	_, got := utils.LoadConfig("")
+	_, got := utils.LoadConfig("bad_string.yml")
 
 	if got == nil {
 		t.Error("Got nil error, should throw as string is invalid path")

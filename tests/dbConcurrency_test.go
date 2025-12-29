@@ -2,11 +2,17 @@ package utils
 
 import (
 	"goUp/utils"
+	"log"
 	"testing"
 )
 
 // Testing getting recent service data in different threads to make sure their is no SQL thread error
 func TestRecentDataSQLFail(t *testing.T) {
+	cfg, err := utils.LoadConfig("../services.yml")
+	if err != nil {
+		log.Printf("Error occured testing SQL data failure")
+	}
+	utils.Current_Config = cfg
 	d, err := utils.InitDB()
 	if err != nil {
 		t.Log("Error initializing the database: ", err)
