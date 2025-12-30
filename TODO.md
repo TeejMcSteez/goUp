@@ -9,11 +9,9 @@ This file outlines potential areas for improvement in the `goUp` project.
 - [ ] Consider adding a dark mode to the UI.
 - [ ] Make the frontend "look good"
 
-## Extensibility
-- [ ] For ease of development and to ensure I can maintain this project, I will be doing MQTT triggers and/or Webhook triggers as most emails, slack messages, etc. can be fired from webhooks and MQTT is a light protocol for simple messaging.
-    - [ ] Increase modularity of webhook Fire
-        - [ ] Custom Webhook Messages
-            - [ ] Create a message crafter to make a custom message to send to the trigger. Mainly for things like Email and Slack that take in custom messages.
+## Database
+
+- [ ] Add error field to tell the frontend explicitly whether or not their was an error rather than checking for 200 response on the frontend
 
 ## Testing
 - [ ] Add unit tests for the Go backend, especially for the utility functions (`utils/*.go`).
