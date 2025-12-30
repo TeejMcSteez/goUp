@@ -52,4 +52,7 @@ func TestUptimeCalculation(t *testing.T) {
 	} else {
 		log.Printf("Got average from serviceChecker: %v", avgs)
 	}
+	if err := db.Close(); err != nil {
+		log.Printf("Error closing database while testing uptime calculation: %v", err)
+	}
 }
