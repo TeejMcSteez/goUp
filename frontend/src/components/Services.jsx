@@ -5,7 +5,7 @@ function Card({ service }) {
 
     return (
         <div className="card">
-            <h3 className="svcName">Name: <a href={name} target="_blank" rel="noopener noreferrer">{name}</a></h3>
+            <h3 className="svcName">Name: {name}</h3>
             <p>Status: {error ? "❌ Error" : "✅ Operational"}</p>
             <p>Response Time: {response_time}</p>
             <p className="svcHttpRes">HTTP Response: {response}</p>
@@ -19,6 +19,7 @@ export default function Services() {
     const [services, setServices] = useState([]);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortKey, setSortKey] = useState('name'); // 'name', 'status'
 
     useEffect(() => {
         const getServiceData = async () => {
@@ -28,10 +29,10 @@ export default function Services() {
                     throw new Error(`Server error: ${res.status}`);
                 }
                 const data = await res.json();
-                if (Array.isArray(data)) {
+                if (data && Array.isArray(data)) {
                     setServices(data);
                 } else {
-                    console.error("Expected array from /api, got:", data);
+                    console.error("Expected object with a 'services' array from /api, got:", data);
                     setServices([]);
                 }
             } catch (err) {
@@ -51,6 +52,23 @@ export default function Services() {
         service.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const sortedAndFilteredServices = [...filteredServices].sort((a, b) => {
+        let compare = 0;
+
+        switch (sortKey) {
+            case 'name':
+                compare = a.name.localeCompare(b.name);
+                break;
+            case 'status':
+                // Error (true) comes before Operational (false)
+                compare = (a.error === b.error) ? 0 : (a.error ? -1 : 1);
+                break;
+            default:
+                compare = 0;
+        }
+        return compare;
+    });
+
     const renderCards = () => {
         if (error) {
             return <div className="card"><p>Error loading service data: {error}</p></div>;
@@ -60,11 +78,11 @@ export default function Services() {
             return <div className="card"><p>No Service Data to Display</p></div>;
         }
 
-        if (filteredServices.length === 0) {
+        if (sortedAndFilteredServices.length === 0) {
             return <div className="card"><p>No services match your search.</p></div>;
         }
 
-        return filteredServices.map((svc, index) => (
+        return sortedAndFilteredServices.map((svc, index) => (
             <Card key={index} service={svc} />
         ));
     };
@@ -72,13 +90,19 @@ export default function Services() {
     return (
         <div className="services-wrapper">
             <h1>Current Services</h1>
-            <input
-                type="text"
-                placeholder="Search services..."
-                className="search-bar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="controls">
+                <input
+                    type="text"
+                    placeholder="Search services..."
+                    className="search-bar"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <select value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="sort-select">
+                    <option value="name">Sort by Name</option>
+                    <option value="status">Sort by Status</option>
+                </select>
+            </div>
             <div id="cards">
                 {renderCards()}
             </div>
