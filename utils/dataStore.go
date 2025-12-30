@@ -81,7 +81,7 @@ func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	for row.Next() {
 		var id int
 		var s ServiceData
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
 		if err != nil {
 			return nil, err
 		}
