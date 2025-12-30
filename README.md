@@ -58,6 +58,7 @@ Schema:
 "service_HTTP_response" TEXT,
 "service_API_response" TEXT,
 "service_response_time" TEXT
+"error" INTEGER NOT NULL DEFAULT 0
 ```
 
 ## Triggers
