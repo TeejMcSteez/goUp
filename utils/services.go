@@ -109,7 +109,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 			// If all retries fail, err will still be non-nil
 			if err != nil {
 				log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
-				sd.ServiceHTTPResponse = "Fetch Error, Check Logs"
+				sd.ServiceHTTPResponse = err.Error()
 				sd.ServiceAPIResponse = ""
 				sd.ServiceResponseTime = time.Since(start).String()
 				svcResponse.AllServices = append(svcResponse.AllServices, sd)
