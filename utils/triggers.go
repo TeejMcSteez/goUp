@@ -64,8 +64,6 @@ func (t *Trigger) FireMqtt(data []ServiceData) {
 		} else {
 			// Keep retain to true to store last known good message
 			token := client.Publish("goup_status", 0, true, jsonData)
-			log.Printf("Published Message: %v\n", data)
-
 			token.Done()
 
 			if err := token.Error(); err != nil {
