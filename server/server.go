@@ -26,19 +26,10 @@ func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	jsonSvcData := make([]utils.ServiceData, 0, len(data))
-	for i := range data {
-		jsonSvcData = append(jsonSvcData, utils.ServiceData{
-			ServiceName:         data[i].ServiceName,
-			ServiceHTTPResponse: data[i].ServiceHTTPResponse,
-			ServiceAPIResponse:  data[i].ServiceAPIResponse,
-			ServiceResponseTime: data[i].ServiceResponseTime,
-		})
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if err := json.NewEncoder(w).Encode(jsonSvcData); err != nil {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

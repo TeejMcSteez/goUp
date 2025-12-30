@@ -86,23 +86,29 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 
 	log.Println("Scanning services HTTP endpoints . . .")
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
+		var sd ServiceData
+		sd.ServiceName = endpoint.Name
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
  
 		if err != nil {
+			sd.Error = true
 			// If it errors initially and the user has a configured number of retries
 			// This will attempt to retry to get a new valid response the specified number of times
 			if endpoint.Retry_Requests != nil {
 				for range *endpoint.Retry_Requests {
 					log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, err, "❌")
-					retry_res, _ := http.Get(endpoint.URL)
-					res = retry_res
+					retry_res, retry_err := http.Get(endpoint.URL)
+					if retry_err == nil {
+						res = retry_res
+						err = nil
+						break
+					}
 				}
-			// If their are no retries configured it will simply return
-			} else {
+			}
+			// If all retries fail, err will still be non-nil
+			if err != nil {
 				log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
-				var sd ServiceData
-				sd.ServiceName = endpoint.Name
 				sd.ServiceHTTPResponse = "Fetch Error, Check Logs"
 				sd.ServiceAPIResponse = ""
 				sd.ServiceResponseTime = time.Since(start).String()
@@ -112,9 +118,6 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		}
 
 		resType := res.StatusCode
-
-		var sd ServiceData
-		sd.ServiceName = endpoint.Name
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)
 
 		if endpoint.API_URL != nil {
@@ -148,7 +151,6 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 			sd.ServiceAPIResponse = string(apiBody)
 		}
 		elapsed := time.Since(start)
-		// log.Printf("Request took: %v\n", elapsed)
 		sd.ServiceResponseTime = elapsed.String()
 		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
@@ -159,8 +161,8 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 	} else {
 		svcResponse.DownServices = s
 	}
-	data = &svcResponse
-	return data, retErr
+	
+	return &svcResponse, retErr
 }
 
 // Returns current service endpoints for fetching

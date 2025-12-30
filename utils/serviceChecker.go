@@ -23,17 +23,18 @@ func Check(data []ServiceData) ([]ServiceData, error) {
 	if Current_Config == nil {
 		return nil, &NoConfigError{"configuration", "cannot be nil"}
 	}
-	for _, el := range data {
+	for i := range data {
 		var valid_responses []string
 
-		service_config, ok := Current_Config.Services[el.ServiceName]
+		service_config, ok := Current_Config.Services[data[i].ServiceName]
 		if ok && service_config.Valid_Responses != nil && len(*service_config.Valid_Responses) > 0 {
 			valid_responses = *service_config.Valid_Responses
 		} else {
 			valid_responses = []string{"200"}
 		}
-		if !slices.Contains(valid_responses, el.ServiceHTTPResponse) {
-			ret = append(ret, el)
+		if !slices.Contains(valid_responses, data[i].ServiceHTTPResponse) {
+			data[i].Error = true
+			ret = append(ret, data[i])
 		}
 	}
 	

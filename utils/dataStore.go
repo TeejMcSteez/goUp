@@ -31,7 +31,8 @@ func InitDB() (*sql.DB, error) {
 		"service_name" TEXT,
 		"service_HTTP_response" TEXT,
 		"service_API_response" TEXT,
-		"service_response_time" TEXT
+		"service_response_time" TEXT,
+		"error" INTEGER NOT NULL DEFAULT 0
 	);`
 
 	_, err = db.Exec(createTableSQL)
@@ -44,7 +45,7 @@ func InitDB() (*sql.DB, error) {
 }
 
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
-	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time) VALUES (?, ?, ?, ?)`
+	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time, error) VALUES (?, ?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
 	if err != nil {
 		return err
@@ -56,7 +57,7 @@ func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 		}
 	}()
 
-	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime)
+	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Error)
 	if err != nil {
 		return err
 	}
@@ -110,7 +111,7 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 		var id int
 		var s ServiceData
 		// Might implement a scanner for service data so I can just pass in struct
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
 		if err != nil {
 			return nil, err
 		}
@@ -138,7 +139,7 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	for row.Next() {
 		var id int
 		var s ServiceData
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime)
+		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
 		if err != nil {
 			return nil, err
 		}

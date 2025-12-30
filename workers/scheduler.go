@@ -94,12 +94,12 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				log.Printf("Failed fetching service data in scheduler: %v\n", err)
 				continue
 			}
-			for _, d := range data.AllServices {
-				utils.InsertData(db, d)
+			for i := range data.AllServices {
+				utils.InsertData(db, data.AllServices[i])
 			}
 			checkedData, err := utils.Check(data.AllServices)
 			if err != nil {
-				log.Print("Received error from checking data in scheduler")
+				log.Printf("Received error from checking data in scheduler: %v", err)
 				continue
 			}
 			if len(checkedData) > 0 {

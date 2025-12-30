@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 
 function Card({ service }) {
-    const { name, response, response_time, data } = service;
-    const isSuccess = response === "200";
+    const { name, response, response_time, data, error } = service;
 
     return (
         <div className="card">
             <h3 className="svcName">Name: <a href={name} target="_blank" rel="noopener noreferrer">{name}</a></h3>
-            <p>Status: {isSuccess ? "✅ Operational" : "❌ Error"}</p>
+            <p>Status: {error ? "❌ Error" : "✅ Operational"}</p>
             <p>Response Time: {response_time}</p>
             <p className="svcHttpRes">HTTP Response: {response}</p>
             <h2>API Response</h2>
