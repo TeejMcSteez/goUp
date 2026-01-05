@@ -17,7 +17,7 @@ func createTestYML(content string, t *testing.T) func() {
 		t.Fatalf("Failed to create test services.yml: %v", err)
 	}
 	return func() {
-		// os.Remove("services.yml")
+		os.Remove("services.yml")
 	}
 }
 
