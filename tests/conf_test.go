@@ -8,7 +8,7 @@ import (
 
 func TestLoadConfigSuccess(t *testing.T) {
 	content := `
-db_path: "/tmp/test.db"
+db_path: "./test.db"
 services:
   my-service:
     url: "http://example.com"
@@ -29,8 +29,8 @@ services:
 		t.Fatal("Expected config to be loaded, but it was nil")
 	}
 
-	if *cfg.Database_Location != "/tmp/test.db" {
-		t.Errorf("Expected db_path to be '/tmp/test.db', got '%s'", *cfg.Database_Location)
+	if *cfg.Database_Location != "./test.db" {
+		t.Errorf("Expected db_path to be './test.db', got '%s'", *cfg.Database_Location)
 	}
 
 	if _, ok := cfg.Services["my-service"]; !ok {
