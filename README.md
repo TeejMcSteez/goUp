@@ -1,18 +1,20 @@
 # GoUp
 
-***Under-Development!***
-
-**[Todo](TODO.md)**
-
 Server monitor with HTTP web display and API routes for uptime, response time, status, and more! 
 
 ![Example Image](.github/image.png)
 
+Frontend is built with [React](https://react.dev/) + [Vite](https://vite.dev/) alongside [Chart.js](https://www.chartjs.org/) for uptime visualization.
+
+Entire frontend directory should be right at 4.0kb including assets which is embedded into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
+
 ## Example services.yml
 
-Services give url, api_url (if any), and api_key (if any) to the program nothing but the name and url are required.
+Services give url, api_url (if any), and api_key (if any) to the program.
 
-Triggers contain information for firing
+Nothing but the name and url are required for the program to work.
+
+Triggers contain information for firing different messages:
   - mqtt
     - mqtt_broker - URL of the MQTT broker
     - mqtt_user - Username of the MQTT account if any
@@ -79,3 +81,12 @@ Currently only MQTT is setup for my Home Assistant instance but if viable would 
 Will send bad service data as JSON to the specified webhook URL, if the user has defined any custom messages it will add that custom message onto the JSON payload.
 
 The key provided will be injected as a `Authorization` header. Meaning it accepts Basic, Bearer, etc. as a string value in the YAML.
+
+## Arch. Support
+
+- Linux ARM64/AMD64
+- Windows ARM64/AMD64
+
+This a pure Go program it does not require any other libraries and is compiled directly to source with the Go compiler.
+
+Go does build Darwin (Apple) ARM64/AMD64, I just do not use any Apple products so I do not build for it. That being said if anyone does want to me to build for Darwin I can add it to the GitHub Actions workflow.
