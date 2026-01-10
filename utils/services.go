@@ -185,7 +185,8 @@ func SetServiceEndpoints(validServices []Service) {
 
 	svcEndpoints.ServiceEndpoint = validServices
 }
-
+// Will retry the fetch request if configured (N-times)
+// If not configured will return the initial error
 func ErrorRetry(sd *ServiceData, endpoint Service, initialErr error) (*http.Response, error) {
 	sd.Error = true
 	currentErr := initialErr
