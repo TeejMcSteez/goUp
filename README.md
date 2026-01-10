@@ -90,3 +90,30 @@ The key provided will be injected as a `Authorization` header. Meaning it accept
 This a pure Go program it does not require any other libraries and is compiled directly to source with the Go compiler.
 
 Go does build Darwin (Apple) ARM64/AMD64, I just do not use any Apple products so I do not build for it. That being said if anyone does want to me to build for Darwin I can add it to the GitHub Actions workflow.
+
+## Example Use - N8N Message on Error
+
+Create a POST Webhook trigger, when the trigger is activated it will contain the error information for the servers that have failed.
+
+One can then use this information however they want below is an example HTML message mapping error items to a card which is then sent via Gmail message from N8N.
+
+
+```JavaScript
+{{ $json.body.map(item =>
+`<tr style="background-color: ${item.error ? '#fcf2f2' : '#f2fcf2'}; border-bottom: 1px solid #e0e0e0;">
+<td style="padding: 12px; font-weight: 500; color: #333;">${item.name}</td>
+<td style="padding: 12px;">
+<span style="background-color: ${item.error ? '#d9534f' : '#5cb85c'}; color: white; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 12px;">
+${item.error ? 'Error' : 'OK'}
+</span>
+</td>
+<td style="padding: 12px; font-size: 14px; color: ${item.error ? '#c9302c' : '#333'}; font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;">
+${item.response}
+</td>
+<td style="padding: 12px; font-size: 14px; color: #555;">
+${item.response_time}
+</td>
+</tr>`).join('') }}
+```
+
+Once a webhook trigger is fired from goUp the user will receive a message with the error information!
