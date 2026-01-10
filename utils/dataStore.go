@@ -18,7 +18,7 @@ func InitDB() (*sql.DB, error) {
 	if Current_Config.Database_Location != nil {
 		conn_string = *Current_Config.Database_Location + "?_pragma=journal_mode(WAL)"
 	} else {
-		return nil, &NoConfigError{"Configuration", "Not found"}
+		return nil, &NoConfigError{"db_path", "Not found"}
 	}
 	db, err := sql.Open("sqlite", conn_string)
 	db.SetMaxOpenConns(1)
