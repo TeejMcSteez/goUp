@@ -17,7 +17,7 @@ func (e *NoConfigError) Error() string {
 }
 
 // Takes in service data and checks for any bad responses
-// Upon bad responses will fire trigger events if any and return bad responses or nil
+// Valid responses will either be configured or will be the default 200
 func Check(data []ServiceData) ([]ServiceData, error) {
 	var ret []ServiceData
 	if Current_Config == nil {
