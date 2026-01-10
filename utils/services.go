@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"log"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -142,6 +142,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 
 	return &svcResponse, retErr
 }
+
 // Gets API data
 func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)

@@ -12,7 +12,7 @@ import (
 )
 
 type Server struct {
-	db *sql.DB
+	db  *sql.DB
 	scd *scheduler.Scheduler
 }
 
@@ -113,6 +113,7 @@ func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
+
 // Gets current uptime averages from the backend
 func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {

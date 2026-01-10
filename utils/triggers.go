@@ -3,10 +3,10 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"io"
 	"log"
 	"net/http"
-	"io"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 // Copies Trigger config from configuration to use in t
@@ -71,12 +71,13 @@ func (t *Trigger) FireMqtt(data []ServiceData) {
 			}
 			log.Println("Disconnecting from MQTT broker, sent message complete")
 		}
-		
+
 		client.Disconnect(500)
 	} else {
 		log.Println("No MQTT broker setup")
 	}
 }
+
 // Takes in trigger message and checks config for any special message paramters
 func (t *Trigger) getWebhookMessage(data []ServiceData) (io.Reader, error) {
 	// If their is a custom message defined it will use that as a template to map into
@@ -90,9 +91,8 @@ func (t *Trigger) getWebhookMessage(data []ServiceData) (io.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		return bytes.NewBuffer(finalJson), nil 
-	} 
-		
+		return bytes.NewBuffer(finalJson), nil
+	}
 
 	jsonSvcData, err := json.Marshal(data)
 	if err != nil {

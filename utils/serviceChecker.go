@@ -8,7 +8,7 @@ import (
 )
 
 type NoConfigError struct {
-	Field string
+	Field  string
 	Reason string
 }
 
@@ -37,15 +37,16 @@ func Check(data []ServiceData) ([]ServiceData, error) {
 			ret = append(ret, data[i])
 		}
 	}
-	
+
 	return ret, nil
 }
-// Returns the uptime average for a service or error 
+
+// Returns the uptime average for a service or error
 func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 	data, err := GetDataForService(db, name)
 	if err != nil {
 		return 0.0, err
-	} 
+	}
 	chk, err := Check(data)
 	if err != nil {
 		log.Fatalf("Error while checking data in getting uptime averages: %v", err)
@@ -53,7 +54,7 @@ func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 	numberDown := len(chk)
 	totalNumber := len(data)
 	if totalNumber == 0 {
-		return 0.0,  err
+		return 0.0, err
 	}
 	average := float64(numberDown) / float64(totalNumber)
 	return average, nil

@@ -6,14 +6,14 @@ import (
 
 // Main yaml config
 type Config struct {
-	Database_Location *string `yaml:"db_path"`
-	Services map[string]Service `yaml:"services"`
-	Triggers Trigger            `yaml:"triggers"`
+	Database_Location *string            `yaml:"db_path"`
+	Services          map[string]Service `yaml:"services"`
+	Triggers          Trigger            `yaml:"triggers"`
 }
 
 // Endpoints and data for triggers
 type Trigger struct {
-	MQTT MQTTTrigger `yaml:"mqtt"`
+	MQTT    MQTTTrigger    `yaml:"mqtt"`
 	Webhook WebhookTrigger `yaml:"webhook"`
 }
 
@@ -24,11 +24,11 @@ type MQTTTrigger struct {
 }
 
 type WebhookTrigger struct {
-	Webhook_url   *string `yaml:"webhook_url"`
+	Webhook_url *string `yaml:"webhook_url"`
 	// Can use any authorization header string
 	// Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
-	Webhook_key_string   *string `yaml:"webhook_key"`
-	Custom_message *string `yaml:"custom_message"`
+	Webhook_key_string *string `yaml:"webhook_key"`
+	Custom_message     *string `yaml:"custom_message"`
 }
 
 // Data for service endponts
@@ -38,7 +38,7 @@ type Service struct {
 	API_URL         *string   `yaml:"api_url"`
 	API_KEY         *string   `yaml:"api_key"`
 	Valid_Responses *[]string `yaml:"valid_responses"`
-	Retry_Requests *int `yaml:"retry"`
+	Retry_Requests  *int      `yaml:"retry"`
 }
 
 // Shared service endpoint struct
@@ -53,7 +53,7 @@ type ServiceData struct {
 	ServiceHTTPResponse string `json:"response"`
 	ServiceAPIResponse  string `json:"data"`
 	ServiceResponseTime string `json:"response_time"`
-	Error bool `json:"error"` 
+	Error               bool   `json:"error"`
 }
 
 type ServiceResponse struct {

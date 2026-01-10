@@ -10,7 +10,7 @@ import (
 
 type ScheduleState struct {
 	// Number (30, 60, etc.)
-	Span     int `json:"timespan"`
+	Span int `json:"timespan"`
 	// Interval of time (sec, min, hrs)
 	Interval string `json:"interval"`
 }

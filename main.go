@@ -1,14 +1,14 @@
 package main
 
 import (
-	"goUp/workers"
+	"context"
 	"goUp/server"
 	"goUp/utils"
+	"goUp/workers"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"context"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 	// listening for SIGINT (Ctrl+C) and SIGTERM
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go scheduler.StartHotReloader("services.yml", ctx)
