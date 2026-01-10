@@ -40,7 +40,7 @@ func Check(data []ServiceData) ([]ServiceData, error) {
 	
 	return ret, nil
 }
-// Fix to return error or float to make sure GetDataForService is valid
+// Returns the uptime average for a service or error 
 func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 	data, err := GetDataForService(db, name)
 	if err != nil {
