@@ -34,7 +34,7 @@ export default function UptimeChart() {
 
                 if (Array.isArray(json)) {
                     const labels = json.map(item => item.name);
-                    const data = json.map(item => item.average);
+                    const data = json.map(item => item.average * 100);
 
                     setChartData({
                         labels,
@@ -96,7 +96,32 @@ export default function UptimeChart() {
                 <Bar 
                     data={chartData}
                     options={{
-                        scales: { y: { beginAtZero: true } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
                         maintainAspectRatio: false 
                     }}
                 />
