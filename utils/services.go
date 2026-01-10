@@ -92,20 +92,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		res, err := http.Get(endpoint.URL)
 
 		if err != nil {
-			sd.Error = true
-			// If it errors initially and the user has a configured number of retries
-			// This will attempt to retry to get a new valid response the specified number of times
-			if endpoint.Retry_Requests != nil {
-				for range *endpoint.Retry_Requests {
-					log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, err, "❌")
-					retry_res, retry_err := http.Get(endpoint.URL)
-					if retry_err == nil {
-						res = retry_res
-						err = nil
-						break
-					}
-				}
-			}
+			res, err = ErrorRetry(&sd, endpoint, err)
 			// If all retries fail, err will still be non-nil
 			if err != nil {
 				log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
@@ -197,4 +184,22 @@ func SetServiceEndpoints(validServices []Service) {
 	defer svcEndpoints.Mux.Unlock()
 
 	svcEndpoints.ServiceEndpoint = validServices
+}
+
+func ErrorRetry(sd *ServiceData, endpoint Service, initialErr error) (*http.Response, error) {
+	sd.Error = true
+	currentErr := initialErr
+	// If it errors initially and the user has a configured number of retries
+	// This will attempt to retry to get a new valid response the specified number of times
+	if endpoint.Retry_Requests != nil {
+		for range *endpoint.Retry_Requests {
+			log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, currentErr, "❌")
+			retry_res, retry_err := http.Get(endpoint.URL)
+			if retry_err == nil {
+				return retry_res, nil
+			}
+			currentErr = retry_err
+		}
+	}
+	return nil, currentErr
 }
