@@ -90,7 +90,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		sd.ServiceName = endpoint.Name
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
- 
+
 		if err != nil {
 			sd.Error = true
 			// If it errors initially and the user has a configured number of retries
@@ -116,53 +116,67 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 				continue
 			}
 		}
+		defer res.Body.Close()
 
 		resType := res.StatusCode
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)
-
+		// If their is an API URL will attempt to get data
 		if endpoint.API_URL != nil {
-			apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
+			err := GetAPIData(endpoint, &sd, start)
 			if err != nil {
-				return nil, err
+				log.Printf("Error getting API data for %s: %v", endpoint.Name, err)
+				sd.Error = true
+				sd.ServiceAPIResponse = err.Error()
 			}
-
-			if endpoint.API_KEY != nil {
-				apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
-			}
-
-			apiReq.Header.Set("Content-Type", "application/json")
-
-			apiRes, apiErr := http.DefaultClient.Do(apiReq)
-
-			if apiErr != nil {
-				return nil, err
-			}
-
-			defer func() {
-				if err := apiRes.Body.Close(); err != nil {
-					retErr = err
-				}
-			}()
-
-			apiBody, err := io.ReadAll(apiRes.Body)
-			if err != nil {
-				return nil, err
-			}
-			sd.ServiceAPIResponse = string(apiBody)
 		}
-		elapsed := time.Since(start)
-		sd.ServiceResponseTime = elapsed.String()
-		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 
+		if sd.ServiceResponseTime == "" {
+			sd.ServiceResponseTime = time.Since(start).String()
+		}
+
+		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 	}
-	if s, err := Check(svcResponse.AllServices); err != nil {
-		log.Printf("Error occured while checking service data: %v", err)
-		return nil, err
-	} else {
-		svcResponse.DownServices = s
+	if svcResponse.DownServices, retErr = Check(svcResponse.AllServices); retErr != nil {
+		return nil, retErr
 	}
-	
+
 	return &svcResponse, retErr
+}
+// Gets API data
+func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
+	apiReq, err := http.NewRequest("GET", *endpoint.API_URL, nil)
+	if err != nil {
+		return err
+	}
+
+	if endpoint.API_KEY != nil {
+		apiReq.Header.Set("Authorization", "Bearer "+*endpoint.API_KEY)
+	}
+
+	apiReq.Header.Set("Content-Type", "application/json")
+
+	apiRes, apiErr := http.DefaultClient.Do(apiReq)
+
+	if apiErr != nil {
+		log.Printf("Error occured during API request: %v\n", apiErr)
+		return apiErr
+	}
+
+	defer func() {
+		if err := apiRes.Body.Close(); err != nil {
+			log.Printf("Error closing API response body: %v\n", err)
+		}
+	}()
+
+	apiBody, err := io.ReadAll(apiRes.Body)
+	if err != nil {
+		return err
+	}
+	sd.ServiceAPIResponse = string(apiBody)
+	elapsed := time.Since(start)
+	sd.ServiceResponseTime = elapsed.String()
+	log.Print("Fetched API data successfully\n")
+	return nil
 }
 
 // Returns current service endpoints for fetching
