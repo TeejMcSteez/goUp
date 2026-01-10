@@ -30,7 +30,9 @@ func main() {
 	}()
 
 	for data := range svcData.AllServices {
-		utils.InsertData(db, svcData.AllServices[data])
+		if err := utils.InsertData(db, svcData.AllServices[data]); err != nil {
+			log.Printf("Failed inserting data on initial fetch: %v\n", err)
+		}
 	}
 
 	sch := scheduler.NewScheduler(db, 30, "seconds")
