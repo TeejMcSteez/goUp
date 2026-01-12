@@ -156,6 +156,17 @@ body {
     justify-content: center;
 }
 
+.svcData {
+    max-height: 200px; /* Adjust as needed */
+    overflow-y: auto;
+    background-color: #2e3a47; /* A slightly darker background for the data area */
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+    white-space: pre-wrap; /* To preserve formatting of API response */
+    word-wrap: break-word; /* To break long words */
+}
+
 #updateButton {
     display: flex;
     align-items: center;

@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 
 function Card({ service }) {
     const { name, response, response_time, data, error } = service;
+    const [showApiResponse, setShowApiResponse] = useState(false);
+
+    const toggleApiResponse = () => {
+        setShowApiResponse(!showApiResponse);
+    };
 
     return (
         <div className="card">
@@ -9,8 +14,12 @@ function Card({ service }) {
             <p>Status: {error ? "❌ Error" : "✅ Operational"}</p>
             <p>Response Time: {response_time}</p>
             <p className="svcHttpRes">HTTP Response: {response}</p>
-            <h2>API Response</h2>
-            <div className="svcData">{data ? data : "No API setup in configuration"}</div>
+            <h2 onClick={toggleApiResponse} style={{ cursor: 'pointer' }}>
+                API Response {showApiResponse ? '▲' : '▼'}
+            </h2>
+            {showApiResponse && (
+                <div className="svcData">{data ? data : "No API setup in configuration"}</div>
+            )}
         </div>
     );
 }
