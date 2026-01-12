@@ -1,12 +1,16 @@
 # GoUp
 
-Server monitor with HTTP web display and API routes for uptime, response time, status, and more! 
+Server monitor with HTTP web display and API routes for uptime, response time, status, and more!
 
 ![Example Image](.github/image.png)
 
 Frontend is built with [React](https://react.dev/) + [Vite](https://vite.dev/) alongside [Chart.js](https://www.chartjs.org/) for uptime visualization.
 
 Entire frontend directory should be right at 4.0kb including assets which is embedded into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
+
+This application does not contain **ANY** built in authentication and is intended for LAN or trusted networks:
+1. I do not want to spend excessive time programming authentication solutions (it's not interesting to me)
+2. I do not want to lock in users to the authentication solution I choose
 
 ## Example services.yml
 
