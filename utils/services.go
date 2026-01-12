@@ -50,25 +50,31 @@ func Setup() error {
 
 	// Add new endpoints from the config.
 	if cfg.Services != nil {
-		for name, svc := range cfg.Services {
-			found := false
-			for _, endpoint := range updatedEndpoints {
-				if endpoint.URL == svc.URL {
-					found = true
-					break
-				}
-			}
-			if !found {
-				log.Println("Adding", name, "to service endpoints")
-				svc.Name = name
-				updatedEndpoints = append(updatedEndpoints, svc)
-			}
-		}
+		updatedEndpoints = append(updatedEndpoints, UpdateEndoints(cfg, updatedEndpoints)...)
 	}
 
 	svcEndpoints.ServiceEndpoint = updatedEndpoints
 
 	return nil
+}
+// Updates endpoints that arent found in the current config
+func UpdateEndoints(cfg *Config, endpoints []Service) ([]Service) {
+	updatedEndpoints := endpoints
+	for name, svc := range cfg.Services {
+		found := false
+		for _, endpoint := range updatedEndpoints {
+			if endpoint.URL == svc.URL {
+				found = true
+				break
+			}
+		}
+		if !found {
+			log.Println("Adding", name, "to service endpoints")
+			svc.Name = name
+			updatedEndpoints = append(endpoints, svc)
+		}
+	}
+	return updatedEndpoints
 }
 
 // Gets service data from endpoints
