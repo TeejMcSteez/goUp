@@ -7,11 +7,20 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"fmt"
 )
 
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
 var Current_Config *Config
+
+type NoServiceEndpointsError struct {
+	Message string
+}
+
+func (e *NoServiceEndpointsError) Error() string {
+	return fmt.Sprintf("%s", e.Message)
+}
 
 // Sets up service and trigger endpoints from configuration
 func Setup() error {
@@ -26,16 +35,29 @@ func Setup() error {
 	}
 
 	Current_Config = cfg
-	log.Println("Configuration setup finished")
 	log.Println("Setting up triggers")
 	SetupTrigger(cfg)
 
+	var updatedEndpoints []Service
+	log.Println("Setting up service endpoints")
+	if cfg.Services != nil {
+		updatedEndpoints = append(updatedEndpoints, ScanDeadEndpoints(cfg)...)
+
+		updatedEndpoints = append(updatedEndpoints, ScanNewEndpoints(cfg, updatedEndpoints)...)
+	} else {
+		return &NoServiceEndpointsError{"No service endpoints found in current configuration!"}
+	}
+	svcEndpoints.ServiceEndpoint = updatedEndpoints
+	log.Println("Service endpoints setup finished")
+	log.Println("Configuration setup finished")
+	return nil
+}
+
+func ScanDeadEndpoints(cfg *Config) []Service {
 	configServices := make(map[string]struct{})
 	// Sets each value in the map to the URL of the service
-	if cfg.Services != nil {
-		for _, svc := range cfg.Services {
-			configServices[svc.URL] = struct{}{}
-		}
+	for _, svc := range cfg.Services {
+		configServices[svc.URL] = struct{}{}
 	}
 
 	// Remove endpoints that are no longer in the config.
@@ -47,18 +69,11 @@ func Setup() error {
 			log.Println("Removing", endpoint.Name, "from service endpoints")
 		}
 	}
-
-	// Add new endpoints from the config.
-	if cfg.Services != nil {
-		updatedEndpoints = append(updatedEndpoints, UpdateEndoints(cfg, updatedEndpoints)...)
-	}
-
-	svcEndpoints.ServiceEndpoint = updatedEndpoints
-
-	return nil
+	return updatedEndpoints
 }
+
 // Updates endpoints that arent found in the current config
-func UpdateEndoints(cfg *Config, endpoints []Service) []Service {
+func ScanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 	var newEndpoints []Service
 	for name, svc := range cfg.Services {
 		found := false
