@@ -36,7 +36,7 @@ func StartHotReloader(path string, ctx context.Context) {
 				log.Printf("Failed to get file information while reloading: %v", err)
 			}
 			if !fileInfo.ModTime().Equal(initialModTime) {
-				log.Println("Reloading configuration")
+				log.Println("File change detected, reloading configuration")
 				if err := utils.Setup(); err != nil {
 					log.Printf("Hot reload failed: %v", err)
 					return
