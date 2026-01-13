@@ -148,6 +148,7 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	}
 	return sd, retErr
 }
+
 // Cleans up database after exit
 func CleanupDb() error {
 	log.Printf("Cleaning up database file")
