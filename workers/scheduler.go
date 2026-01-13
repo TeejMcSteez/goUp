@@ -1,4 +1,4 @@
-package scheduler
+package workers
 
 import (
 	"database/sql"
