@@ -57,9 +57,9 @@ services:
   service2:
     url: "https://example.com"
     retry: 2
-  service3:
-    url: "https://www.apple.com"
-    retry: 2
+  service4:
+    url: "https://www.google.com"
+    retry: 1
 `
 	// Overwrite the previous services.yml
 	cleanup2 := createTestYML(ymlContent2, t)
@@ -76,18 +76,18 @@ services:
 	}
 
 	foundService2 := false
-	foundService3 := false
+	foundService4 := false
 	for _, s := range endpoints2 {
 		if s.Name == "service2" {
 			foundService2 = true
 		}
-		if s.Name == "service3" {
-			foundService3 = true
+		if s.Name == "service4" {
+			foundService4 = true
 		}
 	}
 
-	if !foundService2 || !foundService3 {
-		t.Errorf("Expected service2 and service3 to be present after update, but they were not. Endpoints: %+v", endpoints2)
+	if !foundService2 || !foundService4 {
+		t.Errorf("Expected service2 and service4 to be present after update, but they were not. Endpoints: %+v", endpoints2)
 	}
 }
 
