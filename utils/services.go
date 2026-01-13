@@ -41,9 +41,9 @@ func Setup() error {
 	var updatedEndpoints []Service
 	log.Println("Setting up service endpoints")
 	if cfg.Services != nil {
-		updatedEndpoints = append(updatedEndpoints, ScanDeadEndpoints(cfg)...)
+		updatedEndpoints = append(updatedEndpoints, scanDeadEndpoints(cfg)...)
 
-		updatedEndpoints = append(updatedEndpoints, ScanNewEndpoints(cfg, updatedEndpoints)...)
+		updatedEndpoints = append(updatedEndpoints, scanNewEndpoints(cfg, updatedEndpoints)...)
 	} else {
 		return &NoServiceEndpointsError{"No service endpoints found in current configuration!"}
 	}
@@ -53,7 +53,7 @@ func Setup() error {
 	return nil
 }
 
-func ScanDeadEndpoints(cfg *Config) []Service {
+func scanDeadEndpoints(cfg *Config) []Service {
 	configServices := make(map[string]struct{})
 	// Sets each value in the map to the URL of the service
 	for _, svc := range cfg.Services {
@@ -73,7 +73,7 @@ func ScanDeadEndpoints(cfg *Config) []Service {
 }
 
 // Updates endpoints that arent found in the current config
-func ScanNewEndpoints(cfg *Config, endpoints []Service) []Service {
+func scanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 	var newEndpoints []Service
 	for name, svc := range cfg.Services {
 		found := false
