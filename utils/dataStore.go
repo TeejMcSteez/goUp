@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
@@ -146,4 +147,19 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 		sd = append(sd, s)
 	}
 	return sd, retErr
+}
+// Cleans up database after exit
+func CleanupDb() error {
+	log.Printf("Cleaning up database file")
+	if Current_Config.Database_Location != nil {
+		if err := os.Remove(*Current_Config.Database_Location); err != nil {
+			return err
+		}
+	} else {
+		if err := os.Remove("./serviceData.db"); err != nil {
+			return err
+		}
+	}
+	log.Println("Database file succesfully removed")
+	return nil
 }
