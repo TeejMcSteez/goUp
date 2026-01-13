@@ -38,7 +38,7 @@ func main() {
 		}
 	}
 
-	sch := scheduler.NewScheduler(db, 30, "seconds")
+	sch := workers.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
 
 	// listening for SIGINT (Ctrl+C) and SIGTERM
@@ -47,7 +47,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go scheduler.StartHotReloader("services.yml", ctx)
+	go workers.StartHotReloader("services.yml", ctx)
 
 	go func() {
 		log.Println("Starting server on port 8080")
