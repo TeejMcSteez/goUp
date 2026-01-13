@@ -164,3 +164,22 @@ func CleanupDb() error {
 	log.Println("Database file succesfully removed")
 	return nil
 }
+// Sqlite comes built in with dbstat table, this function returns that built in table
+func GetDbStat(db *sql.DB) (dbStat DatabaseStatistic, retErr error) {
+	statement := "SELECT * FROM dbstat"
+	row, err := db.Query(statement)
+	if err != nil {
+		return DatabaseStatistic{}, nil
+	}
+	defer func() {
+		if err := row.Close(); err != nil {
+			retErr = err
+		}
+	}()
+	for row.Next() {
+		if err := row.Scan(&dbStat); err != nil {
+			return DatabaseStatistic{}, err
+		}
+	}
+	return dbStat, err
+}
