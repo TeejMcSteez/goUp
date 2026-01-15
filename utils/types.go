@@ -76,16 +76,16 @@ type AverageData struct {
 
 // Types come from: https://sqlite.org/dbstat.html
 type DatabaseStatistic struct {
-	name       string
-	path       string
-	pageno     int
-	pagetype   string
-	ncell      int
-	payload    int
-	unused     int
-	mx_payload int
-	pgoffset   int
-	pgsize     int
+	Name       string
+	Path       string
+	Pageno     int
+	Pagetype   string
+	Ncell      int
+	Payload    int
+	Unused     int
+	Mx_payload int
+	Pgoffset   int
+	Pgsize     int
 	// Below are hidden on `SELECT * FROM dbstat`
 	schema    string
 	aggregate bool
