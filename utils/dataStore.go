@@ -165,22 +165,19 @@ func CleanupDb() error {
 	return nil
 }
 
-// Sqlite comes built in with dbstat table, this function returns that built in table
-func GetDbStat(db *sql.DB) (dbStat DatabaseStatistic, retErr error) {
-	statement := "SELECT * FROM dbstat"
-	row, err := db.Query(statement)
-	if err != nil {
-		return DatabaseStatistic{}, nil
-	}
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
+
+func GetDatabaseSize(db *sql.DB) (int64, error) {
+	if Current_Config.Database_Location != nil {
+		file, err := os.Open(*Current_Config.Database_Location)
+		if err != nil {
+			return  0, err
 		}
-	}()
-	for row.Next() {
-		if err := row.Scan(&dbStat.name, &dbStat.path, &dbStat.pageno, &dbStat.pagetype, &dbStat.ncell, &dbStat.payload, &dbStat.unused, &dbStat.mx_payload, &dbStat.pgoffset, &dbStat.pgsize); err != nil {
-			return DatabaseStatistic{}, err
+		fileStats, err := file.Stat()
+		if err != nil {
+			return  0, err
 		}
+		return fileStats.Size(), nil
+
 	}
-	return dbStat, err
+	return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
 }
