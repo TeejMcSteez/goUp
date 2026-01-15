@@ -31,11 +31,11 @@ services:
 		t.Fail()
 	}
 
-	data, err := utils.GetDbStat(db)
+	data, err := utils.GetDatabaseSize(db)
 	if err != nil {
 		log.Printf("Error occured getting database statistics: %v", err)
 		t.Fail()
 	}
-	log.Printf("DB Stats: %v", data)
+	log.Printf("Database file size (bytes): %v", data)
 
 }
