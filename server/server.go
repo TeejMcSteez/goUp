@@ -156,7 +156,7 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	if err := utils.CleanupDb(); err != nil {
+	if err := utils.ClearDatabase(s.db); err != nil {
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 	}
 	fmt.Fprint(w, `{ "ok": true }`)
@@ -181,6 +181,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/status", s.StatusApi)
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
 	http.HandleFunc("/api/db/size", s.GetDatabaseSize)
+	http.HandleFunc("/api/db/clear", s.ClearDatabase)
 	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err
