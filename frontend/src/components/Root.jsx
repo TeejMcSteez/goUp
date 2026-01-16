@@ -3,6 +3,7 @@ import Update from "./Update.jsx";
 import Services from "./Services.jsx";
 import UptimeChart from "./UptimeChart.jsx";
 import QuickServices from "./QuickServices.jsx";
+import DatabaseInfo from "./DatabaseInfo.jsx";
 
 export default function Root() {
     return (
@@ -10,6 +11,7 @@ export default function Root() {
             <Header />
             <QuickServices />
             <Update />
+            <DatabaseInfo />
             <Services />
             <UptimeChart />
         </div>
