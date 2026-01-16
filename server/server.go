@@ -160,7 +160,7 @@ func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 	}
 	fmt.Fprint(w, `{ "ok": true }`)
- }
+}
 
 func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 	return &Server{db: db, scd: scd}
