@@ -34,6 +34,7 @@ services:
 `
 	cleanup1 := createTestYML(ymlContent1, t)
 	defer cleanup1()
+	defer os.Remove("./test_data.db")
 
 	// Ensure endpoints are empty before setup
 	utils.SetServiceEndpoints([]utils.Service{})

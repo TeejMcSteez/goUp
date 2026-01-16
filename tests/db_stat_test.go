@@ -3,12 +3,13 @@ package utils_test
 import (
 	"goUp/utils"
 	"log"
+	"os"
 	"testing"
 )
 
-// TODO: Cleanup db files after test
 func TestGetStat(t *testing.T) {
-	ymlContent := `db_path: "./test_data.db"
+	dbPath := "./test_data.db"
+	ymlContent := `db_path: "` + dbPath + `"
 services:
   service2:
     url: "https://example.com"
@@ -30,6 +31,10 @@ services:
 		log.Printf("Error occured during DB init: %v", err)
 		t.Fail()
 	}
+	defer func() {
+		db.Close()
+		os.Remove(dbPath)
+	}()
 
 	data, err := utils.GetDatabaseSize(db)
 	if err != nil {
