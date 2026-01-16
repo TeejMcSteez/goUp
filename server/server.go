@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"goUp/utils"
 	scheduler "goUp/workers"
 	"io/fs"
@@ -142,6 +143,25 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	size, err := utils.GetDatabaseSize(s.db)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	if err = json.NewEncoder(w).Encode(&utils.DatabaseSizePayload{Size: size}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	if err := utils.CleanupDb(); err != nil {
+		json.NewEncoder(w).Encode([]byte(err.Error()))
+	}
+	fmt.Fprint(w, `{ "ok": true }`)
+ }
+
 func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 	return &Server{db: db, scd: scd}
 }
@@ -160,6 +180,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/schedule", s.ScheduleApi)
 	http.HandleFunc("/api/status", s.StatusApi)
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
+	http.HandleFunc("/api/db/size", s.GetDatabaseSize)
 	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err
