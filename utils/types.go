@@ -90,3 +90,7 @@ type DatabaseStatistic struct {
 	schema    string
 	aggregate bool
 }
+
+type DatabaseSizePayload struct {
+	Size int64 `json:"size_string"`
+}
