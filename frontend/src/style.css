@@ -200,3 +200,35 @@ body {
     padding: 1rem;
     margin: 1rem;
 }
+
+#db-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    margin: 1rem 0;
+    gap: 1rem;
+}
+
+#db-info button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: #e5e7eb;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#db-info button:hover:not(:disabled) {
+    border-color: var(--secondary);
+    background-color: #27272a; /* zinc-800 */
+    transform: translateY(-2px);
+}
+
+#db-info button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
