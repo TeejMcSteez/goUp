@@ -149,6 +149,22 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	return sd, retErr
 }
 
+func ClearDatabase(db *sql.DB) error {
+	statement := `DELETE FROM service_data;`
+
+	res, err := db.Exec(statement)
+	if err != nil {
+		return err
+	}
+	if rowsAffected, err := res.RowsAffected(); err != nil {
+		return err
+	} else {
+		log.Printf("Cleared databased, Rows Affected: %v", rowsAffected)
+	}
+
+	return nil
+}
+
 // Cleans up database after exit
 func CleanupDb() error {
 	log.Printf("Cleaning up database file")
