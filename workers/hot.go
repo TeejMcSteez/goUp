@@ -4,20 +4,14 @@ import (
 	"context"
 	"goUp/utils"
 	"log"
-	"os"
 	"time"
 )
 
 func StartHotReloader(path string, ctx context.Context) {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Printf("Failed to open file while starting hot reloading service: %v", err)
-	}
-	fileInfo, err := file.Stat()
+	initialModTime, err := utils.GetFileTimestamp(path)
 	if err != nil {
 		log.Printf("Failed to get file information while starting hot reloading service: %v", err)
 	}
-	initialModTime := fileInfo.ModTime()
 	// Checks for file mods every 5 seconds
 	ticker := time.NewTicker(5 * time.Second)
 
@@ -27,21 +21,17 @@ func StartHotReloader(path string, ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			file, err := os.Open(path)
-			if err != nil {
-				log.Printf("Failed to open file while reloading: %v", err)
-			}
-			fileInfo, err := file.Stat()
+			t, err := utils.GetFileTimestamp(path)
 			if err != nil {
 				log.Printf("Failed to get file information while reloading: %v", err)
 			}
-			if !fileInfo.ModTime().Equal(initialModTime) {
+			if !t.Equal(initialModTime) {
 				log.Println("File change detected, reloading configuration")
 				if err := utils.Setup(); err != nil {
 					log.Printf("Hot reload failed: %v", err)
 					return
 				}
-				initialModTime = fileInfo.ModTime()
+				initialModTime = t
 			}
 		case <-ctx.Done():
 			log.Println("Reloader Worker recieved termination signal")

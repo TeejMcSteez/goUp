@@ -36,7 +36,7 @@ services:
 		os.Remove(dbPath)
 	}()
 
-	data, err := utils.GetDatabaseSize(db)
+	data, err := utils.GetDatabaseSize()
 	if err != nil {
 		log.Printf("Error occured getting database statistics: %v", err)
 		t.Fail()

@@ -145,7 +145,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	size, err := utils.GetDatabaseSize(s.db)
+	size, err := utils.GetDatabaseSize()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -180,20 +180,3 @@ func CleanupDb() error {
 	log.Println("Database file succesfully removed")
 	return nil
 }
-
-
-func GetDatabaseSize(db *sql.DB) (int64, error) {
-	if Current_Config.Database_Location != nil {
-		file, err := os.Open(*Current_Config.Database_Location)
-		if err != nil {
-			return  0, err
-		}
-		fileStats, err := file.Stat()
-		if err != nil {
-			return  0, err
-		}
-		return fileStats.Size(), nil
-
-	}
-	return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
-}
