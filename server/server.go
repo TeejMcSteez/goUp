@@ -51,7 +51,7 @@ func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		updated := s.ScheduleUpdater(jsonData)
+		updated := s.scheduleUpdater(jsonData)
 
 		if updated {
 			w.Header().Add("Content-Type", "application/json")
@@ -77,7 +77,7 @@ func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Updates schedule parameters from schedule API
-func (s *Server) ScheduleUpdater(state scheduler.ScheduleState) bool {
+func (s *Server) scheduleUpdater(state scheduler.ScheduleState) bool {
 	ok := s.scd.Update(state)
 
 	return ok
