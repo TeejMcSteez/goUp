@@ -14,9 +14,13 @@ This application does not contain **ANY** built in authentication and is intende
 
 ## Example services.yml
 
-Services give url, api_url (if any), and api_key (if any) to the program.
+The database path is specified at `db_path`
 
-Nothing but the name and url are required for the program to work.
+`backoff` signifies the wait period in between triggers being fired options can be `<int><s/m/h>` (Ex: 15s)
+
+Services give name, url, api_url (if any), and api_key (if any) to the program.
+
+No keys or api urls are required just the database path, service name, and service url
 
 Triggers contain information for firing different messages:
   - mqtt
@@ -31,6 +35,8 @@ Triggers contain information for firing different messages:
 ### Example
 
 ```yaml
+db_path: "./database.db"
+backoff: "30m"
 services:
   home_assistant:
     url: "https://ex.com/"
