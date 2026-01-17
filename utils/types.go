@@ -2,11 +2,13 @@ package utils
 
 import (
 	"sync"
+	"time"
 )
 
 // Main yaml config
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
+	Backoff_Period *string				`yaml:"backoff"`
 	Services          map[string]Service `yaml:"services"`
 	Triggers          Trigger            `yaml:"triggers"`
 }
@@ -15,6 +17,10 @@ type Config struct {
 type Trigger struct {
 	MQTT    MQTTTrigger    `yaml:"mqtt"`
 	Webhook WebhookTrigger `yaml:"webhook"`
+
+	mu              sync.Mutex
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 type MQTTTrigger struct {

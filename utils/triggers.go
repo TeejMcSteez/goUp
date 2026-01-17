@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
 // Copies Trigger config from configuration to use in t
@@ -18,18 +19,48 @@ func SetupTrigger(cfg *Config) *Trigger {
 		log.Println("No Webhook Found in Configuration")
 	}
 
+	t := &cfg.Triggers
+
+	if cfg.Backoff_Period != nil && *cfg.Backoff_Period != "" {
+		dur, err := time.ParseDuration(*cfg.Backoff_Period)
+		if err != nil {
+			log.Printf("Invalid Backoff_Period '%s': %v. Disabling backoff.", *cfg.Backoff_Period, err)
+			t.backoffDuration = 0
+		} else {
+			log.Printf("Trigger backoff period set to %s", dur)
+			t.backoffDuration = dur
+		}
+	}
+
 	log.Println("Triggers setup")
-	return &cfg.Triggers
+	return t
 }
 
 // Takes service data and fires all t
 func (t *Trigger) Fire(data []ServiceData) {
-	if t.MQTT.Mqtt_broker != nil {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.backoffDuration > 0 && !t.lastFired.IsZero() && time.Since(t.lastFired) < t.backoffDuration {
+		log.Printf("Trigger backoff period active, skipping. Last trigger was %s ago.", time.Since(t.lastFired))
+		return
+	}
+
+	hasMQTT := t.MQTT.Mqtt_broker != nil
+	hasWebhook := t.Webhook.Webhook_url != nil
+
+	if !hasMQTT && !hasWebhook {
+		return // No triggers configured
+	}
+
+	if hasMQTT {
 		go t.FireMqtt(data)
 	}
-	if t.Webhook.Webhook_url != nil {
+	if hasWebhook {
 		go t.FireWebhook(data)
 	}
+
+	t.lastFired = time.Now()
 }
 
 // Takes current bad service data and fires message to configured mqtt broker
