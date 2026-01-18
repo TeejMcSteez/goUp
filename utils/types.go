@@ -8,10 +8,10 @@ import (
 // Main yaml config
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
-	Backoff_Period *string				`yaml:"backoff"`
-	Auth_Method *string					`yaml:"auth_method"`
-	API_Key *string `yaml:"api_key"`
-	API_Header *string `yaml:"api_header"`	
+	Backoff_Period    *string            `yaml:"backoff"`
+	Auth_Method       *string            `yaml:"auth_method"`
+	API_Key           *string            `yaml:"api_key"`
+	API_Header        *string            `yaml:"api_header"`
 	Services          map[string]Service `yaml:"services"`
 	Triggers          Trigger            `yaml:"triggers"`
 }
