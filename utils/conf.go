@@ -6,6 +6,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var Current_Config *Config
+
 /*
 Parses yml file for service information
 */
@@ -15,10 +17,10 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	var cfg = new(Config)
+	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, err
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }

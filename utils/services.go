@@ -12,7 +12,6 @@ import (
 
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
-var Current_Config *Config
 
 type NoServiceEndpointsError struct {
 	Message string
