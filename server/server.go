@@ -37,8 +37,11 @@ func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 }
 
 // Schedule API handler
+//
 // POST: Will try to parse request body as JSON and update the current schedule, will respond with a boolean.
+//
 // GET: Gets current schedule information and returns as JSON
+//
 // Any other method gets a bad request response
 func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
@@ -84,6 +87,7 @@ func (s *Server) scheduleUpdater(state scheduler.ScheduleState) bool {
 }
 
 // Gets current status in JSON format for automated fetching
+//
 // Only accepts GET requests which will return currently down services
 func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
@@ -142,7 +146,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
-
+// Returns size of database in bytes
 func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	size, err := utils.GetDatabaseSize()
@@ -153,7 +157,7 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
-
+// Clears database
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	if err := utils.ClearDatabase(s.db); err != nil {
@@ -161,12 +165,25 @@ func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Fprint(w, `{ "ok": true }`)
 }
-
+// Returns a new server instance
 func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 	return &Server{db: db, scd: scd}
 }
-
+// Gets all service data which has errored
+func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	data, err := utils.GetErrorData(s.db)
+	if err != nil {
+		log.Printf("Error occured getting error data: %v", err)
+		json.NewEncoder(w).Encode([]byte(err.Error()))
+	}
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error occured getting error data: %v", err)
+		json.NewEncoder(w).Encode([]byte(err.Error()))
+	}
+}
 // Starts server with all handler functions
+//
 // Returns an error if a problem with the server occurs
 func (s *Server) Start() error {
 
@@ -180,6 +197,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/schedule", s.ScheduleApi)
 	http.HandleFunc("/api/status", s.StatusApi)
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
+	http.HandleFunc("/api/errors", s.GetErrorData)
 	http.HandleFunc("/api/db/size", s.GetDatabaseSize)
 	http.HandleFunc("/api/db/clear", s.ClearDatabase)
 	log.Println("Starting server at http://localhost:8101/ . . .")
