@@ -232,3 +232,86 @@ body {
     cursor: not-allowed;
     opacity: 0.5;
 }
+
+/* Error Log Viewer Styles */
+.error-log-container {
+    width: 80%;
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background-color: var(--surface);
+}
+
+.error-log-container h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+}
+
+.error-log-viewer {
+    max-height: 400px; /* Fixed height for the scrollable area */
+    overflow-y: auto;   /* Enables vertical scrolling */
+    padding-right: 1rem; /* Prevents scrollbar from overlapping content */
+}
+
+/* Custom scrollbar for webkit browsers */
+.error-log-viewer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.error-log-viewer::-webkit-scrollbar-track {
+    background: #2e3a47;
+    border-radius: 4px;
+}
+
+.error-log-viewer::-webkit-scrollbar-thumb {
+    background-color: var(--secondary);
+    border-radius: 4px;
+}
+
+.error-log-viewer::-webkit-scrollbar-thumb:hover {
+    background-color: #8b5cf6; /* A slightly lighter violet */
+}
+
+
+.error-log-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.error-log-item:last-child {
+    border-bottom: none;
+}
+
+.error-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.error-log-header span {
+    font-size: 0.9rem;
+    color: #9ca3af; /* gray-400 */
+}
+
+.error-log-body {
+    font-size: 0.95rem;
+    color: #e5e7eb;
+}
+
+.error-log-body p {
+    margin: 0.5rem 0;
+}
+
+.error-log-body pre {
+    background-color: #2e3a47;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

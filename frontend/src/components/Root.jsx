@@ -4,6 +4,7 @@ import Services from "./Services.jsx";
 import UptimeChart from "./UptimeChart.jsx";
 import QuickServices from "./QuickServices.jsx";
 import DatabaseInfo from "./DatabaseInfo.jsx";
+import ErrorLogViewer from "./ErrorLogViewer.jsx";
 
 export default function Root() {
     return (
@@ -14,6 +15,7 @@ export default function Root() {
             <DatabaseInfo />
             <Services />
             <UptimeChart />
+            <ErrorLogViewer />
         </div>
     )
 }
