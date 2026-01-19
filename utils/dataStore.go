@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -33,6 +34,7 @@ func InitDB() (*sql.DB, error) {
 		"service_HTTP_response" TEXT,
 		"service_API_response" TEXT,
 		"service_response_time" TEXT,
+		"timestamp" TEXT,
 		"error" INTEGER NOT NULL DEFAULT 0
 	);`
 
@@ -49,19 +51,25 @@ func InitDB() (*sql.DB, error) {
 func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 	var id int
 	var s ServiceData
+	var tBuff string
 	err := row.Scan(
 		&id,
 		&s.ServiceName,
 		&s.ServiceHTTPResponse,
 		&s.ServiceAPIResponse,
 		&s.ServiceResponseTime,
+		&tBuff,
 		&s.Error,
 	)
+	s.Timestamp, err = time.Parse(time.RFC3339Nano, tBuff)
+	if err != nil {
+		log.Printf("Error parsing timestamp in scan: %v", err)
+	}
 	return id, s, err
 }
 
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
-	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time, error) VALUES (?, ?, ?, ?, ?)`
+	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time, timestamp, error) VALUES (?, ?, ?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
 	if err != nil {
 		return err
@@ -72,14 +80,14 @@ func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 			retErr = err
 		}
 	}()
-
-	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Error)
+	_, err = statement.Exec(sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
 	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 // Gets all service data
 func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
@@ -104,6 +112,7 @@ func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 
 	return sd, retErr
 }
+
 // Gets recent data defined by total number of service endpoints
 func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	numOfServices := len(GetServiceEndpoints())
@@ -131,6 +140,7 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	return sd, retErr
 
 }
+
 // Gets data for a specific service
 func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
@@ -156,6 +166,7 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	}
 	return sd, retErr
 }
+
 // Gets all data from table where errors did occur
 func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
@@ -180,6 +191,7 @@ func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	}
 	return sd, retErr
 }
+
 // Clears all table information from service_data
 func ClearDatabase(db *sql.DB) error {
 	statement := `DELETE FROM service_data;`

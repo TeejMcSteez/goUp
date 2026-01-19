@@ -107,6 +107,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 	log.Println("Scanning services HTTP endpoints . . .")
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
 		var sd ServiceData
+		sd.Timestamp = time.Now()
 		sd.ServiceName = endpoint.Name
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
