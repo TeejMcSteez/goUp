@@ -80,7 +80,7 @@ func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 
 	return nil
 }
-
+// Gets all service data
 func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
@@ -104,7 +104,7 @@ func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 
 	return sd, retErr
 }
-
+// Gets recent data defined by total number of service endpoints
 func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	numOfServices := len(GetServiceEndpoints())
 	sd := []ServiceData{}
@@ -131,7 +131,7 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	return sd, retErr
 
 }
-
+// Gets data for a specific service
 func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
@@ -156,7 +156,7 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	}
 	return sd, retErr
 }
-
+// Gets all data from table where errors did occur
 func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
@@ -180,7 +180,7 @@ func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	}
 	return sd, retErr
 }
-
+// Clears all table information from service_data
 func ClearDatabase(db *sql.DB) error {
 	statement := `DELETE FROM service_data;`
 
