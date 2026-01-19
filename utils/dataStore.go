@@ -45,6 +45,21 @@ func InitDB() (*sql.DB, error) {
 	return db, nil
 }
 
+// scanServiceDataRow scans a single row from *sql.Rows into an int (id) and a ServiceData struct.
+func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
+	var id int
+	var s ServiceData
+	err := row.Scan(
+		&id,
+		&s.ServiceName,
+		&s.ServiceHTTPResponse,
+		&s.ServiceAPIResponse,
+		&s.ServiceResponseTime,
+		&s.Error,
+	)
+	return id, s, err
+}
+
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 	insertSQL := `INSERT INTO service_data (service_name, service_HTTP_response, service_API_response, service_response_time, error) VALUES (?, ?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
@@ -80,9 +95,7 @@ func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	}()
 
 	for row.Next() {
-		var id int
-		var s ServiceData
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
+		_, s, err := scanServiceDataRow(row)
 		if err != nil {
 			return nil, err
 		}
@@ -109,10 +122,7 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	}()
 
 	for row.Next() {
-		var id int
-		var s ServiceData
-		// Might implement a scanner for service data so I can just pass in struct
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
+		_, s, err := scanServiceDataRow(row)
 		if err != nil {
 			return nil, err
 		}
@@ -138,9 +148,31 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 		}
 	}()
 	for row.Next() {
-		var id int
-		var s ServiceData
-		err = row.Scan(&id, &s.ServiceName, &s.ServiceHTTPResponse, &s.ServiceAPIResponse, &s.ServiceResponseTime, &s.Error)
+		_, s, err := scanServiceDataRow(row)
+		if err != nil {
+			return nil, err
+		}
+		sd = append(sd, s)
+	}
+	return sd, retErr
+}
+
+func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
+	sd := []ServiceData{}
+
+	statement := "SELECT * FROM service_data WHERE error = 1 ORDER BY id DESC"
+
+	row, err := db.Query(statement)
+	if err != nil {
+		return sd, err
+	}
+	defer func() {
+		if err := row.Close(); err != nil {
+			retErr = err
+		}
+	}()
+	for row.Next() {
+		_, s, err := scanServiceDataRow(row)
 		if err != nil {
 			return nil, err
 		}
