@@ -58,12 +58,12 @@ type ServiceEndpoints struct {
 
 // Service data from GetServiceData
 type ServiceData struct {
-	ServiceName         string `json:"name"`
-	ServiceHTTPResponse string `json:"response"`
-	ServiceAPIResponse  string `json:"data"`
-	ServiceResponseTime string `json:"response_time"`
-	Timestamp time.Time `json:"timestamp"`
-	Error               bool   `json:"error"`
+	ServiceName         string    `json:"name"`
+	ServiceHTTPResponse string    `json:"response"`
+	ServiceAPIResponse  string    `json:"data"`
+	ServiceResponseTime string    `json:"response_time"`
+	Timestamp           time.Time `json:"timestamp"`
+	Error               bool      `json:"error"`
 }
 
 type ServiceResponse struct {

@@ -146,6 +146,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
+
 // Returns size of database in bytes
 func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
@@ -157,6 +158,7 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
 // Clears database
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
@@ -165,10 +167,12 @@ func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Fprint(w, `{ "ok": true }`)
 }
+
 // Returns a new server instance
 func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 	return &Server{db: db, scd: scd}
 }
+
 // Gets all service data which has errored
 func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -182,6 +186,7 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 	}
 }
+
 // Starts server with all handler functions
 //
 // Returns an error if a problem with the server occurs
