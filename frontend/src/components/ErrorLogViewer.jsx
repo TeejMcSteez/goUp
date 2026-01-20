@@ -1,46 +1,25 @@
-import { useState, useEffect } from "react";
+import useErrorData from "../hooks/useErrorData.js";
 
 export default function ErrorLogViewer() {
-    const [errors, setErrors] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchErrors() {
-            try {
-                setLoading(true);
-                const response = await fetch("/api/errors");
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                setErrors(data || []);
-            } catch (error) {
-                console.error("Could not fetch errors:", error);
-                setErrors([]);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchErrors();
-    }, []);
+    const { data: errors, loading, error } = useErrorData();
 
     return (
         <div className="error-log-container">
-            <h2>Error Log</h2>
             <div className="error-log-viewer">
-                {loading ? (
+                {error ? (
+                    <p>Error loading error logs: {error}</p>
+                ) : loading && !errors ? (
                     <p>Loading errors...</p>
-                ) : errors.length > 0 ? (
-                    errors.map((error, index) => (
+                ) : errors && errors.length > 0 ? (
+                    errors.map((errorItem, index) => (
                         <div key={index} className="error-log-item">
                             <div className="error-log-header">
-                                <strong>{error.name}</strong>
-                                <span>{new Date(error.timestamp).toLocaleString()}</span>
+                                <strong>{errorItem.name}</strong>
+                                <span>{new Date(errorItem.timestamp).toLocaleString()}</span>
                             </div>
                             <div className="error-log-body">
-                                <p><strong>Response:</strong> {error.response}</p>
-                                {error.data && <p><strong>Data:</strong> <pre>{error.data}</pre></p>}
+                                <p><strong>Response:</strong> {errorItem.response}</p>
+                                {errorItem.data && <p><strong>Data:</strong> <pre>{errorItem.data}</pre></p>}
                             </div>
                         </div>
                     ))

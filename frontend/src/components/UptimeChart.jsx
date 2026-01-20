@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -9,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import useUptimeData from '../hooks/useUptimeData.js';
 
 ChartJS.register(
   CategoryScale,
@@ -20,58 +20,7 @@ ChartJS.register(
 );
 
 export default function UptimeChart() {
-    const [chartData, setChartData] = useState(null);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const getUptimeAverages = async () => {
-            try {
-                const res = await fetch("/api/uptime");
-                if (!res.ok) {
-                    throw new Error(`Error fetching data: ${res.statusText}`);
-                }
-                const json = await res.json();
-
-                if (Array.isArray(json)) {
-                    const labels = json.map(item => item.name);
-                    const data = json.map(item => item.average * 100);
-
-                    setChartData({
-                        labels,
-                        datasets: [{
-                            label: 'Total Failure Average',
-                            data,
-                            backgroundColor: [
-                                'rgba(255, 99, 132, 0.5)',
-                                'rgba(54, 162, 235, 0.5)',
-                                'rgba(255, 206, 86, 0.5)',
-                                'rgba(75, 192, 192, 0.5)',
-                                'rgba(153, 102, 255, 0.5)',
-                                'rgba(255, 159, 64, 0.5)',
-                            ],
-                            borderColor: [
-                                'rgba(255, 99, 132, 1)',
-                                'rgba(54, 162, 235, 1)',
-                                'rgba(255, 206, 86, 1)',
-                                'rgba(75, 192, 192, 1)',
-                                'rgba(153, 102, 255, 1)',
-                                'rgba(255, 159, 64, 1)',
-                            ],
-                            borderWidth: 1
-                        }]
-                    });
-                }
-            } catch (err) {
-                setError(err.message);
-                console.error(err);
-            }
-        };
-
-        getUptimeAverages();
-
-        const intervalId = setInterval(getUptimeAverages, 5000);
-        return () => clearInterval(intervalId);
-    }, []);
+    const { data: chartData, loading, error } = useUptimeData();
 
     if (error) {
         return (
@@ -80,8 +29,8 @@ export default function UptimeChart() {
             </div>
         );
     }
-    
-    if (!chartData) {
+
+    if (loading && !chartData) {
         return (
             <div id="uptimeChart">
                 <p>Loading chart...</p>
@@ -89,43 +38,48 @@ export default function UptimeChart() {
         );
     }
 
-    return (
-        <>
-            <h1>Failure Graph</h1>
+    if (!chartData) {
+        return (
             <div id="uptimeChart">
-                <Bar 
-                    data={chartData}
-                    options={{
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + '%';
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) {
-                                            label += ': ';
-                                        }
-                                        if (context.parsed.y !== null) {
-                                            label += context.parsed.y + '%';
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        maintainAspectRatio: false 
-                    }}
-                />
+                <p>No chart data available</p>
             </div>
-        </>
+        );
+    }
+
+    return (
+        <div id="uptimeChart">
+            <Bar
+                data={chartData}
+                options={{
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    maintainAspectRatio: false
+                }}
+            />
+        </div>
     );
 }
