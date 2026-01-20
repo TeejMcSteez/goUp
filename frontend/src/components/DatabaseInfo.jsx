@@ -84,14 +84,11 @@ export default function DatabaseInfo() {
     };
 
     return (
-        <div>
-            <h2>Database Management</h2>
-            <div id="db-info">
-                {renderContent()}
-                <button onClick={handleClearDatabase} disabled={dbSize === null}>
-                    Clear Database Memory
-                </button>
-            </div>
+        <div id="db-info">
+            {renderContent()}
+            <button onClick={handleClearDatabase} disabled={dbSize === null}>
+                Clear Database Memory
+            </button>
         </div>
     );
 }

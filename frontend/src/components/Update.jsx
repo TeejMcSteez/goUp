@@ -53,59 +53,50 @@ export default function Update() {
 
     if (loading) {
         return (
-            <div>
-                <h2>Update Schedule</h2>
-                <div id="schedule">
-                    <p>Loading schedule...</p>
-                </div>
+            <div id="schedule">
+                <p>Loading schedule...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div>
-                <h2>Update Schedule</h2>
-                <div id="schedule">
-                    <h3>Failed to get schedule!</h3>
-                    <p>{error}</p>
-                </div>
+            <div id="schedule">
+                <h3>Failed to get schedule!</h3>
+                <p>{error}</p>
             </div>
         );
     }
 
     return (
-        <div>
-            <h2>Update Schedule</h2>
-            <div id="schedule">
-                {schedule && (
-                    <p>Current: {schedule.timespan} {schedule.interval}</p>
-                )}
-                <form id="scheduleForm">
-                    <label htmlFor="timespan">Timespan: {timespan}</label>
-                    <input 
-                        id="timespan" 
-                        type="range" 
-                        min="1" 
-                        max="60" 
-                        value={timespan}
-                        onChange={(e) => setTimespan(e.target.value)}
-                        required 
-                    />
-                    <label htmlFor="selectTimespan">interval</label>
-                    <select 
-                        name="timespans" 
-                        id="selectTimespan" 
-                        value={interval}
-                        onChange={(e) => setInterval(e.target.value)}
-                    >
-                        <option value="seconds">Seconds</option>
-                        <option value="minutes">Minutes</option>
-                        <option value="hours">Hours</option>
-                    </select>
-                </form>
-                <button id="updateButton" onClick={handleUpdateSchedule}>Update</button>
-            </div>
+        <div id="schedule">
+            {schedule && (
+                <p>Current: {schedule.timespan} {schedule.interval}</p>
+            )}
+            <form id="scheduleForm">
+                <label htmlFor="timespan">Timespan: {timespan}</label>
+                <input
+                    id="timespan"
+                    type="range"
+                    min="1"
+                    max="60"
+                    value={timespan}
+                    onChange={(e) => setTimespan(e.target.value)}
+                    required
+                />
+                <label htmlFor="selectTimespan">interval</label>
+                <select
+                    name="timespans"
+                    id="selectTimespan"
+                    value={interval}
+                    onChange={(e) => setInterval(e.target.value)}
+                >
+                    <option value="seconds">Seconds</option>
+                    <option value="minutes">Minutes</option>
+                    <option value="hours">Hours</option>
+                </select>
+            </form>
+            <button id="updateButton" onClick={handleUpdateSchedule}>Update</button>
         </div>
     );
 }
