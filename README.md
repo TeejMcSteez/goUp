@@ -2,11 +2,9 @@
 
 Server monitor with HTTP web display and API routes for uptime, response time, status, and more!
 
-![Example Image](.github/image.png)
-
 Frontend is built with [React](https://react.dev/) + [Vite](https://vite.dev/) alongside [Chart.js](https://www.chartjs.org/) for uptime visualization.
 
-Entire frontend directory should be right at 4.0kb including assets which is embedded into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
+Entire frontend directory is embedded into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
 
 This application does not contain **ANY** built in authentication and is intended for LAN or trusted networks:
 1. I do not want to spend excessive time programming authentication solutions (it's not interesting to me)
@@ -69,6 +67,7 @@ Schema:
 "service_name" TEXT,
 "service_HTTP_response" TEXT,
 "service_API_response" TEXT,
+"timestamp" TEXT,
 "service_response_time" TEXT
 "error" INTEGER NOT NULL DEFAULT 0
 ```
