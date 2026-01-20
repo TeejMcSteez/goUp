@@ -14,6 +14,11 @@ export default function QuickServices() {
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     setQs(data)
+                } else if (data === null) {
+                    // Go server returns null for no downed services
+                    // This sets downed services to 0 (empty array) when there are no downed services
+                    // So that state change will be properly hydrated throughout QuickServices view
+                    setQs([])
                 } else {
                     console.error(`Expected array from /api/status, got: ${data}`)
                 }
