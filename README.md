@@ -1,26 +1,26 @@
 # GoUp
 
-Server monitor with HTTP web display and API routes for uptime, response time, status, and more!
+GoUp is a server monitor featuring an HTTP web interface and API routes to track uptime, response time, status, and more!
 
-Frontend is built with [React](https://react.dev/) + [Vite](https://vite.dev/) alongside [Chart.js](https://www.chartjs.org/) for uptime visualization.
+The frontend is built with [React](https://react.dev/) and [Vite](https://vite.dev/), utilizing [Chart.js](https://www.chartjs.org/) for uptime visualization.
 
-Entire frontend directory is embedded into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
+The entire frontend directory is embedded directly into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
 
-This application does not contain **ANY** built in authentication and is intended for LAN or trusted networks:
-1. I do not want to spend excessive time programming authentication solutions (it's not interesting to me)
-2. I do not want to lock in users to the authentication solution I choose
+This application does not include built-in authentication and is designed for use within a LAN or trusted networks:
+1. Developing authentication solutions was not a primary focus, as it falls outside the scope of this project's initial intent.
+2. The goal is to avoid imposing a specific authentication solution on users.
 
 ## Example services.yml
 
-The database path is specified at `db_path`
+The database path is specified by `db_path`.
 
-`backoff` signifies the wait period in between triggers being fired options can be `<int><s/m/h>` (Ex: 15s)
+`backoff` specifies the delay between trigger activations. Options include `<int><s/m/h>` (e.g., `15s`).
 
-Services give name, url, api_url (if any), and api_key (if any) to the program.
+Services are defined by their name, URL, and optional `api_url` and `api_key`.
 
-No keys or api urls are required just the database path, service name, and service url
+Only the database path, service name, and service URL are mandatory; `api_url` and `api_key` are optional.
 
-Triggers contain information for firing different messages:
+Triggers contain the necessary information for sending various messages:
   - mqtt
     - mqtt_broker - URL of the MQTT broker
     - mqtt_user - Username of the MQTT account if any
@@ -68,7 +68,7 @@ Schema:
 "service_HTTP_response" TEXT,
 "service_API_response" TEXT,
 "timestamp" TEXT,
-"service_response_time" TEXT
+"service_response_time" TEXT,
 "error" INTEGER NOT NULL DEFAULT 0
 ```
 
@@ -79,32 +79,30 @@ Schema:
 Client ID: goUp MQTT
 State Topic: goup_status
 
-Username and password credentials will only be used if they are provided in services.yml otherwise it will attempt a basic un-authorized tcp connection.
+Username and password credentials are utilized only if provided in `services.yml`; otherwise, the system will attempt an unauthorized TCP connection.
 
-Will publish to the broker specified under the "goup_status" topic
-
-Currently only MQTT is setup for my Home Assistant instance but if viable would wish to add more such as Email, Telegram, etc. but that is more on the integration than logic side.
+Messages will be published to the broker under the "goup_status" topic.
 
 ### Webhook Trigger
 
-Will send bad service data as JSON to the specified webhook URL, if the user has defined any custom messages it will add that custom message onto the JSON payload.
+It sends JSON data regarding service failures to the specified webhook URL. If custom messages are defined, they will be appended to the JSON payload.
 
-The key provided will be injected as a `Authorization` header. Meaning it accepts Basic, Bearer, etc. as a string value in the YAML.
+The provided key will be injected as an `Authorization` header, supporting values like `Basic`, `Bearer`, etc., as string values in the YAML configuration.
 
 ## Arch. Support
 
 - Linux ARM64/AMD64
 - Windows ARM64/AMD64
 
-This a pure Go program it does not require any other libraries and is compiled directly to source with the Go compiler.
+This is a pure Go program; it does not require additional libraries and compiles directly to a single executable with the Go compiler.
 
-Go does build Darwin (Apple) ARM64/AMD64, I just do not use any Apple products so I do not build for it. That being said if anyone does want to me to build for Darwin I can add it to the GitHub Actions workflow.
+While Go supports building for Darwin (Apple) ARM64/AMD64, I do not actively build for these platforms due to a lack of Apple hardware for testing. However, I can add Darwin builds to the GitHub Actions workflow upon request.
 
 ## Example Use - N8N Message on Error
 
-Create a POST Webhook trigger, when the trigger is activated it will contain the error information for the servers that have failed.
+To integrate, create a POST Webhook trigger. When activated, this trigger will receive error information for any failed servers.
 
-One can then use this information however they want below is an example HTML message mapping error items to a card which is then sent via Gmail message from N8N.
+This information can then be utilized as desired. Below is an example HTML message that maps error items to a card, which is subsequently sent via Gmail from N8N.
 
 
 ```JavaScript
@@ -125,4 +123,4 @@ ${item.response_time}
 </tr>`).join('') }}
 ```
 
-Once a webhook trigger is fired from goUp the user will receive a message with the error information!
+Upon a goUp webhook trigger firing, the user will receive a message containing the error information.
