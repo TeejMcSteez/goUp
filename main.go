@@ -39,10 +39,8 @@ func main() {
 	}
 
 	// listening for SIGINT (Ctrl+C) and SIGTERM
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 	// Starts all background workers
 	sch := workers.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
@@ -56,8 +54,10 @@ func main() {
 		log.Println("Server started")
 	}()
 
-	// Block until a signal is received
-	sig := <-shutdown
-	log.Printf("Caught signal: %v, starting graceful shutdown", sig)
-	cancel()
+	// // Block until a signal is received
+	// sig := <-shutdown
+	// log.Printf("Caught signal: %v, starting graceful shutdown", sig)
+	// cancel()
+	<-ctx.Done()
+	log.Printf("Caught stop signal, starting workers graceful shutdown")
 }
