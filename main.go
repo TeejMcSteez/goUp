@@ -38,17 +38,16 @@ func main() {
 		}
 	}
 
-	sch := workers.NewScheduler(db, 30, "seconds")
-	defer sch.Stop()
-
 	// listening for SIGINT (Ctrl+C) and SIGTERM
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	ctx, cancel := context.WithCancel(context.Background())
-
+	// Starts all background workers
+	sch := workers.NewScheduler(db, 30, "seconds")
+	defer sch.Stop()
 	go workers.StartHotReloader("services.yml", ctx)
-
+	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
 		log.Println("Starting server on port 8080")
 		if err := server.NewServer(db, sch).Start(); err != nil {
