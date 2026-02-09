@@ -71,7 +71,7 @@ func GetMaxSize() float64 {
 					log.Print("Database size must be at least 4KB, returning 4KB.\n")
 					return 4 * 1000
 				}
-					log.Printf("Set max database size to: %v%v", number, sizeUnit)
+				log.Printf("Set max database size to: %v%v", number, sizeUnit)
 				return number * 1000
 			case "mb":
 				log.Printf("Set max database size to: %v%v", number, sizeUnit)

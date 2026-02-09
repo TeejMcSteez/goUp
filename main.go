@@ -54,10 +54,7 @@ func main() {
 		log.Println("Server started")
 	}()
 
-	// // Block until a signal is received
-	// sig := <-shutdown
-	// log.Printf("Caught signal: %v, starting graceful shutdown", sig)
-	// cancel()
+	// Block until a signal is received
 	<-ctx.Done()
 	log.Printf("Caught stop signal, starting workers graceful shutdown")
 }
