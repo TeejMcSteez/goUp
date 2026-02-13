@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
 	Database_Max_Size *string            `yaml:"db_max_size"`
-	Backoff_Period    *string            `yaml:"backoff"`
 	Auth_Method       *string            `yaml:"auth_method"`
 	API_Key           *string            `yaml:"api_key"`
 	API_Header        *string            `yaml:"api_header"`
@@ -21,6 +20,7 @@ type Config struct {
 type Trigger struct {
 	MQTT    MQTTTrigger    `yaml:"mqtt"`
 	Webhook WebhookTrigger `yaml:"webhook"`
+	Backoff_Period    *string `yaml:"backoff"`
 
 	mu              sync.Mutex
 	backoffDuration time.Duration

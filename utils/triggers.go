@@ -12,24 +12,24 @@ import (
 
 // Copies Trigger config from configuration to use in t
 func SetupTrigger(cfg *Config) *Trigger {
-	if cfg.Triggers.MQTT.Mqtt_broker == nil {
-		log.Println("No MQTT Broker Found in Configuration")
-	}
-	if cfg.Triggers.Webhook.Webhook_url == nil {
-		log.Println("No Webhook Found in Configuration")
+	if cfg.Triggers.MQTT.Mqtt_broker == nil && cfg.Triggers.Webhook.Webhook_url == nil {
+		log.Println("No MQTT broker or Webhook URL setup exiting trigger setup")
+		return &Trigger{}
 	}
 
 	t := &cfg.Triggers
 
-	if cfg.Backoff_Period != nil && *cfg.Backoff_Period != "" {
-		dur, err := time.ParseDuration(*cfg.Backoff_Period)
+	if cfg.Triggers.Backoff_Period != nil && *cfg.Triggers.Backoff_Period != "" {
+		dur, err := time.ParseDuration(*cfg.Triggers.Backoff_Period)
 		if err != nil {
-			log.Printf("Invalid Backoff_Period '%s': %v. Disabling backoff.", *cfg.Backoff_Period, err)
+			log.Printf("Invalid Backoff_Period '%s': %v. Disabling backoff.", *cfg.Triggers.Backoff_Period, err)
 			t.backoffDuration = 0
 		} else {
 			log.Printf("Trigger backoff period set to %s", dur)
 			t.backoffDuration = dur
 		}
+	} else {
+		log.Println("No backup period setup!")
 	}
 
 	log.Println("Triggers setup")
@@ -40,17 +40,17 @@ func SetupTrigger(cfg *Config) *Trigger {
 func (t *Trigger) Fire(data []ServiceData) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-
-	if t.backoffDuration > 0 && !t.lastFired.IsZero() && time.Since(t.lastFired) < t.backoffDuration {
-		log.Printf("Trigger backoff period active, skipping. Last trigger was %s ago.", time.Since(t.lastFired))
-		return
-	}
-
+	
 	hasMQTT := t.MQTT.Mqtt_broker != nil
 	hasWebhook := t.Webhook.Webhook_url != nil
 
 	if !hasMQTT && !hasWebhook {
 		return // No triggers configured
+	}
+
+	if t.backoffDuration > 0 && !t.lastFired.IsZero() && time.Since(t.lastFired) < t.backoffDuration {
+		log.Printf("Trigger backoff period active, skipping. Last trigger was %s ago.", time.Since(t.lastFired))
+		return
 	}
 
 	if hasMQTT {
