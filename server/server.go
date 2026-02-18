@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Server struct {
@@ -176,13 +177,20 @@ func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
 // Gets all service data which has errored
 func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	data, err := utils.GetErrorData(s.db)
+	param := req.URL.Query().Get("limit")
+	limit, err := strconv.Atoi(param)
 	if err != nil {
-		log.Printf("Error occured getting error data: %v", err)
+		log.Printf("Error occured, invalid limit: %v\nError: %v", limit, err)
+		json.NewEncoder(w).Encode([]byte(err.Error()))
+		return
+	}
+	data, err := utils.GetErrorData(s.db, limit)
+	if err != nil {
+		log.Printf("Error occured getting error data from database: %v", err)
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Error occured getting error data: %v", err)
+		log.Printf("Error encoding error data to json: %v", err)
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 	}
 }

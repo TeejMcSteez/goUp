@@ -168,11 +168,13 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 }
 
 // Gets all data from table where errors did occur
-func GetErrorData(db *sql.DB) (retSd []ServiceData, retErr error) {
+func GetErrorData(db *sql.DB, limit int) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
 	statement := "SELECT * FROM service_data WHERE error = 1 ORDER BY id DESC"
-
+	if limit > 0 {                                                                                                                                 
+		statement = fmt.Sprintf("%s LIMIT %d", statement, limit)                                                                                   
+	}
 	row, err := db.Query(statement)
 	if err != nil {
 		return sd, err
