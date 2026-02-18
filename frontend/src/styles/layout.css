@@ -46,7 +46,7 @@
 }
 
 .tab-button.active::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 0;
     left: 0;
@@ -99,7 +99,9 @@
     border: 1px solid var(--border);
     box-shadow: var(--shadow-md);
     margin-bottom: var(--space-xl);
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    transition:
+        transform var(--transition-normal),
+        box-shadow var(--transition-normal);
 }
 
 .island:hover {
