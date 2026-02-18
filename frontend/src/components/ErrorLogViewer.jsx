@@ -1,10 +1,27 @@
+import { useState } from "react";
 import useErrorData from "../hooks/useErrorData.js";
 
 export default function ErrorLogViewer() {
-  const { data: errors, loading, error } = useErrorData();
+  const [limit, setLimit] = useState(100);
+  const { data: errors, loading, error } = useErrorData(limit);
 
   return (
     <div className="error-log-container">
+      <div className="error-log-controls">
+        <label htmlFor="error-limit">Show: </label>
+        <select
+          id="error-limit"
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value))}
+          className="sort-select"
+          style={{ maxWidth: "120px", marginBottom: "var(--space-md)", display: "inline-block" }}
+        >
+          <option value={10}>10</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value={0}>All</option>
+        </select>
+      </div>
       <div className="error-log-viewer">
         {error ? (
           <p>Error loading error logs: {error}</p>

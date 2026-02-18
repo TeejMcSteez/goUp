@@ -269,6 +269,13 @@ select {
     width: 100%;
 }
 
+.error-log-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
 .error-log-container h2 {
     margin-top: 0;
     margin-bottom: var(--space-lg);
