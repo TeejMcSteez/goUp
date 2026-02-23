@@ -12,15 +12,14 @@ This application does not include built-in authentication and is designed for us
 
 ## Example services.yml
 
-The database path is specified by `db_path`.
-
-`backoff` specifies the delay between trigger activations. Options include `<int><s/m/h>` (e.g., `15s`).
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.)
 
 Services are defined by their name, URL, and optional `api_url` and `api_key`.
 
 Only the database path, service name, and service URL are mandatory; `api_url` and `api_key` are optional.
 
 Triggers contain the necessary information for sending various messages:
+   - `backoff` specifies the delay between trigger activations. Options include `<int><s/m/h>` (e.g., `15s`).
   - mqtt
     - mqtt_broker - URL of the MQTT broker
     - mqtt_user - Username of the MQTT account if any
@@ -34,7 +33,7 @@ Triggers contain the necessary information for sending various messages:
 
 ```yaml
 db_path: "./database.db"
-backoff: "30m"
+db_max_size: "1gb"
 services:
   home_assistant:
     url: "https://ex.com/"
@@ -45,6 +44,7 @@ services:
     url: "http://ex-scale.com/"
 
 triggers:
+  backoff: "30m"
   mqtt:
     mqtt_broker: "<url>"
     mqtt_user: "<user>"
