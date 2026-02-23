@@ -96,7 +96,12 @@ The provided key will be injected as an `Authorization` header, supporting value
 
 This is a pure Go program; it does not require additional libraries and compiles directly to a single executable with the Go compiler.
 
-While Go supports building for Darwin (Apple) ARM64/AMD64, I do not actively build for these platforms due to a lack of Apple hardware for testing. However, I can add Darwin builds to the GitHub Actions workflow upon request.
+While Go supports building for Darwin (Apple) ARM64/AMD64, I do not actively build for these platforms due to a lack of Apple hardware for testing. However, I can add Darwin builds to the GitHub Actions workflow upon issue request but testing will be up to the user's.
+
+### Tested Arch.
+
+- Debian x86_64 (AMD64)
+- Linux raspberrypi(4) (Debian) aarch64 (ARM64)
 
 ## Example Use - N8N Message on Error
 
