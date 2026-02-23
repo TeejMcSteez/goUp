@@ -40,3 +40,4 @@ server/static
 # Personal Notes
 
 notes.md
+*.test
