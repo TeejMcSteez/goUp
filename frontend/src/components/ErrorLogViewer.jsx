@@ -3,7 +3,8 @@ import useErrorData from "../hooks/useErrorData.js";
 
 export default function ErrorLogViewer() {
   const [limit, setLimit] = useState(100);
-  const { data: errors, loading, error } = useErrorData(limit);
+  const [sortOrder, setSortOrder] = useState("desc");
+  const { data: errors, loading, error } = useErrorData(limit, sortOrder);
 
   return (
     <div className="error-log-container">
@@ -20,6 +21,17 @@ export default function ErrorLogViewer() {
           <option value={50}>50</option>
           <option value={100}>100</option>
           <option value={0}>All</option>
+        </select>
+        <label htmlFor="error-sort" style={{ marginLeft: "var(--space-md)" }}>Sort by date: </label>
+        <select
+          id="error-sort"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          className="sort-select"
+          style={{ maxWidth: "120px", marginBottom: "var(--space-md)", display: "inline-block" }}
+        >
+          <option value="desc">Newest first</option>
+          <option value="asc">Oldest first</option>
         </select>
       </div>
       <div className="error-log-viewer">
