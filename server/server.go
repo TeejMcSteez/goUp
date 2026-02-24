@@ -181,18 +181,19 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	limit, err := strconv.Atoi(param)
 	if err != nil {
 		log.Printf("Error occured, invalid limit: %v\nError: %v", limit, err)
-		json.NewEncoder(w).Encode([]byte(err.Error()))
-		return
+		limit = 0
 	}
 	sortOrder := req.URL.Query().Get("sort")
 	data, err := utils.GetErrorData(s.db, limit, sortOrder)
 	if err != nil {
 		log.Printf("Error occured getting error data from database: %v", err)
 		json.NewEncoder(w).Encode([]byte(err.Error()))
+		return
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding error data to json: %v", err)
 		json.NewEncoder(w).Encode([]byte(err.Error()))
+		return
 	}
 }
 
