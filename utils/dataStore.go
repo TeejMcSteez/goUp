@@ -167,13 +167,19 @@ func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr err
 	return sd, retErr
 }
 
-// Gets all data from table where errors did occur
-func GetErrorData(db *sql.DB, limit int) (retSd []ServiceData, retErr error) {
+// Gets all data from table where errors did occur.
+// sortOrder controls timestamp sort direction: "asc" or "desc" (default).
+func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData, retErr error) {
 	sd := []ServiceData{}
 
-	statement := "SELECT * FROM service_data WHERE error = 1 ORDER BY id DESC"
-	if limit > 0 {                                                                                                                                 
-		statement = fmt.Sprintf("%s LIMIT %d", statement, limit)                                                                                   
+	order := "DESC"
+	if sortOrder == "asc" {
+		order = "ASC"
+	}
+
+	statement := fmt.Sprintf("SELECT * FROM service_data WHERE error = 1 ORDER BY timestamp %s", order)
+	if limit > 0 {
+		statement = fmt.Sprintf("%s LIMIT %d", statement, limit)
 	}
 	row, err := db.Query(statement)
 	if err != nil {
