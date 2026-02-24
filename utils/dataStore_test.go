@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+func TestMain(m *testing.M) {
+	code := m.Run()
+	os.Remove("utils.test")
+	os.Exit(code)
+}
+
 func setupTestDB(t *testing.T) (*sql.DB, func()) {
 	dbPath := "./test_db.db"
 	cfg := &utils.Config{

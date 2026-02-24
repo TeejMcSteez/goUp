@@ -2,7 +2,6 @@ package utils_test
 
 import (
 	"goUp/utils"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,7 +21,6 @@ func createTestYML(content string, t *testing.T) func() {
 }
 
 func TestSetupServiceChanges(t *testing.T) {
-	// --- Test 1: Initial setup ---
 	ymlContent1 := `db_path: "./test_data.db"
 services:
   service2:
@@ -48,11 +46,9 @@ services:
 	// Fails on line 49 which check for size of endpoints
 	endpoints1 := utils.GetServiceEndpoints()
 	if len(endpoints1) != 2 {
-		log.Printf("Length of service endpoints: %v", len(endpoints1))
 		t.Fatalf("Expected 2 endpoints after initial setup, got %d", len(endpoints1))
 	}
 
-	// --- Test 2: Update setup (remove one, add one) ---
 	ymlContent2 := `db_path: "./test_data.db"
 services:
   service2:
@@ -62,9 +58,7 @@ services:
     url: "https://www.google.com"
     retry: 1
 `
-	// Overwrite the previous services.yml
-	cleanup2 := createTestYML(ymlContent2, t)
-	defer cleanup2()
+	createTestYML(ymlContent2, t)
 
 	err = utils.Setup()
 	if err != nil {
@@ -101,7 +95,7 @@ func TestGetServiceData(t *testing.T) {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			w.Write([]byte(`{"status": "ok"}`)) // Corrected: Use backticks for JSON string
+			w.Write([]byte(`{"status": "ok"}`))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -140,7 +134,7 @@ func TestGetServiceData(t *testing.T) {
 	if sd.ServiceHTTPResponse != "200" {
 		t.Errorf("Expected HTTP response '200', got '%s'", sd.ServiceHTTPResponse)
 	}
-	if sd.ServiceAPIResponse != `{"status": "ok"}` { // Corrected: Use backticks for JSON string
+	if sd.ServiceAPIResponse != `{"status": "ok"}` {
 		t.Errorf("Expected API response `{\"status\": \"ok\"}`, got '%s'", sd.ServiceAPIResponse)
 	}
 	if len(svcResponse.DownServices) != 0 {

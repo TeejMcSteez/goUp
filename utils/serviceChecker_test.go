@@ -2,7 +2,6 @@ package utils_test
 
 import (
 	"goUp/utils"
-	"log"
 	"testing"
 )
 
@@ -33,8 +32,7 @@ func TestServiceCheck(t *testing.T) {
 	res, err := utils.Check(sd)
 
 	if err != nil {
-		log.Printf("%v", err)
-		t.Error("Error checking data")
+		t.Errorf("Error checking data: %v", err)
 	}
 
 	if len(res) != 1 {

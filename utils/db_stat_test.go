@@ -2,7 +2,6 @@ package utils_test
 
 import (
 	"goUp/utils"
-	"log"
 	"os"
 	"testing"
 )
@@ -22,25 +21,19 @@ services:
 	defer cleanup()
 
 	if err := utils.Setup(); err != nil {
-		log.Printf("Error occured during setup: %v", err)
-		t.Fail()
+		t.Fatalf("Error occured during setup: %v", err)
 	}
 
 	db, err := utils.InitDB()
 	if err != nil {
-		log.Printf("Error occured during DB init: %v", err)
-		t.Fail()
+		t.Fatalf("Error occured during DB init: %v", err)
 	}
 	defer func() {
 		db.Close()
 		os.Remove(dbPath)
 	}()
 
-	data, err := utils.GetDatabaseSize()
-	if err != nil {
-		log.Printf("Error occured getting database statistics: %v", err)
-		t.Fail()
+	if _, err := utils.GetDatabaseSize(); err != nil {
+		t.Fatalf("Error occured getting database statistics: %v", err)
 	}
-	log.Printf("Database file size (bytes): %v", data)
-
 }
