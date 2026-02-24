@@ -184,7 +184,8 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(w).Encode([]byte(err.Error()))
 		return
 	}
-	data, err := utils.GetErrorData(s.db, limit)
+	sortOrder := req.URL.Query().Get("sort")
+	data, err := utils.GetErrorData(s.db, limit, sortOrder)
 	if err != nil {
 		log.Printf("Error occured getting error data from database: %v", err)
 		json.NewEncoder(w).Encode([]byte(err.Error()))
