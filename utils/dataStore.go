@@ -218,7 +218,7 @@ func ClearDatabase(db *sql.DB) error {
 }
 
 // Cleans up database after exit
-func CleanupDb() error {
+func CleanupDbFiles() error {
 	log.Printf("Cleaning up database file")
 	if Current_Config.Database_Location != nil {
 		if err := os.Remove(*Current_Config.Database_Location); err != nil {
