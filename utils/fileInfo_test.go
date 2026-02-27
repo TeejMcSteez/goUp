@@ -1,0 +1,66 @@
+package utils_test
+
+import (
+	"goUp/utils"
+	"log"
+	"os"
+	"strconv"
+	"testing"
+	"time"
+)
+
+// Returns 500 new valid test items
+func getTestServiceData() []utils.ServiceData {
+	svcData := []utils.ServiceData{}
+	for i := range 500 {
+		svcData = append(svcData, utils.ServiceData{
+			ServiceName:         "example" + strconv.Itoa(i),
+			ServiceHTTPResponse: "200",
+			ServiceAPIResponse:  "",
+			Timestamp:           time.Now(),
+			Error:               false,
+		})
+	}
+	return svcData
+}
+
+func TestGetDatabaseSize(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  service2:
+    url: "https://example.com"
+    retry: 2
+  service3:
+    url: "https://www.apple.com"
+    retry: 2
+`
+	db, err := utils.InitDB()
+	if err != nil {
+		log.Fatalf("Failure to initialize database: %v", err)
+	}
+
+	initialSize, err := utils.GetDatabaseSize()
+	if err != nil {
+		log.Fatalf("Failed to get initial database size: %v", err)
+	}
+
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+	defer os.Remove("./test_data.db")
+
+	if err := utils.Setup(); err != nil {
+		t.Fatalf("Initial Setup() failed: %v", err)
+	}
+
+	testData := getTestServiceData()
+	for i := range len(testData) {
+		utils.InsertData(db, testData[i])
+	}
+
+	newSize, err := utils.GetDatabaseSize()
+
+	if newSize <= initialSize {
+		t.Fatal("New size is smaller or same as the initital size")
+	}
+
+}
