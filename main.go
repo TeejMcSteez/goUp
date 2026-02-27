@@ -27,7 +27,7 @@ func main() {
 			log.Fatalf("error closing db: %s", err)
 		}
 		log.Println("Database connection closed")
-		if err := utils.CleanupDb(); err != nil {
+		if err := utils.CleanupDbFiles(); err != nil {
 			log.Printf("Error Occured cleaning up the database: %v", err)
 		}
 	}()
