@@ -69,3 +69,26 @@ services:
 	}
 
 }
+
+func TestGetFilestampSize(t *testing.T) {
+	before := time.Now()
+	testFileName := "timestamp_test.txt"
+	tmpFile, err := os.CreateTemp("", testFileName)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(testFileName)
+	if err := tmpFile.Close(); err != nil {
+		t.Fatalf("Failed to close temp file: %v", err)
+	}
+
+	stamp, err := utils.GetFileTimestamp(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("GetFileStamp failed: %v", err)
+	}
+	after := time.Now()
+	tolerance := 2 * time.Second
+	if stamp.Before(before.Add(-tolerance)) || stamp.After(after.Add(tolerance)) {
+		t.Fatal("Timestamp between start and file creation was 2 seconds +-")
+	}
+}
