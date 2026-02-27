@@ -41,9 +41,6 @@ services:
 	if err != nil {
 		t.Fatalf("Initial Setup() failed: %v", err)
 	}
-	// TODO:
-	// For some reason this fails even though it prints 2 endpoints before check
-	// Fails on line 49 which check for size of endpoints
 	endpoints1 := utils.GetServiceEndpoints()
 	if len(endpoints1) != 2 {
 		t.Fatalf("Expected 2 endpoints after initial setup, got %d", len(endpoints1))
