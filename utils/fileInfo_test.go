@@ -58,7 +58,12 @@ services:
 	}
 
 	newSize, err := utils.GetDatabaseSize()
-
+	if err := db.Close(); err != nil {
+		t.Fatalf("Failed to shutdown the database %v: ", err)
+	}
+	if err := utils.CleanupDbFiles(); err != nil {
+		t.Fatalf("Error cleaning up the database: %v", err)
+	}
 	if newSize <= initialSize {
 		t.Fatal("New size is smaller or same as the initital size")
 	}
