@@ -10,6 +10,12 @@ This application does not include built-in authentication and is designed for us
 1. Developing authentication solutions was not a primary focus, as it falls outside the scope of this project's initial intent.
 2. The goal is to avoid imposing a specific authentication solution on users.
 
+## Note About TLS
+
+This project is soely focused on HTTP, routes, and the logic. A reverse proxy is recommended to handle TLS errors for servers that are HTTPS that one wants to test.
+
+This seperates the concern for this codebase and reduces binary size as well as offloads the work of handling to HTTPS to projects that are much more qualified.
+
 ## Example services.yml
 
 The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.)
