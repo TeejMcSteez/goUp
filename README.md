@@ -85,7 +85,7 @@ Schema:
 Client ID: goUp MQTT
 State Topic: goup_status
 
-Username and password credentials are utilized only if provided in `services.yml`; otherwise, the system will attempt an unauthorized TCP connection.
+Username and password credentials are utilized only if provided in `services.yml`; otherwise, the system will attempt an unauthorized connection.
 
 Messages will be published to the broker under the "goup_status" topic.
 
