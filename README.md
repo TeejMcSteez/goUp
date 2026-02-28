@@ -14,7 +14,7 @@ This application does not include built-in authentication and is designed for us
 
 This project is soely focused on HTTP, routes, and the logic. A reverse proxy is recommended to handle TLS errors for servers that are HTTPS that one wants to test.
 
-This seperates the concern for this codebase and reduces binary size as well as offloads the work of handling to HTTPS to projects that are much more qualified.
+This seperates the concern for this codebase and reduces binary size as well as offloads the work of handling HTTPS to projects that are much more qualified.
 
 ## Example services.yml
 
