@@ -22,7 +22,6 @@ type Trigger struct {
 	Webhook WebhookTrigger `yaml:"webhook"`
 	Backoff_Period    *string `yaml:"backoff"`
 
-	mu              sync.Mutex
 	backoffDuration time.Duration
 	lastFired       time.Time
 }

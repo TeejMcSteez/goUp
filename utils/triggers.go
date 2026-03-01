@@ -38,9 +38,6 @@ func SetupTrigger(cfg *Config) *Trigger {
 
 // Takes service data and fires all t
 func (t *Trigger) Fire(data []ServiceData) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	
 	hasMQTT := t.MQTT.Mqtt_broker != nil
 	hasWebhook := t.Webhook.Webhook_url != nil
 
