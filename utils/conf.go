@@ -49,3 +49,25 @@ func UpdateConfigService(conf *Config, newEndpoint Service) error {
 	}
 	return nil
 }
+
+func UpdateConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	org_webhook := config.Triggers.Webhook
+	if newWebhook == org_webhook {
+		return fmt.Errorf("Webhook is the same")
+	}
+	config.Triggers.Webhook = newWebhook
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+	return nil
+}
