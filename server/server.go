@@ -197,6 +197,8 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// TODO: Write endpoints to CRUD config Services and Triggers
+
 // Starts server with all handler functions
 //
 // Returns an error if a problem with the server occurs
