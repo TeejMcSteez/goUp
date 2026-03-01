@@ -60,7 +60,9 @@ services:
 
 	crn_len := len(conf.Services)
 
-	utils.UpdateConfigService(conf, newService)
+	if err := utils.UpdateConfigService(conf, newService); err != nil {
+		t.Fatalf("UpdateConfigService failed: %v", err)
+	}
 
 	conf, err = utils.LoadConfig("./services.yml")
 	if err != nil {
