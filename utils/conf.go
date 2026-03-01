@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -23,4 +24,28 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func UpdateConfigService(conf *Config, newEndpoint Service) error {
+	if conf == nil {
+		return fmt.Errorf("config is nil")
+	}
+	org_len := len(conf.Services)
+	conf.Services[newEndpoint.Name] = newEndpoint
+	new_len := len(conf.Services)
+	if new_len == org_len {
+		return fmt.Errorf("no new endpoint added")
+	}
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+	// TODO: Change from full r/w/x to something more sensible
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+	return nil
 }
