@@ -50,6 +50,27 @@ func UpdateConfigService(conf *Config, newEndpoint Service) error {
 	return nil
 }
 
+func UpdateConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newMQTT == config.Triggers.MQTT {
+		return fmt.Errorf("MQTT trigger is the same")
+	}
+	config.Triggers.MQTT = newMQTT
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
