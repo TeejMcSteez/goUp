@@ -75,3 +75,39 @@ services:
 		t.Fatalf("New service not added to file after reload")
 	}
 }
+
+func TestAddWebhookTrigger(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  service2:
+    url: "https://example.com"
+    retry: 2
+  service3:
+    url: "https://www.apple.com"
+    retry: 2
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+	url := "google.com"
+	key := "something"
+	custom_message := "lol"
+	new_webhook := utils.WebhookTrigger{Webhook_url: &url, Webhook_key_string: &key, Custom_message: &custom_message}
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if err := utils.UpdateConfigWebhookTrigger(conf, new_webhook); err != nil {
+		t.Fatalf("UpdateConfigWebhookTrigger failed: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if conf.Triggers.Webhook.Webhook_url == nil {
+		t.Fatal("Failed to add webhook")
+	}
+
+}
