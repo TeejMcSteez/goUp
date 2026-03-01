@@ -76,6 +76,43 @@ services:
 	}
 }
 
+func TestAddMQTTTrigger(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  service2:
+    url: "https://example.com"
+    retry: 2
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	broker := "tcp://broker.example.com:1883"
+	username := "mqttuser"
+	key := "mqttpassword"
+	newMQTT := utils.MQTTTrigger{Mqtt_broker: &broker, Mqtt_username: &username, Mqtt_key: &key}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if err := utils.UpdateConfigMQTTTrigger(conf, newMQTT); err != nil {
+		t.Fatalf("UpdateConfigMQTTTrigger failed: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+
+	if conf.Triggers.MQTT.Mqtt_broker == nil {
+		t.Fatal("Failed to add MQTT trigger: broker is nil")
+	}
+	if *conf.Triggers.MQTT.Mqtt_broker != broker {
+		t.Errorf("Expected broker %q, got %q", broker, *conf.Triggers.MQTT.Mqtt_broker)
+	}
+}
+
 func TestAddWebhookTrigger(t *testing.T) {
 	ymlContent1 := `db_path: "./test_data.db"
 services:
