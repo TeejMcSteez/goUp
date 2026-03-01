@@ -37,3 +37,39 @@ services:
 		t.Error("Expected 'my-service' to be in the services map")
 	}
 }
+
+func TestAddServiceToConfig(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  service2:
+    url: "https://example.com"
+    retry: 2
+  service3:
+    url: "https://www.apple.com"
+    retry: 2
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	newService := utils.Service{Name: "google", URL: "https://google.com/"}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	crn_len := len(conf.Services)
+
+	utils.UpdateConfigService(conf, newService)
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	upd_len := len(conf.Services)
+
+	if upd_len != crn_len+1 {
+		t.Fatalf("New service not added to file after reload")
+	}
+}
