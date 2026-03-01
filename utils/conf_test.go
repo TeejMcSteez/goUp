@@ -60,7 +60,7 @@ services:
 
 	crn_len := len(conf.Services)
 
-	if err := utils.UpdateConfigService(conf, newService); err != nil {
+	if err := utils.AddConfigService(conf, newService); err != nil {
 		t.Fatalf("UpdateConfigService failed: %v", err)
 	}
 
@@ -96,7 +96,7 @@ services:
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	if err := utils.UpdateConfigMQTTTrigger(conf, newMQTT); err != nil {
+	if err := utils.AddConfigMQTTTrigger(conf, newMQTT); err != nil {
 		t.Fatalf("UpdateConfigMQTTTrigger failed: %v", err)
 	}
 
@@ -134,7 +134,7 @@ services:
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	if err := utils.UpdateConfigWebhookTrigger(conf, new_webhook); err != nil {
+	if err := utils.AddConfigWebhookTrigger(conf, new_webhook); err != nil {
 		t.Fatalf("UpdateConfigWebhookTrigger failed: %v", err)
 	}
 

@@ -26,7 +26,7 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-func UpdateConfigService(conf *Config, newEndpoint Service) error {
+func AddConfigService(conf *Config, newEndpoint Service) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -50,7 +50,7 @@ func UpdateConfigService(conf *Config, newEndpoint Service) error {
 	return nil
 }
 
-func UpdateConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
+func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -71,7 +71,7 @@ func UpdateConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
 	return nil
 }
 
-func UpdateConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
+func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}
