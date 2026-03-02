@@ -92,3 +92,31 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	}
 	return nil
 }
+
+func DeleteConfigService(config *Config, serviceToDelete Service) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	org_size := len(config.Services)
+	delete(config.Services, serviceToDelete.URL)
+	new_size := len(config.Services)
+
+	if org_size == new_size {
+		return fmt.Errorf("Failed to remove the element")
+	}
+
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+
+	return nil
+}
