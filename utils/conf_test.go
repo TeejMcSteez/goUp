@@ -148,3 +148,42 @@ services:
 	}
 
 }
+
+func TestDeleteService(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  https://example.com:
+    url: "https://example.com"
+    retry: 2
+  https://www.apple.com:
+    url: "https://www.apple.com"
+    retry: 2
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	current_size := len(conf.Services)
+	serviceToDelete := conf.Services["https://example.com"]
+
+	if err := utils.DeleteConfigService(conf, serviceToDelete); err != nil {
+		t.Fatalf("Failed to delete config: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	new_size := len(conf.Services)
+
+	if new_size >= current_size {
+		t.Fatalf("Failed to delete service from config")
+	}
+}
