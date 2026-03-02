@@ -120,3 +120,25 @@ func DeleteConfigService(config *Config, serviceToDelete Service) error {
 
 	return nil
 }
+
+func DeleteConfigMQTT(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	// Clears MQTT trigger in config
+	config.Triggers.MQTT = MQTTTrigger{}
+
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+	return nil
+}
