@@ -142,3 +142,26 @@ func DeleteConfigMQTT(config *Config) error {
 	}
 	return nil
 }
+
+func DeleteConfigTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+
+	config.Triggers.Webhook = WebhookTrigger{}
+
+	if err := os.Remove("./services.yml"); err != nil {
+		return err
+	}
+
+	data, err := yaml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -226,3 +226,40 @@ triggers:
 	}
 
 }
+
+func TestDeleteWebhook(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  "https://example.com":
+    url: "https://example.com"
+    retry: 2
+  "https://www.apple.com":
+    url: "https://www.apple.com"
+    retry: 2
+triggers:
+  backoff: "30m"
+  webhook:
+    webhook_url: "192.168.1.30:1883"
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if conf.Triggers.Webhook.Webhook_url == nil {
+		t.Fatal("Failed to load Webhook config from setup")
+	}
+
+	if err := utils.DeleteConfigTrigger(conf); err != nil {
+		t.Fatalf("Error occured deleting Webhook: %v", err)
+	}
+
+	if conf.Triggers.Webhook.Webhook_url != nil {
+		t.Fatal("URL is not nil")
+	}
+
+}
