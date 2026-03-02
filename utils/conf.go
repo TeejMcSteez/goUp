@@ -31,7 +31,7 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 		return fmt.Errorf("config is nil")
 	}
 	org_len := len(conf.Services)
-	conf.Services[newEndpoint.Name] = newEndpoint
+	conf.Services[newEndpoint.URL] = newEndpoint
 	new_len := len(conf.Services)
 	if new_len == org_len {
 		return fmt.Errorf("no new endpoint added")
