@@ -152,10 +152,10 @@ services:
 func TestDeleteService(t *testing.T) {
 	ymlContent1 := `db_path: "./test_data.db"
 services:
-  https://example.com:
+  "https://example.com":
     url: "https://example.com"
     retry: 2
-  https://www.apple.com:
+  "https://www.apple.com":
     url: "https://www.apple.com"
     retry: 2
 `
