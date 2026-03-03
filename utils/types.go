@@ -16,11 +16,17 @@ type Config struct {
 	Triggers          Trigger            `yaml:"triggers"`
 }
 
+type ConfigData struct {
+	Services map[string]Service `json:"services"`
+	MQTT     MQTTTrigger        `json:"mqtt"`
+	Webhook  WebhookTrigger     `json:"webhook"`
+}
+
 // Endpoints and data for triggers
 type Trigger struct {
-	MQTT    MQTTTrigger    `yaml:"mqtt"`
-	Webhook WebhookTrigger `yaml:"webhook"`
-	Backoff_Period    *string `yaml:"backoff"`
+	MQTT           MQTTTrigger    `yaml:"mqtt"`
+	Webhook        WebhookTrigger `yaml:"webhook"`
+	Backoff_Period *string        `yaml:"backoff"`
 
 	backoffDuration time.Duration
 	lastFired       time.Time
