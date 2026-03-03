@@ -488,13 +488,6 @@ select {
     color: var(--text-secondary);
 }
 
-.config-optional {
-    font-weight: 400;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    opacity: 0.7;
-}
-
 .config-input {
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-md);

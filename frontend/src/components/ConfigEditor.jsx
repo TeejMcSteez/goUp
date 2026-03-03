@@ -4,7 +4,9 @@ import { useConfigData } from "../hooks/useConfigData";
 function StatusMessage({ message, isError }) {
   if (!message) return null;
   return (
-    <p className={`config-status ${isError ? "config-status--error" : "config-status--success"}`}>
+    <p
+      className={`config-status ${isError ? "config-status--error" : "config-status--success"}`}
+    >
       {message}
     </p>
   );
@@ -12,7 +14,12 @@ function StatusMessage({ message, isError }) {
 
 function ServicesPanel({ services, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ Name: "", URL: "", API_URL: "", Retry_Requests: "" });
+  const [form, setForm] = useState({
+    Name: "",
+    URL: "",
+    API_URL: "",
+    Retry_Requests: "",
+  });
   const [status, setStatus] = useState(null);
 
   const handleAdd = async (e) => {
@@ -21,7 +28,9 @@ function ServicesPanel({ services, onRefresh }) {
       Name: form.Name,
       URL: form.URL,
       ...(form.API_URL && { API_URL: form.API_URL }),
-      ...(form.Retry_Requests && { Retry_Requests: parseInt(form.Retry_Requests) }),
+      ...(form.Retry_Requests && {
+        Retry_Requests: parseInt(form.Retry_Requests),
+      }),
     };
     const res = await fetch("/api/config/service", {
       method: "POST",
@@ -67,7 +76,10 @@ function ServicesPanel({ services, onRefresh }) {
                 <span className="config-service-name">{svc.Name || key}</span>
                 <span className="config-service-url">{svc.URL}</span>
               </div>
-              <button className="config-btn config-btn--danger" onClick={() => handleDelete(svc)}>
+              <button
+                className="config-btn config-btn--danger"
+                onClick={() => handleDelete(svc)}
+              >
                 Remove
               </button>
             </li>
@@ -83,7 +95,9 @@ function ServicesPanel({ services, onRefresh }) {
               <input
                 className="config-input"
                 value={form.Name}
-                onChange={(e) => setForm((f) => ({ ...f, Name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, Name: e.target.value }))
+                }
                 placeholder="My Service"
                 required
               />
@@ -93,39 +107,56 @@ function ServicesPanel({ services, onRefresh }) {
               <input
                 className="config-input"
                 value={form.URL}
-                onChange={(e) => setForm((f) => ({ ...f, URL: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, URL: e.target.value }))
+                }
                 placeholder="https://example.com"
                 required
               />
             </label>
             <label className="config-label">
-              API URL <span className="config-optional">(optional)</span>
+              API URL (optional)
               <input
                 className="config-input"
                 value={form.API_URL}
-                onChange={(e) => setForm((f) => ({ ...f, API_URL: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, API_URL: e.target.value }))
+                }
                 placeholder="https://api.example.com"
               />
             </label>
             <label className="config-label">
-              Retries <span className="config-optional">(optional)</span>
+              Retries (optional)
               <input
                 className="config-input"
                 type="number"
                 min="0"
                 value={form.Retry_Requests}
-                onChange={(e) => setForm((f) => ({ ...f, Retry_Requests: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, Retry_Requests: e.target.value }))
+                }
                 placeholder="3"
               />
             </label>
           </div>
           <div className="config-form-actions">
-            <button type="submit" className="config-btn config-btn--primary">Add</button>
-            <button type="button" className="config-btn" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="config-btn config-btn--primary">
+              Add
+            </button>
+            <button
+              type="button"
+              className="config-btn"
+              onClick={() => setShowForm(false)}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       ) : (
-        <button className="config-btn config-btn--primary config-add-btn" onClick={() => setShowForm(true)}>
+        <button
+          className="config-btn config-btn--primary config-add-btn"
+          onClick={() => setShowForm(true)}
+        >
           + Add Service
         </button>
       )}
@@ -189,7 +220,9 @@ function MQTTPanel({ mqtt, onRefresh }) {
             <input
               className="config-input"
               value={form.Mqtt_broker}
-              onChange={(e) => setForm((f) => ({ ...f, Mqtt_broker: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Mqtt_broker: e.target.value }))
+              }
               placeholder="mqtt://broker.example.com"
             />
           </label>
@@ -198,7 +231,9 @@ function MQTTPanel({ mqtt, onRefresh }) {
             <input
               className="config-input"
               value={form.Mqtt_username}
-              onChange={(e) => setForm((f) => ({ ...f, Mqtt_username: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Mqtt_username: e.target.value }))
+              }
               placeholder="username"
             />
           </label>
@@ -208,14 +243,24 @@ function MQTTPanel({ mqtt, onRefresh }) {
               className="config-input"
               type="password"
               value={form.Mqtt_key}
-              onChange={(e) => setForm((f) => ({ ...f, Mqtt_key: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Mqtt_key: e.target.value }))
+              }
               placeholder="••••••••"
             />
           </label>
         </div>
         <div className="config-form-actions">
-          <button type="submit" className="config-btn config-btn--primary">Save</button>
-          <button type="button" className="config-btn config-btn--danger" onClick={handleClear}>Clear</button>
+          <button type="submit" className="config-btn config-btn--primary">
+            Save
+          </button>
+          <button
+            type="button"
+            className="config-btn config-btn--danger"
+            onClick={handleClear}
+          >
+            Clear
+          </button>
         </div>
       </form>
     </div>
@@ -278,7 +323,9 @@ function WebhookPanel({ webhook, onRefresh }) {
             <input
               className="config-input"
               value={form.Webhook_url}
-              onChange={(e) => setForm((f) => ({ ...f, Webhook_url: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Webhook_url: e.target.value }))
+              }
               placeholder="https://hooks.example.com/..."
             />
           </label>
@@ -287,7 +334,9 @@ function WebhookPanel({ webhook, onRefresh }) {
             <input
               className="config-input"
               value={form.Webhook_key_string}
-              onChange={(e) => setForm((f) => ({ ...f, Webhook_key_string: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Webhook_key_string: e.target.value }))
+              }
               placeholder="Bearer <token>"
             />
           </label>
@@ -296,14 +345,24 @@ function WebhookPanel({ webhook, onRefresh }) {
             <input
               className="config-input"
               value={form.Custom_message}
-              onChange={(e) => setForm((f) => ({ ...f, Custom_message: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, Custom_message: e.target.value }))
+              }
               placeholder="A service is down!"
             />
           </label>
         </div>
         <div className="config-form-actions">
-          <button type="submit" className="config-btn config-btn--primary">Save</button>
-          <button type="button" className="config-btn config-btn--danger" onClick={handleClear}>Clear</button>
+          <button type="submit" className="config-btn config-btn--primary">
+            Save
+          </button>
+          <button
+            type="button"
+            className="config-btn config-btn--danger"
+            onClick={handleClear}
+          >
+            Clear
+          </button>
         </div>
       </form>
     </div>
@@ -321,7 +380,8 @@ export default function ConfigEditor() {
   const [activeSection, setActiveSection] = useState("services");
 
   if (loading) return <p className="config-loading">Loading configuration…</p>;
-  if (error) return <p className="config-status config-status--error">{error}</p>;
+  if (error)
+    return <p className="config-status config-status--error">{error}</p>;
 
   return (
     <div className="config-editor">
