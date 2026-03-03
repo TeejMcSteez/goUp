@@ -289,14 +289,7 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	mData := utils.ReadConfigMQTT(utils.Current_Config)
 	wData := utils.ReadConfigWebhook(utils.Current_Config)
 
-	cData := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData}
-
-	data, err := json.Marshal(cData)
-	if err != nil {
-		log.Printf("Error occured marshalling JSON data when reading configuration information: %v", err)
-		http.Error(w, "Server Error: Failed to parse config data", 500)
-		return
-	}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
