@@ -10,6 +10,11 @@ This application does not include built-in authentication and is designed for us
 1. Developing authentication solutions was not a primary focus, as it falls outside the scope of this project's initial intent.
 2. The goal is to avoid imposing a specific authentication solution on users.
 
+## AI Disclosure
+
+Portions of this project were generated with the assistance of AI tools.
+All generated code was reviewed and modified by the author.
+
 ## Note About TLS
 
 This project is soely focused on HTTP, routes, and the logic. A reverse proxy is recommended to handle TLS errors for servers that are HTTPS that one wants to test.
@@ -109,29 +114,13 @@ While Go supports building for Darwin (Apple) ARM64/AMD64, I do not actively bui
 - Debian x86_64 (AMD64)
 - Linux raspberrypi(4) (Debian) aarch64 (ARM64)
 
-## Example Use - N8N Message on Error
+## Current Test Coverage (Dev)
 
-To integrate, create a POST Webhook trigger. When activated, this trigger will receive error information for any failed servers.
+After listening to some talks from the creator of SQLite I was pushed to want more testing and overall test coverage in my code.
 
-This information can then be utilized as desired. Below is an example HTML message that maps error items to a card, which is subsequently sent via Gmail from N8N.
+With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
-
-```JavaScript
-{{ $json.body.map(item =>
-`<tr style="background-color: ${item.error ? '#fcf2f2' : '#f2fcf2'}; border-bottom: 1px solid #e0e0e0;">
-<td style="padding: 12px; font-weight: 500; color: #333;">${item.name}</td>
-<td style="padding: 12px;">
-<span style="background-color: ${item.error ? '#d9534f' : '#5cb85c'}; color: white; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 12px;">
-${item.error ? 'Error' : 'OK'}
-</span>
-</td>
-<td style="padding: 12px; font-size: 14px; color: ${item.error ? '#c9302c' : '#333'}; font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;">
-${item.response}
-</td>
-<td style="padding: 12px; font-size: 14px; color: #555;">
-${item.response_time}
-</td>
-</tr>`).join('') }}
-```
-
-Upon a goUp webhook trigger firing, the user will receive a message containing the error information.
+- utils = 61.3%
+- workers = 68.7%
+- server = 0%
+- main = 0%
