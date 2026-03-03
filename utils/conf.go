@@ -165,3 +165,15 @@ func DeleteConfigTrigger(config *Config) error {
 
 	return nil
 }
+
+func ReadConfigServices(config *Config) map[string]Service {
+	return config.Services
+}
+
+func ReadConfigMQTT(config *Config) MQTTTrigger {
+	return config.Triggers.MQTT
+}
+
+func ReadConfigWebhook(config *Config) WebhookTrigger {
+	return config.Triggers.Webhook
+}

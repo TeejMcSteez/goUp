@@ -263,3 +263,94 @@ triggers:
 	}
 
 }
+
+func TestReadService(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  ex1:
+    url: "https://example.com"
+    retry: 2
+  ex2:
+    url: "https://www.apple.com"
+    retry: 2
+triggers:
+  backoff: "30m"
+  webhook:
+    webhook_url: "192.168.1.30:1883"
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	services := utils.ReadConfigServices(conf)
+
+	if _, ok := services["ex1"]; !ok {
+		t.Fatal("Failed to find key")
+	}
+
+	if _, ok := services["ex2"]; !ok {
+		t.Fatal("Failed to find key")
+	}
+
+}
+
+func TestReadMQTT(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  ex_1:
+    url: "https://example.com"
+    retry: 2
+  ex_2:
+    url: "https://www.apple.com"
+    retry: 2
+triggers:
+  backoff: "30m"
+  mqtt:
+    mqtt_broker: "192.168.1.30:1883"
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if m := utils.ReadConfigMQTT(conf); m.Mqtt_broker == nil || *m.Mqtt_broker != "192.168.1.30:1883" {
+		t.Fatal("MQTT broker is nil or invalid")
+	}
+}
+
+func TestReadWebhook(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  ex_1:
+    url: "https://example.com"
+    retry: 2
+  ex_2:
+    url: "https://www.apple.com"
+    retry: 2
+triggers:
+  backoff: "30m"
+  webhook:
+    webhook_url: "192.168.1.30:1883"
+`
+	cleanup := createTestYML(ymlContent1, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if w := utils.ReadConfigWebhook(conf); w.Webhook_url == nil || *w.Webhook_url != "192.168.1.30:1883" {
+		t.Fatal("Webhook is nil or invalid")
+	}
+}
