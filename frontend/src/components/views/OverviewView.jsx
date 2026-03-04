@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Island from "../layout/Island.jsx";
 import QuickServices from "../QuickServices.jsx";
+import useServiceName from "../../hooks/useServiceName.js";
 
 function QuickStats() {
   const [services, setServices] = useState([]);
@@ -169,6 +170,7 @@ function QuickStats() {
 function MiniServiceGrid() {
   const [services, setServices] = useState([]);
   const [error, setError] = useState(null);
+  const { formatName } = useServiceName();
 
   useEffect(() => {
     const getServiceData = async () => {
@@ -220,7 +222,7 @@ function MiniServiceGrid() {
             borderLeft: `4px solid ${service.error ? "var(--error)" : "var(--success)"}`,
           }}
         >
-          <h4 style={{ margin: "0 0 var(--space-sm) 0" }}>{service.name}</h4>
+          <h4 style={{ margin: "0 0 var(--space-sm) 0" }}>{formatName(service.name)}</h4>
           <p
             style={{
               margin: 0,
