@@ -214,8 +214,16 @@ func ClearDatabase(db *sql.DB) error {
 		log.Printf("Cleared databased, Rows Affected: %v", rowsAffected)
 	}
 
+	// Temporarily switch out of WAL mode so VACUUM replaces the file rather
+	// than checkpointing in-place, which physically shrinks the file on disk.
+	if _, err := db.Exec("PRAGMA journal_mode=DELETE;"); err != nil {
+		return fmt.Errorf("clear succeeded but could not switch journal mode: %w", err)
+	}
 	if _, err := db.Exec("VACUUM;"); err != nil {
 		return fmt.Errorf("clear succeeded but vacuum failed: %w", err)
+	}
+	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
+		return fmt.Errorf("vacuum succeeded but could not restore WAL mode: %w", err)
 	}
 
 	return nil
