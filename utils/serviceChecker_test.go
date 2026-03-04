@@ -40,6 +40,42 @@ func TestServiceCheck(t *testing.T) {
 	}
 }
 
+func TestUptimeRounding(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	utils.Current_Config.Services = map[string]utils.Service{
+		"roundService": {
+			Name:            "roundService",
+			URL:             "http://test.com",
+			Valid_Responses: &[]string{"200"},
+		},
+	}
+
+	// 1 down out of 3 = 0.3333... should round to 0.33
+	testData := []utils.ServiceData{
+		{ServiceName: "roundService", ServiceHTTPResponse: "200"},
+		{ServiceName: "roundService", ServiceHTTPResponse: "200"},
+		{ServiceName: "roundService", ServiceHTTPResponse: "503"},
+	}
+
+	for _, sd := range testData {
+		if err := utils.InsertData(db, sd); err != nil {
+			t.Fatalf("Failed to insert data: %v", err)
+		}
+	}
+
+	avg, err := utils.GetUptimeAverage(db, "roundService")
+	if err != nil {
+		t.Fatalf("Error getting uptime average: %v", err)
+	}
+
+	expected := 0.33
+	if avg != expected {
+		t.Errorf("Expected average to be %.2f, but got %f", expected, avg)
+	}
+}
+
 func TestUptimeCalculation(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
