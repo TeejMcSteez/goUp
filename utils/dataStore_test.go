@@ -2,8 +2,10 @@ package utils_test
 
 import (
 	"database/sql"
+	"fmt"
 	"goUp/utils"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -157,5 +159,42 @@ func TestGetRecentData(t *testing.T) {
 	}
 	if recentData[1].ServiceName != "service1" || recentData[1].ServiceHTTPResponse != "500" {
 		t.Errorf("Unexpected recent data[1]: %+v, expected service1 with 500", recentData[1])
+	}
+}
+
+func TestClearDatabaseVacuums(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// Insert enough data to grow beyond the initial schema pages
+	payload := strings.Repeat("x", 1000)
+	for i := range 500 {
+		sd := utils.ServiceData{
+			ServiceName:         fmt.Sprintf("service%d", i),
+			ServiceHTTPResponse: "500",
+			ServiceAPIResponse:  payload,
+			Error:               true,
+		}
+		if err := utils.InsertData(db, sd); err != nil {
+			t.Fatalf("Failed to insert data: %v", err)
+		}
+	}
+
+	sizeBeforeClear, err := utils.GetDatabaseSize()
+	if err != nil {
+		t.Fatalf("Failed to get database size: %v", err)
+	}
+
+	if err := utils.ClearDatabase(db); err != nil {
+		t.Fatalf("ClearDatabase failed: %v", err)
+	}
+
+	sizeAfterClear, err := utils.GetDatabaseSize()
+	if err != nil {
+		t.Fatalf("Failed to get database size: %v", err)
+	}
+
+	if sizeAfterClear >= sizeBeforeClear {
+		t.Errorf("Expected file to shrink after ClearDatabase: before=%d bytes after=%d bytes", sizeBeforeClear, sizeAfterClear)
 	}
 }
