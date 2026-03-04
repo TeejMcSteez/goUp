@@ -1,10 +1,12 @@
 import { useState } from "react";
 import useErrorData from "../hooks/useErrorData.js";
+import useServiceName from "../hooks/useServiceName.js";
 
 export default function ErrorLogViewer() {
   const [limit, setLimit] = useState(100);
   const [sortOrder, setSortOrder] = useState("desc");
   const { data: errors, loading, error } = useErrorData(limit, sortOrder);
+  const { formatName } = useServiceName();
 
   return (
     <div className="error-log-container">
@@ -43,7 +45,7 @@ export default function ErrorLogViewer() {
           errors.map((errorItem, index) => (
             <div key={index} className="error-log-item">
               <div className="error-log-header">
-                <strong>{errorItem.name}</strong>
+                <strong>{formatName(errorItem.name)}</strong>
                 <span>{new Date(errorItem.timestamp).toLocaleString()}</span>
               </div>
               <div className="error-log-body">
