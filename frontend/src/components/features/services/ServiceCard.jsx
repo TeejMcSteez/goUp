@@ -1,7 +1,9 @@
 import { useState } from "react";
+import useServiceName from "../../../hooks/useServiceName.js";
 
 export default function ServiceCard({ service }) {
   const { name, response, response_time, data, error } = service;
+  const { formatName } = useServiceName();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
 
@@ -17,7 +19,7 @@ export default function ServiceCard({ service }) {
 
   return (
     <div className="card">
-      <h3 className="svcName">Name: {name}</h3>
+      <h3 className="svcName">Name: {formatName(name)}</h3>
       <p>Status: {error ? "❌ Error" : "✅ Operational"}</p>
       <p>Response Time: {response_time}</p>
       {isLongHttpResponse ? (
