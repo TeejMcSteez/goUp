@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math"
 	"slices"
 )
 
@@ -57,5 +58,7 @@ func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 		return 0.0, err
 	}
 	average := float64(numberDown) / float64(totalNumber)
-	return average, nil
+	// Rounds to nearest 2nd decmial place
+	rounded_average := math.Round(average*100) / 100
+	return rounded_average, nil
 }
