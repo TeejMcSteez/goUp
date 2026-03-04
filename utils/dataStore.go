@@ -200,7 +200,7 @@ func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData,
 	return sd, retErr
 }
 
-// Clears all table information from service_data
+// Clears all table information from service_data and reclaims unused pages
 func ClearDatabase(db *sql.DB) error {
 	statement := `DELETE FROM service_data;`
 
@@ -212,6 +212,10 @@ func ClearDatabase(db *sql.DB) error {
 		return err
 	} else {
 		log.Printf("Cleared databased, Rows Affected: %v", rowsAffected)
+	}
+
+	if _, err := db.Exec("VACUUM;"); err != nil {
+		return fmt.Errorf("clear succeeded but vacuum failed: %w", err)
 	}
 
 	return nil
