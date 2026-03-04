@@ -120,7 +120,7 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
-- utils = 61.3%
+- utils = 62.6%
 - workers = 68.7%
 - server = 0%
 - main = 0%
