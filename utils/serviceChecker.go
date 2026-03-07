@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"math"
 	"slices"
+	"strconv"
 )
 
 type NoConfigError struct {
@@ -58,7 +58,10 @@ func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 		return 0.0, err
 	}
 	average := float64(numberDown) / float64(totalNumber)
-	// Rounds to nearest whole number
-	rounded_average := math.Round(average)
+	// Rounds to 2 decimal places
+	rounded_average, err := strconv.ParseFloat(strconv.FormatFloat(average, 'f', 2, 64), 64)
+	if err != nil {
+		return 0.0, err
+	}
 	return rounded_average, nil
 }
