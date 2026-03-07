@@ -58,7 +58,7 @@ func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 		return 0.0, err
 	}
 	average := float64(numberDown) / float64(totalNumber)
-	// Rounds to nearest 2nd decmial place
-	rounded_average := math.Round(average*100) / 100
+	// Rounds to nearest whole number
+	rounded_average := math.Round(average)
 	return rounded_average, nil
 }
