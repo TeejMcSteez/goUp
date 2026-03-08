@@ -23,7 +23,7 @@ This seperates the concern for this codebase and reduces binary size as well as 
 
 ## Example services.yml
 
-The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.)
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.), one can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
 Services are defined by their name, URL, and optional `api_url` and `api_key`.
 
@@ -45,6 +45,7 @@ Triggers contain the necessary information for sending various messages:
 ```yaml
 db_path: "./database.db"
 db_max_size: "1gb"
+persist_db: true
 services:
   home_assistant:
     url: "https://ex.com/"
@@ -120,7 +121,7 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
-- utils = 62.6%
-- workers = 68.7%
-- server = 0%
-- main = 0%
+- goUp coverage: 0.0% of statements
+- goUp/server	coverage: 38.4% of statements
+- goUp/utils	coverage: 62.4% of statements
+- goUp/workers	coverage: 66.4% of statements
