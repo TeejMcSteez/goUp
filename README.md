@@ -105,10 +105,7 @@ The provided key will be injected as an `Authorization` header, supporting value
 
 - Linux ARM64/AMD64
 - Windows ARM64/AMD64
-
-This is a pure Go program; it does not require additional libraries and compiles directly to a single executable with the Go compiler.
-
-While Go supports building for Darwin (Apple) ARM64/AMD64, I do not actively build for these platforms due to a lack of Apple hardware for testing. However, I can add Darwin builds to the GitHub Actions workflow upon issue request but testing will be up to the user's.
+- Darwin ARM64/AMD64
 
 ### Tested Arch.
 
