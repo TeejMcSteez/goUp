@@ -27,7 +27,12 @@ func StartHotReloader(path string, ctx context.Context) {
 			}
 			if !t.Equal(initialModTime) {
 				log.Println("File change detected, reloading configuration")
-				if err := utils.Setup(); err != nil {
+				cfg, err := utils.LoadConfig(path)
+				if err != nil {
+					log.Printf("Hot reload failed loading config: %v", err)
+					return
+				}
+				if err := utils.Setup(cfg); err != nil {
 					log.Printf("Hot reload failed: %v", err)
 					return
 				}
