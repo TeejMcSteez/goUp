@@ -20,7 +20,12 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	if err := utils.Setup(); err != nil {
+	cfg, err := utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load configuration file: %v", err)
+	}
+
+	if err := utils.Setup(cfg); err != nil {
 		t.Fatalf("Error occured during setup: %v", err)
 	}
 

@@ -37,7 +37,12 @@ services:
 	// Ensure endpoints are empty before setup
 	utils.SetServiceEndpoints([]utils.Service{})
 
-	err := utils.Setup()
+	cfg, err := utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	err = utils.Setup(cfg)
 	if err != nil {
 		t.Fatalf("Initial Setup() failed: %v", err)
 	}
@@ -57,7 +62,7 @@ services:
 `
 	createTestYML(ymlContent2, t)
 
-	err = utils.Setup()
+	err = utils.Setup(cfg)
 	if err != nil {
 		t.Fatalf("Second Setup() failed: %v", err)
 	}

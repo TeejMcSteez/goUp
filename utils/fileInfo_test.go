@@ -48,7 +48,12 @@ services:
 	defer cleanup()
 	defer os.Remove("./test_data.db")
 
-	if err := utils.Setup(); err != nil {
+	cfg, err := utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load configuration file: %v", err)
+	}
+
+	if err := utils.Setup(cfg); err != nil {
 		t.Fatalf("Initial Setup() failed: %v", err)
 	}
 
