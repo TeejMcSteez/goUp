@@ -62,6 +62,11 @@ services:
 `
 	createTestYML(ymlContent2, t)
 
+	cfg, err = utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+
 	err = utils.Setup(cfg)
 	if err != nil {
 		t.Fatalf("Second Setup() failed: %v", err)
