@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
 	Database_Max_Size *string            `yaml:"db_max_size"`
+	Persist_db        *bool              `yaml:"persist_db"`
 	Services          map[string]Service `yaml:"services"`
 	Triggers          Trigger            `yaml:"triggers"`
 }

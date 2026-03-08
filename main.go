@@ -39,8 +39,10 @@ func main() {
 			log.Fatalf("error closing db: %s", err)
 		}
 		log.Println("Database connection closed")
-		if err := utils.CleanupDbFiles(); err != nil {
-			log.Printf("Error Occured cleaning up the database: %v", err)
+		if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
+			if err := utils.CleanupDbFiles(); err != nil {
+				log.Printf("Error Occured cleaning up the database: %v", err)
+			}
 		}
 	}()
 
