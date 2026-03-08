@@ -23,7 +23,7 @@ This seperates the concern for this codebase and reduces binary size as well as 
 
 ## Example services.yml
 
-The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.), one can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.), one can also specify whether or not to keep data after stopping the program with `persist_db` (must be set before launching program, the hot reloader does not account for this change) being `true` or `false`
 
 Services are defined by their name, URL, and optional `api_url` and `api_key`.
 
