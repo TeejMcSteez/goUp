@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
 	Database_Max_Size *string            `yaml:"db_max_size"`
-	Auth_Method       *string            `yaml:"auth_method"`
 	API_Key           *string            `yaml:"api_key"`
 	API_Header        *string            `yaml:"api_header"`
 	Services          map[string]Service `yaml:"services"`
