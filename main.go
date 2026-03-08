@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"goUp/server"
 	"goUp/utils"
 	"goUp/workers"
@@ -12,6 +13,17 @@ import (
 )
 
 func main() {
+	configPath := flag.String("config", "services.yml", "path to config file")
+	flag.Parse()
+
+	cfg, err := utils.LoadConfig(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+	if err := utils.Setup(cfg); err != nil {
+		log.Fatalf("Failed to setup services: %v", err)
+	}
+
 	svcData, err := utils.GetServiceData()
 	if err != nil {
 		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
@@ -44,7 +56,7 @@ func main() {
 	// Starts all background workers
 	sch := workers.NewScheduler(db, 30, "seconds")
 	defer sch.Stop()
-	go workers.StartHotReloader("services.yml", ctx)
+	go workers.StartHotReloader(*configPath, ctx)
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
 		log.Println("Starting server on port 8080")
