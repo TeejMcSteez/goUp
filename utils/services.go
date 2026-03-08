@@ -22,16 +22,9 @@ func (e *NoServiceEndpointsError) Error() string {
 }
 
 // Sets up service and trigger endpoints from configuration
-func Setup() error {
+func Setup(cfg *Config) error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
-
-	log.Println("Loading Config . . .")
-	cfg, err := LoadConfig("services.yml")
-
-	if err != nil {
-		return err
-	}
 
 	Current_Config = cfg
 	log.Println("Setting up triggers")
@@ -97,7 +90,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		log.Println("No service endpoints found looking for config . . .")
-		err := Setup()
+		err := Setup(Current_Config)
 		if err != nil {
 			log.Printf("Error in in setting up config while fetching service data!\n%v", err)
 			return nil, err
