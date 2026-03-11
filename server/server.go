@@ -160,6 +160,20 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case "GET":
+		w.Header().Add("Content-Type", "application/json")
+		persists := utils.ReadConfigDatabasePersistence(utils.Current_Config)
+
+		if err := json.NewEncoder(w).Encode(persists); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid Request Method", http.StatusBadRequest)
+	}
+}
+
 // Clears database
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
@@ -316,6 +330,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
 	http.HandleFunc("/api/errors", s.GetErrorData)
 	http.HandleFunc("/api/db/size", s.GetDatabaseSize)
+	http.HandleFunc("/api/db/persist", s.GetDatabasePersistence)
 	http.HandleFunc("/api/db/clear", s.ClearDatabase)
 	http.HandleFunc("/api/config", s.ReadConfigData)
 	http.HandleFunc("/api/config/service", s.ConfigServiceApi)
