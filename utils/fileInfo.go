@@ -7,20 +7,22 @@ import (
 )
 
 func GetDatabaseSize() (int64, error) {
-	if Current_Config.Database_Location != nil {
-		file, err := os.Open(*Current_Config.Database_Location)
-		if err != nil {
-			return 0, err
-		}
-		defer file.Close()
-		fileStats, err := file.Stat()
-		if err != nil {
-			return 0, err
-		}
-		return fileStats.Size(), nil
-
+	if Current_Config.Database_Location == nil {
+		return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
 	}
-	return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
+	loc := *Current_Config.Database_Location
+	total := int64(0)
+	for _, path := range []string{loc, loc + "-wal", loc + "-shm"} {
+		info, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return 0, err
+		}
+		total += info.Size()
+	}
+	return total, nil
 }
 
 func GetFileTimestamp(path string) (time.Time, error) {
