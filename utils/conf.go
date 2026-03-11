@@ -177,3 +177,10 @@ func ReadConfigMQTT(config *Config) MQTTTrigger {
 func ReadConfigWebhook(config *Config) WebhookTrigger {
 	return config.Triggers.Webhook
 }
+
+func ReadConfigDatabasePersistence(config *Config) bool {
+	if config.Persist_db == nil {
+		return false
+	}
+	return *config.Persist_db
+}
