@@ -14,7 +14,7 @@ import (
 func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 	maxSize := GetMaxSize()
 
-	ticker := time.NewTicker(30 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 
 	defer ticker.Stop()
 
