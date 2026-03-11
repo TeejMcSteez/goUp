@@ -15,9 +15,11 @@ function formatBytes(bytes, decimals = 2) {
 
 export default function DatabaseInfo() {
   const [dbSize, setDbSize] = useState(null);
+  const [isPersistent, setIsPersistent] = useState(null);
   const [error, setError] = useState(null);
 
   const fetchDbSize = async () => {
+    // Fetch Database Size
     try {
       const res = await fetch("/api/db/size");
       if (!res.ok) {
@@ -50,6 +52,15 @@ export default function DatabaseInfo() {
       setError(err.message);
       console.error("Error fetching database size:", err);
     }
+    // Fetch database persistence
+    try {
+      const res = await fetch("/api/db/persist");
+      if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+      const data = await res.json();
+      setIsPersistent(!!data);
+    } catch (e) {
+      console.error("Error fetching persistence data:", e);
+    }
   };
 
   useEffect(() => {
@@ -79,19 +90,23 @@ export default function DatabaseInfo() {
     }
   };
 
-  const renderContent = () => {
-    if (error) {
-      return <p>Error loading database size: {error}</p>;
-    }
-    if (dbSize === null) {
-      return <p>Loading database size...</p>;
-    }
-    return <p>Current database size: {dbSize}</p>;
-  };
-
   return (
     <div id="db-info">
-      {renderContent()}
+      {error ? (
+        <p>Error loading database size: {error}</p>
+      ) : dbSize === null ? (
+        <p>Loading database size...</p>
+      ) : (
+        <p>
+          Current database size: {dbSize}
+          <br />
+          {isPersistent === null
+            ? "Checking persistence..."
+            : isPersistent
+              ? "Database file is persistent"
+              : "Database file is not persistent"}
+        </p>
+      )}
       <button onClick={handleClearDatabase} disabled={dbSize === null}>
         Clear Database Memory
       </button>
