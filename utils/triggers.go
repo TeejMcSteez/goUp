@@ -100,7 +100,7 @@ func (t *Trigger) FireMqtt(data []ServiceData) {
 	}
 
 	client.Disconnect(500)
-	
+
 }
 
 // Takes in trigger message and checks config for any special message paramters
