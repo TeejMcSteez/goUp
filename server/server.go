@@ -178,9 +178,13 @@ func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	if err := utils.ClearDatabase(s.db); err != nil {
-		json.NewEncoder(w).Encode([]byte(err.Error()))
+		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
+			http.Error(w, "Failed to parse error message as json", http.StatusInternalServerError)
+		}
 	}
-	fmt.Fprint(w, `{ "ok": true }`)
+	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+		http.Error(w, "Failed to write ok message", http.StatusInternalServerError)
+	}
 }
 
 // Returns a new server instance
@@ -201,12 +205,16 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	data, err := utils.GetErrorData(s.db, limit, sortOrder)
 	if err != nil {
 		log.Printf("Error occured getting error data from database: %v", err)
-		json.NewEncoder(w).Encode([]byte(err.Error()))
+		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
+			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
+		}
 		return
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding error data to json: %v", err)
-		json.NewEncoder(w).Encode([]byte(err.Error()))
+		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
+			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
+		}
 		return
 	}
 }
@@ -225,7 +233,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write message", http.StatusInternalServerError)
+		}
 	case "DELETE":
 		var service utils.Service
 		if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
@@ -237,7 +247,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write message", http.StatusInternalServerError)
+		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
@@ -257,14 +269,18 @@ func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write message", http.StatusInternalServerError)
+		}
 	case "DELETE":
 		if err := utils.DeleteConfigMQTT(utils.Current_Config); err != nil {
 			log.Printf("Error deleting MQTT config: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write message", http.StatusInternalServerError)
+		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
@@ -284,14 +300,18 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error("Failed to write error message", http.StatusInternalServerError)
+		}
 	case "DELETE":
 		if err := utils.DeleteConfigTrigger(utils.Current_Config); err != nil {
 			log.Printf("Error deleting webhook config: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, `{ "ok": true }`)
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error("Failed to write error message", http.StatusInternalServerError)
+		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
