@@ -11,7 +11,9 @@ import (
 
 func TestMain(m *testing.M) {
 	code := m.Run()
-	os.Remove("utils.test")
+	if err := os.Remove("utils.test"); err != nil {
+		fmt.Printf("Failed to remove test database file: %v", err)
+	}
 	os.Exit(code)
 }
 
@@ -28,8 +30,12 @@ func setupTestDB(t *testing.T) (*sql.DB, func()) {
 	}
 
 	cleanup := func() {
-		db.Close()
-		os.Remove(dbPath)
+		if err := db.Close(); err != nil {
+			t.Errorf("Failed to close the databse: %v", err)
+		}
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("failed to remove the database file: %v", err)
+		}
 		utils.Current_Config = nil
 	}
 
