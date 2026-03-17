@@ -301,7 +301,7 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-			http.Error("Failed to write error message", http.StatusInternalServerError)
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
 		}
 	case "DELETE":
 		if err := utils.DeleteConfigTrigger(utils.Current_Config); err != nil {
@@ -310,7 +310,7 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-			http.Error("Failed to write error message", http.StatusInternalServerError)
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
 		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
