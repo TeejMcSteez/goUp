@@ -18,7 +18,11 @@ services:
 	if err != nil {
 		t.Fatalf("Failed to write test config file: %v", err)
 	}
-	defer os.Remove(filePath)
+	defer func() {
+		if err := os.Remove(filePath); err != nil {
+			t.Errorf("Failed to remove test database file")
+		}
+	}()
 
 	cfg, err := utils.LoadConfig(filePath)
 	if err != nil {
