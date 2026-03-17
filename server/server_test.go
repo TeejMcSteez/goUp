@@ -38,8 +38,12 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 
 	cleanup := func() {
 		scd.Stop()
-		db.Close()
-		os.Remove(dbPath)
+		if err := db.Close(); err != nil {
+			t.Errorf("Failed to close database on cleanup: %v", err)
+		}
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("Failed to remove database file on cleanup: %v", err)
+		}
 		utils.Current_Config = nil
 		utils.SetServiceEndpoints([]utils.Service{})
 	}
