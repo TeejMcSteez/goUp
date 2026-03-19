@@ -1,0 +1,6 @@
+.git
+.github
+*.md
+dist/
+frontend/node_modules/
+server/static/
