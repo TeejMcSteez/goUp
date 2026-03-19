@@ -12,6 +12,10 @@ on:
   pull_request:
     branches: [ "master" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   build:
@@ -19,13 +23,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.22.x'
     - name: Setup PNPM
       uses: pnpm/action-setup@v4
       with:
         version: '9.x'
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+    - name: Cache pnpm store
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-cache.outputs.store }}
+        key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-pnpm-
     - name: Install Node Modules && Build static assets
       run: cd frontend && pnpm i && pnpm build
     - name: Run Go tests
@@ -47,7 +60,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.22.x'
     - name: Download static assets
@@ -77,7 +90,7 @@ jobs:
           else
             ARCHIVE_PATH="${ARCHIVE_PATH}.tar.gz"
             env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$BIN_PATH" .
-            tar -czvf "$ARCHIVE_PATH" -C "$BIN_DIR" $(basename "$BIN_PATH")
+            tar -czvf "$ARCHIVE_PATH" -C "$BIN_DIR" "$(basename "$BIN_PATH")"
           fi
           echo "Created $ARCHIVE_PATH"
         done
