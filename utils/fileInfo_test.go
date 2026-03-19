@@ -46,7 +46,11 @@ services:
 
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
-	defer os.Remove("./test_data.db")
+	defer func() {
+		if err := os.Remove("./test_data.db"); err != nil {
+			t.Errorf("Error removing test database file: %v", err)
+		}
+	}()
 
 	cfg, err := utils.LoadConfig("services.yml")
 	if err != nil {
@@ -59,7 +63,9 @@ services:
 
 	testData := getTestServiceData()
 	for i := range len(testData) {
-		utils.InsertData(db, testData[i])
+		if err := utils.InsertData(db, testData[i]); err != nil {
+			t.Fatalf("Failed to insert test data into the database")
+		}
 	}
 
 	newSize, err := utils.GetDatabaseSize()
@@ -82,7 +88,11 @@ func TestGetFilestampSize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(testFileName)
+	defer func() {
+		if err := os.Remove(testFileName); err != nil {
+			t.Errorf("Failed to remove the test file: %v", err)
+		}
+	}()
 	if err := tmpFile.Close(); err != nil {
 		t.Fatalf("Failed to close temp file: %v", err)
 	}

@@ -117,7 +117,12 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 				continue
 			}
 		}
-		defer res.Body.Close()
+		defer func() {
+			if err := res.Body.Close(); err != nil {
+				log.Printf("Failed to close response body: %v", err)
+				retErr = err
+			}
+		}()
 
 		resType := res.StatusCode
 		sd.ServiceHTTPResponse = strconv.Itoa(resType)

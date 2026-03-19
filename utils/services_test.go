@@ -16,7 +16,9 @@ func createTestYML(content string, t *testing.T) func() {
 		t.Fatalf("Failed to create test services.yml: %v", err)
 	}
 	return func() {
-		os.Remove("services.yml")
+		if err := os.Remove("services.yml"); err != nil {
+			t.Errorf("Failed to remove test config file: %v", err)
+		}
 	}
 }
 
@@ -32,7 +34,11 @@ services:
 `
 	cleanup1 := createTestYML(ymlContent1, t)
 	defer cleanup1()
-	defer os.Remove("./test_data.db")
+	defer func() {
+		if err := os.Remove("./test_data.db"); err != nil {
+			t.Errorf("Failed to remove test database")
+		}
+	}()
 
 	// Ensure endpoints are empty before setup
 	utils.SetServiceEndpoints([]utils.Service{})
@@ -102,7 +108,9 @@ func TestGetServiceData(t *testing.T) {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			w.Write([]byte(`{"status": "ok"}`))
+			if _, err := w.Write([]byte(`{"status": "ok"}`)); err != nil {
+				t.Errorf("Failed to write status to server: %v", err)
+			}
 			return
 		}
 		w.WriteHeader(http.StatusOK)

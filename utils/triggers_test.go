@@ -52,7 +52,11 @@ func TestFireWebhook(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error reading request body: %v", err)
 		}
-		defer r.Body.Close()
+		defer func() {
+			if err := r.Body.Close(); err != nil {
+				t.Errorf("Failed to close response body: %v", err)
+			}
+		}()
 
 		err = json.Unmarshal(body, &receivedData)
 		if err != nil {
@@ -100,8 +104,14 @@ func TestWebhookCustomMessage(t *testing.T) {
 	var receivedPayload map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		defer r.Body.Close()
-		json.Unmarshal(body, &receivedPayload)
+		defer func() {
+			if err := r.Body.Close(); err != nil {
+				t.Errorf("Failed to close response body: %v", err)
+			}
+		}()
+		if err := json.Unmarshal(body, &receivedPayload); err != nil {
+			t.Errorf("Failed to unmarshal request body: %v", err)
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()

@@ -25,13 +25,18 @@ func GetDatabaseSize() (int64, error) {
 	return total, nil
 }
 
-func GetFileTimestamp(path string) (time.Time, error) {
+func GetFileTimestamp(path string) (t time.Time, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		log.Printf("Failed to open file while getting file timestamp: %v", err)
 		return time.Now(), err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			t = time.Now()
+			err = closeErr
+		}
+	}()
 	fileInfo, err := file.Stat()
 	if err != nil {
 		log.Printf("Failed to get file information while getting file timestamp: %v", err)

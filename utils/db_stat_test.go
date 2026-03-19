@@ -34,8 +34,12 @@ services:
 		t.Fatalf("Error occured during DB init: %v", err)
 	}
 	defer func() {
-		db.Close()
-		os.Remove(dbPath)
+		if err := db.Close(); err != nil {
+			t.Errorf("Error closing database: %v", err)
+		}
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("Error removing database file: %v", err)
+		}
 	}()
 
 	if _, err := utils.GetDatabaseSize(); err != nil {
