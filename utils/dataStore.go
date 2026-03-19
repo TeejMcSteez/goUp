@@ -235,14 +235,11 @@ func ClearDatabase(db *sql.DB) error {
 // Cleans up database after exit
 func CleanupDbFiles() error {
 	log.Printf("Cleaning up database file")
-	if Current_Config.Database_Location != nil {
-		if err := os.Remove(*Current_Config.Database_Location); err != nil {
-			return err
-		}
-	} else {
-		if err := os.Remove("./serviceData.db"); err != nil {
-			return err
-		}
+	if Current_Config == nil || Current_Config.Database_Location == nil {
+		return fmt.Errorf("no database location configured, skipping cleanup")
+	}
+	if err := os.Remove(*Current_Config.Database_Location); err != nil {
+		return err
 	}
 	log.Println("Database file succesfully removed")
 	return nil

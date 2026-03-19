@@ -23,7 +23,23 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	cfg.ConfigPath = path
 	return cfg, nil
+}
+
+// writeConfig marshals the config back to the file it was loaded from.
+func writeConfig(conf *Config) error {
+	if conf.ConfigPath == "" {
+		return fmt.Errorf("config path is not set")
+	}
+	data, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(conf.ConfigPath, data, 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func AddConfigService(conf *Config, newEndpoint Service) error {
@@ -36,18 +52,7 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 	if new_len == org_len {
 		return fmt.Errorf("no new endpoint added")
 	}
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-	data, err := yaml.Marshal(conf)
-	if err != nil {
-		return err
-	}
-	// TODO: Change from full r/w/x to something more sensible
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-	return nil
+	return writeConfig(conf)
 }
 
 func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
@@ -58,17 +63,7 @@ func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
 		return fmt.Errorf("MQTT trigger is the same")
 	}
 	config.Triggers.MQTT = newMQTT
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-	return nil
+	return writeConfig(config)
 }
 
 func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
@@ -80,17 +75,7 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 		return fmt.Errorf("webhook is the same")
 	}
 	config.Triggers.Webhook = newWebhook
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-	return nil
+	return writeConfig(config)
 }
 
 func DeleteConfigService(config *Config, serviceToDelete Service) error {
@@ -105,20 +90,7 @@ func DeleteConfigService(config *Config, serviceToDelete Service) error {
 		return fmt.Errorf("failed to remove the element")
 	}
 
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-
-	return nil
+	return writeConfig(config)
 }
 
 func DeleteConfigMQTT(config *Config) error {
@@ -127,20 +99,7 @@ func DeleteConfigMQTT(config *Config) error {
 	}
 	// Clears MQTT trigger in config
 	config.Triggers.MQTT = MQTTTrigger{}
-
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-	return nil
+	return writeConfig(config)
 }
 
 func DeleteConfigTrigger(config *Config) error {
@@ -149,21 +108,7 @@ func DeleteConfigTrigger(config *Config) error {
 	}
 
 	config.Triggers.Webhook = WebhookTrigger{}
-
-	if err := os.Remove("./services.yml"); err != nil {
-		return err
-	}
-
-	data, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-
-	if err := os.WriteFile("./services.yml", data, 0777); err != nil {
-		return err
-	}
-
-	return nil
+	return writeConfig(config)
 }
 
 func ReadConfigServices(config *Config) map[string]Service {

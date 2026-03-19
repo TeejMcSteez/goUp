@@ -12,6 +12,10 @@ type Config struct {
 	Persist_db        *bool              `yaml:"persist_db"`
 	Services          map[string]Service `yaml:"services"`
 	Triggers          Trigger            `yaml:"triggers"`
+
+	// ConfigPath is the filesystem path this config was loaded from.
+	// Used internally for write-back operations; not serialized to YAML.
+	ConfigPath string `yaml:"-"`
 }
 
 type ConfigData struct {
