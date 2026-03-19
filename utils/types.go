@@ -100,9 +100,6 @@ type DatabaseStatistic struct {
 	Mx_payload int
 	Pgoffset   int
 	Pgsize     int
-	// Below are hidden on `SELECT * FROM dbstat`
-	schema    string
-	aggregate bool
 }
 
 type DatabaseSizePayload struct {
