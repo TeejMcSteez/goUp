@@ -13,8 +13,14 @@ func TestHotReloaderStopsOnContextCancel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	tmpFile.Close()
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			t.Errorf("Failed to remove temp file: %v", err)
+		}
+	}()
+	if err := tmpFile.Close(); err != nil {
+		t.Errorf("Failed to close temp file: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -64,8 +70,14 @@ func TestHotReloaderDetectsFileChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	tmpFile.Close()
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			t.Errorf("Failed to remove temporary file: %v", err)
+		}
+	}()
+	if err := tmpFile.Close(); err != nil {
+		t.Errorf("Failed to close temp file: %v", err)
+	}
 
 	before, err := os.Stat(tmpFile.Name())
 	if err != nil {

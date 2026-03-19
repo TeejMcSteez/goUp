@@ -95,7 +95,9 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				continue
 			}
 			for i := range data.AllServices {
-				utils.InsertData(db, data.AllServices[i])
+				if err := utils.InsertData(db, data.AllServices[i]); err != nil {
+					log.Printf("Failed to insert data: %v", err)
+				}
 			}
 			checkedData, err := utils.Check(data.AllServices)
 			if err != nil {
