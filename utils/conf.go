@@ -77,7 +77,7 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	}
 	org_webhook := config.Triggers.Webhook
 	if newWebhook == org_webhook {
-		return fmt.Errorf("Webhook is the same")
+		return fmt.Errorf("webhook is the same")
 	}
 	config.Triggers.Webhook = newWebhook
 	if err := os.Remove("./services.yml"); err != nil {
@@ -102,7 +102,7 @@ func DeleteConfigService(config *Config, serviceToDelete Service) error {
 	new_size := len(config.Services)
 
 	if org_size == new_size {
-		return fmt.Errorf("Failed to remove the element")
+		return fmt.Errorf("failed to remove the element")
 	}
 
 	if err := os.Remove("./services.yml"); err != nil {

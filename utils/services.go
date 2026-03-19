@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -18,7 +17,7 @@ type NoServiceEndpointsError struct {
 }
 
 func (e *NoServiceEndpointsError) Error() string {
-	return fmt.Sprintf("%s", e.Message)
+	return e.Message
 }
 
 // Sets up service and trigger endpoints from configuration
