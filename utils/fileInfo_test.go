@@ -2,7 +2,6 @@ package utils_test
 
 import (
 	"goUp/utils"
-	"log"
 	"os"
 	"strconv"
 	"testing"
@@ -34,20 +33,10 @@ services:
     url: "https://www.apple.com"
     retry: 2
 `
-	db, err := utils.InitDB()
-	if err != nil {
-		log.Fatalf("Failure to initialize database: %v", err)
-	}
-
-	initialSize, err := utils.GetDatabaseSize()
-	if err != nil {
-		log.Fatalf("Failed to get initial database size: %v", err)
-	}
-
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 	defer func() {
-		if err := os.Remove("./test_data.db"); err != nil {
+		if err := os.Remove("./test_data.db"); err != nil && !os.IsNotExist(err) {
 			t.Errorf("Error removing test database file: %v", err)
 		}
 	}()
@@ -59,6 +48,16 @@ services:
 
 	if err := utils.Setup(cfg); err != nil {
 		t.Fatalf("Initial Setup() failed: %v", err)
+	}
+
+	initialSize, err := utils.GetDatabaseSize()
+	if err != nil {
+		t.Fatalf("Failed to get initial database size: %v", err)
+	}
+
+	db, err := utils.InitDB()
+	if err != nil {
+		t.Fatalf("Failure to initialize database: %v", err)
 	}
 
 	testData := getTestServiceData()
@@ -92,7 +91,7 @@ func TestGetFilestampSize(t *testing.T) {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
 	defer func() {
-		if err := os.Remove(testFileName); err != nil {
+		if err := os.Remove(tmpFile.Name()); err != nil {
 			t.Errorf("Failed to remove the test file: %v", err)
 		}
 	}()

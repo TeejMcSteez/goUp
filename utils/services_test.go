@@ -35,8 +35,8 @@ services:
 	cleanup1 := createTestYML(ymlContent1, t)
 	defer cleanup1()
 	defer func() {
-		if err := os.Remove("./test_data.db"); err != nil {
-			t.Errorf("Failed to remove test database")
+		if err := os.Remove("./test_data.db"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test database: %v", err)
 		}
 	}()
 
