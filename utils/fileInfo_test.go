@@ -69,6 +69,9 @@ services:
 	}
 
 	newSize, err := utils.GetDatabaseSize()
+	if err != nil {
+		t.Errorf("failed to get database size: %v", err)
+	}
 	if err := db.Close(); err != nil {
 		t.Fatalf("Failed to shutdown the database %v: ", err)
 	}

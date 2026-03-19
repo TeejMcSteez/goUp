@@ -13,7 +13,7 @@ import (
 // Returns a pointer to the db client
 // Db is in WAL mode and the maximum number of open connections are one
 func InitDB() (*sql.DB, error) {
-	var conn_string string = "./serviceData.db?_pragma=journal_mode(WAL)"
+	var conn_string string
 	if Current_Config == nil {
 		return nil, &NoConfigError{"Configuration", "Not found"}
 	}
@@ -61,6 +61,9 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 		&tBuff,
 		&s.Error,
 	)
+	if err != nil {
+		log.Printf("Failed scanning database row: %v", err)
+	}
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, tBuff)
 	if err != nil {
 		log.Printf("Error parsing timestamp in scan: %v", err)
