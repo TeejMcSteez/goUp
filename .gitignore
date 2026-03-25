@@ -41,4 +41,3 @@ server/static
 
 notes.md
 *.test
-docker-compose.yml
