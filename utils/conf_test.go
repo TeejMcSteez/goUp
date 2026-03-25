@@ -156,10 +156,10 @@ services:
 func TestDeleteService(t *testing.T) {
 	ymlContent1 := `db_path: "./test_data.db"
 services:
-  "https://example.com":
+  example:
     url: "https://example.com"
     retry: 2
-  "https://www.apple.com":
+  apple:
     url: "https://www.apple.com"
     retry: 2
 `
@@ -173,7 +173,7 @@ services:
 	}
 
 	current_size := len(conf.Services)
-	serviceToDelete := conf.Services["https://example.com"]
+	serviceToDelete := conf.Services["example"]
 
 	if err := utils.DeleteConfigService(conf, serviceToDelete); err != nil {
 		t.Fatalf("Failed to delete config: %v", err)
