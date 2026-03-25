@@ -79,7 +79,7 @@ func TestFireWebhook(t *testing.T) {
 		{ServiceName: "down_service", ServiceHTTPResponse: "503", Error: true},
 	}
 
-	trigger.FireWebhook(testData)
+	trigger.Webhook.Fire(testData)
 
 	if len(receivedData) != 1 {
 		t.Fatalf("Expected to receive 1 service data object, got %d", len(receivedData))
@@ -117,7 +117,7 @@ func TestWebhookCustomMessage(t *testing.T) {
 	defer server.Close()
 
 	trigger.Webhook.Webhook_url = &server.URL
-	trigger.FireWebhook(testData)
+	trigger.Webhook.Fire(testData)
 
 	if msg, ok := receivedPayload["message"]; !ok || msg != "Services are down!" {
 		t.Errorf("Expected custom message 'Services are down!', got '%v'", msg)
