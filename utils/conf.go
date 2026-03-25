@@ -23,6 +23,8 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	cfg.ConfigPath = path
+
 	for key, svc := range cfg.Services {
 		svc.Name = key
 		cfg.Services[key] = svc
