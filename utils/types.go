@@ -32,6 +32,12 @@ type Trigger struct {
 
 	backoffDuration time.Duration
 	lastFired       time.Time
+	handlers        []TriggerHandler
+}
+
+type TriggerHandler interface {
+	Fire(data []ServiceData)
+	IsConfigured() bool
 }
 
 type MQTTTrigger struct {
