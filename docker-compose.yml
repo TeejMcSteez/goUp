@@ -1,0 +1,18 @@
+services:
+  goup:
+    build: .
+    # Or use a published image:
+    # image: ghcr.io/teejmcsteez/goup:latest
+    container_name: goup
+    restart: unless-stopped
+    ports:
+      - "8101:8101"
+    volumes:
+      - ./services.yml:/app/config/services.yml:ro
+      - goup-data:/app/data
+    # Optional: set timezone for accurate timestamps
+    environment:
+      - TZ=America/New_York
+
+volumes:
+  goup-data:
