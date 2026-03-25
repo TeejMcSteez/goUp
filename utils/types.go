@@ -46,7 +46,7 @@ type WebhookTrigger struct {
 
 // Data for service endponts
 type Service struct {
-	Name            string
+	Name            string    `yaml:"-"`
 	URL             string    `yaml:"url"`
 	API_URL         *string   `yaml:"api_url"`
 	API_KEY         *string   `yaml:"api_key"`

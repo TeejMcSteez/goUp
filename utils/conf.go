@@ -23,6 +23,11 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	for key, svc := range cfg.Services {
+		svc.Name = key
+		cfg.Services[key] = svc
+	}
+
 	return cfg, nil
 }
 
@@ -31,7 +36,7 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 		return fmt.Errorf("config is nil")
 	}
 	org_len := len(conf.Services)
-	conf.Services[newEndpoint.URL] = newEndpoint
+	conf.Services[newEndpoint.Name] = newEndpoint
 	new_len := len(conf.Services)
 	if new_len == org_len {
 		return fmt.Errorf("no new endpoint added")
@@ -98,7 +103,7 @@ func DeleteConfigService(config *Config, serviceToDelete Service) error {
 		return fmt.Errorf("config is nil")
 	}
 	org_size := len(config.Services)
-	delete(config.Services, serviceToDelete.URL)
+	delete(config.Services, serviceToDelete.Name)
 	new_size := len(config.Services)
 
 	if org_size == new_size {
