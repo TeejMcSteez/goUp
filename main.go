@@ -24,11 +24,6 @@ func main() {
 		log.Fatalf("Failed to setup services: %v", err)
 	}
 
-	svcData, err := utils.GetServiceData()
-	if err != nil {
-		log.Fatalf("Error on initial fetch of service data, panicking out: %v\n", err)
-	}
-
 	db, err := utils.InitDB()
 	if err != nil {
 		log.Print("Error initializing database")
@@ -45,12 +40,6 @@ func main() {
 			}
 		}
 	}()
-
-	for data := range svcData.AllServices {
-		if err := utils.InsertData(db, svcData.AllServices[data]); err != nil {
-			log.Printf("Failed inserting data on initial fetch: %v\n", err)
-		}
-	}
 
 	// listening for SIGINT (Ctrl+C) and SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
