@@ -15,9 +15,11 @@ Parses yml file for service information
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
+		defaultDB := "goup.db"
 		cfg := &Config{
-			ConfigPath: path,
-			Services:   make(map[string]Service),
+			ConfigPath:        path,
+			Services:          make(map[string]Service),
+			Database_Location: &defaultDB,
 		}
 		if err := writeConfig(cfg); err != nil {
 			return nil, fmt.Errorf("could not create default config: %w", err)
