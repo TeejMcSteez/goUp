@@ -1,6 +1,5 @@
 services:
   goup:
-    build: .
     image: ghcr.io/teejmcsteez/goup:latest
     container_name: goup
     restart: unless-stopped
