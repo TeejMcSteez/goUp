@@ -369,10 +369,48 @@ function WebhookPanel({ webhook, onRefresh }) {
   );
 }
 
+function DatabasePanel() {
+  const [persists, setPersists] = useState(null);
+  const [status, setStatus] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/db/persist")
+      .then((r) => r.json())
+      .then(setPersists)
+      .catch(() => setStatus({ text: "Failed to load persistence state.", error: true }));
+  }, []);
+
+  const handleToggle = async () => {
+    const res = await fetch("/api/db/persist", { method: "POST" });
+    if (res.ok) {
+      setPersists((prev) => !prev);
+      setStatus({ text: "Database persistence updated.", error: false });
+    } else {
+      setStatus({ text: await res.text(), error: true });
+    }
+  };
+
+  return (
+    <div className="config-panel">
+      <StatusMessage message={status?.text} isError={status?.error} />
+      <div className="config-form-actions">
+        <span className="config-label">
+          Persist database:{" "}
+          <strong>{persists === null ? "…" : persists ? "On" : "Off"}</strong>
+        </span>
+        <button className="config-btn config-btn--primary" onClick={handleToggle} disabled={persists === null}>
+          Toggle
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const SECTIONS = [
   { id: "services", label: "Services" },
   { id: "mqtt", label: "MQTT" },
   { id: "webhook", label: "Webhook" },
+  { id: "database", label: "Database" },
 ];
 
 export default function ConfigEditor() {
@@ -406,6 +444,7 @@ export default function ConfigEditor() {
         {activeSection === "webhook" && (
           <WebhookPanel webhook={config?.webhook} onRefresh={refresh} />
         )}
+        {activeSection === "database" && <DatabasePanel />}
       </div>
     </div>
   );
