@@ -29,18 +29,6 @@ func main() {
 		log.Print("Error initializing database")
 		panic(err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Fatalf("error closing db: %s", err)
-		}
-		log.Println("Database connection closed")
-		if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
-			if err := utils.CleanupDbFiles(); err != nil {
-				log.Printf("Error Occured cleaning up the database: %v", err)
-			}
-		}
-	}()
-
 	// listening for SIGINT (Ctrl+C) and SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -60,4 +48,20 @@ func main() {
 	// Block until a signal is received
 	<-ctx.Done()
 	log.Printf("Caught stop signal, starting workers graceful shutdown")
+	log.Printf("Loading fresh configuration file before stoppping services")
+	cfg, err = utils.LoadConfig(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to load fresh config on shutdown: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		log.Fatalf("error closing database: %s", err)
+	}
+	log.Println("Database connection closed")
+	if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
+		if err := utils.CleanupDbFiles(); err != nil {
+			log.Printf("Error occured cleaning up the database: %v", err)
+		}
+	} else {
+		log.Printf("Database persistence is set to true, skipping database cleanup")
+	}
 }
