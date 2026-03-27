@@ -169,6 +169,12 @@ func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request
 		if err := json.NewEncoder(w).Encode(persists); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	case "POST":
+		w.Header().Set("Content-Type", "application/json")
+		err := utils.UpdateConfigDatabasePersistence(utils.Current_Config)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	default:
 		http.Error(w, "Invalid Request Method", http.StatusBadRequest)
 	}
