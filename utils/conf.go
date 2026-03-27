@@ -147,3 +147,19 @@ func ReadConfigDatabasePersistence(config *Config) bool {
 	}
 	return *config.Persist_db
 }
+
+func UpdateConfigDatabasePersistence(conf *Config) error {
+	if conf == nil {
+		return fmt.Errorf("Config is nil")
+	}
+
+	org_state := conf.Persist_db
+	if org_state == nil {
+		b := true
+		conf.Persist_db = &b
+	} else {
+		*conf.Persist_db = !*org_state
+	}
+
+	return writeConfig(conf)
+}
