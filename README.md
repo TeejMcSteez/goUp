@@ -23,7 +23,9 @@ This seperates the concern for this codebase and reduces binary size as well as 
 
 ## Example services.yml
 
-The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.), one can also specify whether or not to keep data after stopping the program with `persist_db` (must be set before launching program, the hot reloader does not account for this change) being `true` or `false`
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. When shrinking the database the system switches off WAL mode so the row deletion (and VACUUM) happens on disk then switches back into WAL mode for concurrent read/writes.
+
+One can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
 Services are defined by their name, URL, and optional `api_url` and `api_key`.
 
