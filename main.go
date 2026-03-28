@@ -33,7 +33,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	// Starts all background workers
-	sch := workers.NewScheduler(db, 30, "seconds")
+	sch := workers.NewScheduler(db, cfg)
 	defer sch.Stop()
 	go workers.StartHotReloader(*configPath, ctx)
 	go workers.StartMemoryWatcher(ctx, db)
