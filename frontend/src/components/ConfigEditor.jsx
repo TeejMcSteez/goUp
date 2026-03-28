@@ -18,16 +18,21 @@ function ServicesPanel({ services, onRefresh }) {
     Name: "",
     URL: "",
     API_URL: "",
+    Valid_Responses: "",
     Retry_Requests: "",
   });
   const [status, setStatus] = useState(null);
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    const validResponses = form.Valid_Responses
+      ? form.Valid_Responses.split(",").map((s) => s.trim()).filter(Boolean)
+      : null;
     const payload = {
       Name: form.Name,
       URL: form.URL,
       ...(form.API_URL && { API_URL: form.API_URL }),
+      ...(validResponses?.length && { Valid_Responses: validResponses }),
       ...(form.Retry_Requests && {
         Retry_Requests: parseInt(form.Retry_Requests),
       }),
@@ -39,7 +44,7 @@ function ServicesPanel({ services, onRefresh }) {
     });
     if (res.ok) {
       setStatus({ text: "Service added.", error: false });
-      setForm({ Name: "", URL: "", API_URL: "", Retry_Requests: "" });
+      setForm({ Name: "", URL: "", API_URL: "", Valid_Responses: "", Retry_Requests: "" });
       setShowForm(false);
       onRefresh();
     } else {
@@ -75,6 +80,11 @@ function ServicesPanel({ services, onRefresh }) {
               <div className="config-service-info">
                 <span className="config-service-name">{svc.Name || key}</span>
                 <span className="config-service-url">{svc.URL}</span>
+                {svc.Valid_Responses?.length > 0 && (
+                  <span className="config-service-url">
+                    Valid: {svc.Valid_Responses.join(", ")}
+                  </span>
+                )}
               </div>
               <button
                 className="config-btn config-btn--danger"
@@ -123,6 +133,17 @@ function ServicesPanel({ services, onRefresh }) {
                   setForm((f) => ({ ...f, API_URL: e.target.value }))
                 }
                 placeholder="https://api.example.com"
+              />
+            </label>
+            <label className="config-label">
+              Valid Responses (optional)
+              <input
+                className="config-input"
+                value={form.Valid_Responses}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, Valid_Responses: e.target.value }))
+                }
+                placeholder="200, 201, 204"
               />
             </label>
             <label className="config-label">
