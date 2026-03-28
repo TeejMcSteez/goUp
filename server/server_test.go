@@ -33,7 +33,7 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
 
-	scd := scheduler.NewScheduler(db, 60, "seconds")
+	scd := scheduler.NewScheduler(db, cfg)
 	srv := server.NewServer(db, scd)
 
 	cleanup := func() {
@@ -88,7 +88,7 @@ func TestScheduleApiGet_ReturnsState(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", res.StatusCode)
 	}
 
-	var state scheduler.ScheduleState
+	var state utils.ScheduleState
 	if err := json.NewDecoder(res.Body).Decode(&state); err != nil {
 		t.Errorf("Failed to decode schedule state: %v", err)
 	}

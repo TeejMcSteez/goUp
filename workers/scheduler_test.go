@@ -2,6 +2,7 @@ package workers_test
 
 import (
 	"database/sql"
+	"goUp/utils"
 	"goUp/workers"
 	"testing"
 	"time"
@@ -12,7 +13,10 @@ import (
 func newTestScheduler(t *testing.T) *workers.Scheduler {
 	t.Helper()
 	var db *sql.DB
-	s := workers.NewScheduler(db, 60, "minutes")
+	cfg := &utils.Config{
+		Schedule: &utils.ScheduleState{Span: 60, Interval: "minutes"},
+	}
+	s := workers.NewScheduler(db, cfg)
 	return s
 }
 
@@ -33,7 +37,7 @@ func TestSchedulerUpdateAndGet(t *testing.T) {
 	s := newTestScheduler(t)
 	defer s.Stop()
 
-	ok := s.Update(workers.ScheduleState{Span: 15, Interval: "seconds"})
+	ok := s.Update(utils.ScheduleState{Span: 15, Interval: "seconds"})
 	if !ok {
 		t.Fatal("Expected Update to return true for valid state")
 	}
@@ -60,7 +64,7 @@ func TestSchedulerUpdateInvalidSpan(t *testing.T) {
 		{-1, "span=-1 (negative)"},
 	}
 	for _, tc := range cases {
-		if s.Update(workers.ScheduleState{Span: tc.span, Interval: "minutes"}) {
+		if s.Update(utils.ScheduleState{Span: tc.span, Interval: "minutes"}) {
 			t.Errorf("Expected Update to return false for %s", tc.desc)
 		}
 	}
@@ -80,7 +84,7 @@ func TestSchedulerUpdateInvalidInterval(t *testing.T) {
 		{"x", "unknown single char"},
 	}
 	for _, tc := range cases {
-		if s.Update(workers.ScheduleState{Span: 5, Interval: tc.interval}) {
+		if s.Update(utils.ScheduleState{Span: 5, Interval: tc.interval}) {
 			t.Errorf("Expected Update to return false for %s", tc.desc)
 		}
 	}
@@ -97,7 +101,7 @@ func TestSchedulerUpdateValidIntervalVariants(t *testing.T) {
 		"h", "hours", "Hours", "HOURS",
 	}
 	for _, interval := range validIntervals {
-		if !s.Update(workers.ScheduleState{Span: 1, Interval: interval}) {
+		if !s.Update(utils.ScheduleState{Span: 1, Interval: interval}) {
 			t.Errorf("Expected Update to return true for interval %q", interval)
 		}
 	}
