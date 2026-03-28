@@ -13,6 +13,8 @@ type Config struct {
 	Services          map[string]Service `yaml:"services"`
 	Triggers          Trigger            `yaml:"triggers"`
 
+	Schedule *ScheduleState `yaml:"schedule"`
+
 	// ConfigPath is the filesystem path this config was loaded from.
 	// Used internally for write-back operations; not serialized to YAML.
 	ConfigPath string `yaml:"-"`
@@ -90,6 +92,12 @@ type ScheduleParameters struct {
 	Span     *int
 	Interval *string
 	Mux      *sync.RWMutex
+}
+
+// Schedule state persisted to config
+type ScheduleState struct {
+	Span     int    `yaml:"span" json:"timespan"`
+	Interval string `yaml:"interval" json:"interval"`
 }
 
 // Average data for frontend graph
