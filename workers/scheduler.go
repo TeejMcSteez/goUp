@@ -8,19 +8,12 @@ import (
 	"time"
 )
 
-type ScheduleState struct {
-	// Number (30, 60, etc.)
-	Span int `json:"timespan"`
-	// Interval of time (sec, min, hrs)
-	Interval string `json:"interval"`
-}
-
 type GetState struct {
-	res chan ScheduleState
+	res chan utils.ScheduleState
 }
 
 type Scheduler struct {
-	state chan ScheduleState
+	state chan utils.ScheduleState
 	get   chan GetState
 	stop  chan struct{}
 }
@@ -39,14 +32,25 @@ func computeDuration(Span int, Interval string) time.Duration {
 	}
 }
 
-func NewScheduler(db *sql.DB, initialSpan int, initialInterval string) *Scheduler {
+const defaultSpan = 30
+const defaultInterval = "seconds"
+
+func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
+	span := defaultSpan
+	interval := defaultInterval
+
+	if cfg != nil && cfg.Schedule != nil {
+		span = cfg.Schedule.Span
+		interval = cfg.Schedule.Interval
+	}
+
 	s := &Scheduler{
-		state: make(chan ScheduleState),
+		state: make(chan utils.ScheduleState),
 		get:   make(chan GetState),
 		stop:  make(chan struct{}),
 	}
 
-	go s.StartScheduler(db, initialSpan, initialInterval)
+	go s.StartScheduler(db, span, interval)
 
 	return s
 }
@@ -86,7 +90,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			timer.Reset(dur)
 			log.Println("Schedule updated to:", Span, Interval)
 		case req := <-s.get:
-			req.res <- ScheduleState{Span: Span, Interval: Interval}
+			req.res <- utils.ScheduleState{Span: Span, Interval: Interval}
 		case <-timer.C:
 			// time to fetch data
 			data, err := utils.GetServiceData()
@@ -116,7 +120,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	}
 }
 
-func (s *Scheduler) Update(state ScheduleState) bool {
+func (s *Scheduler) Update(state utils.ScheduleState) bool {
 	if state.Span < 1 || state.Span > 60 {
 		return false
 	}
@@ -131,7 +135,13 @@ func (s *Scheduler) Update(state ScheduleState) bool {
 		return false
 	}
 
-	s.state <- ScheduleState{
+	if utils.Current_Config != nil {
+		if err := utils.UpdateConfigSchedule(utils.Current_Config, state); err != nil {
+			log.Printf("Failed to persist schedule to config: %v", err)
+		}
+	}
+
+	s.state <- utils.ScheduleState{
 		Span:     state.Span,
 		Interval: state.Interval,
 	}
@@ -139,8 +149,8 @@ func (s *Scheduler) Update(state ScheduleState) bool {
 	return true
 }
 
-func (s *Scheduler) Get() ScheduleState {
-	res := make(chan ScheduleState)
+func (s *Scheduler) Get() utils.ScheduleState {
+	res := make(chan utils.ScheduleState)
 	s.get <- GetState{res: res}
 	return <-res
 }
