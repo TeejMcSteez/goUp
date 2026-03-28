@@ -48,7 +48,7 @@ func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
 		dec := json.NewDecoder(req.Body)
-		var jsonData scheduler.ScheduleState
+		var jsonData utils.ScheduleState
 
 		if err := dec.Decode(&jsonData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -81,7 +81,7 @@ func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 }
 
 // Updates schedule parameters from schedule API
-func (s *Server) scheduleUpdater(state scheduler.ScheduleState) bool {
+func (s *Server) scheduleUpdater(state utils.ScheduleState) bool {
 	ok := s.scd.Update(state)
 
 	return ok
