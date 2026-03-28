@@ -148,6 +148,14 @@ func ReadConfigDatabasePersistence(config *Config) bool {
 	return *config.Persist_db
 }
 
+func UpdateConfigSchedule(conf *Config, state ScheduleState) error {
+	if conf == nil {
+		return fmt.Errorf("config is nil")
+	}
+	conf.Schedule = &ScheduleState{Span: state.Span, Interval: state.Interval}
+	return writeConfig(conf)
+}
+
 func UpdateConfigDatabasePersistence(conf *Config) error {
 	if conf == nil {
 		return fmt.Errorf("Config is nil")
