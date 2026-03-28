@@ -19,6 +19,7 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 	dbPath := "./test_server.db"
 	cfg := &utils.Config{
 		Database_Location: &dbPath,
+		Schedule:          &utils.ScheduleState{Span: 60, Interval: "seconds"},
 		Services: map[string]utils.Service{
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
