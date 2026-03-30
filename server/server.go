@@ -242,6 +242,23 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
 		}
+	case "PUT":
+		var payload struct {
+			OldName string       `json:"old_name"`
+			Service utils.Service `json:"service"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.UpdateConfigService(utils.Current_Config, payload.OldName, payload.Service); err != nil {
+			log.Printf("Error updating config service: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write message", http.StatusInternalServerError)
+		}
 	case "DELETE":
 		var service utils.Service
 		if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
