@@ -96,6 +96,20 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	return writeConfig(config)
 }
 
+func UpdateConfigService(conf *Config, oldName string, updated Service) error {
+	if conf == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if _, exists := conf.Services[oldName]; !exists {
+		return fmt.Errorf("service %q not found", oldName)
+	}
+	if oldName != updated.Name {
+		delete(conf.Services, oldName)
+	}
+	conf.Services[updated.Name] = updated
+	return writeConfig(conf)
+}
+
 func DeleteConfigService(config *Config, serviceToDelete Service) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
