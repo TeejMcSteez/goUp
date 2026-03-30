@@ -12,31 +12,110 @@ function StatusMessage({ message, isError }) {
   );
 }
 
-function ServicesPanel({ services, onRefresh }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    Name: "",
-    URL: "",
-    API_URL: "",
-    Valid_Responses: "",
-    Retry_Requests: "",
-  });
-  const [status, setStatus] = useState(null);
+function ServiceForm({ initial, onSubmit, onCancel, submitLabel }) {
+  const [form, setForm] = useState(initial);
 
-  const handleAdd = async (e) => {
+  useEffect(() => {
+    setForm(initial);
+  }, [initial]);
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     const validResponses = form.Valid_Responses
       ? form.Valid_Responses.split(",").map((s) => s.trim()).filter(Boolean)
       : null;
-    const payload = {
+    onSubmit({
       Name: form.Name,
       URL: form.URL,
       ...(form.API_URL && { API_URL: form.API_URL }),
       ...(validResponses?.length && { Valid_Responses: validResponses }),
-      ...(form.Retry_Requests && {
-        Retry_Requests: parseInt(form.Retry_Requests),
-      }),
-    };
+      ...(form.Retry_Requests && { Retry_Requests: parseInt(form.Retry_Requests) }),
+    });
+  };
+
+  return (
+    <form className="config-form" onSubmit={handleSubmit}>
+      <div className="config-form-grid">
+        <label className="config-label">
+          Name
+          <input
+            className="config-input"
+            value={form.Name}
+            onChange={(e) => setForm((f) => ({ ...f, Name: e.target.value }))}
+            placeholder="My Service"
+            required
+          />
+        </label>
+        <label className="config-label">
+          URL
+          <input
+            className="config-input"
+            value={form.URL}
+            onChange={(e) => setForm((f) => ({ ...f, URL: e.target.value }))}
+            placeholder="https://example.com"
+            required
+          />
+        </label>
+        <label className="config-label">
+          API URL (optional)
+          <input
+            className="config-input"
+            value={form.API_URL}
+            onChange={(e) => setForm((f) => ({ ...f, API_URL: e.target.value }))}
+            placeholder="https://api.example.com"
+          />
+        </label>
+        <label className="config-label">
+          Valid Responses (optional)
+          <input
+            className="config-input"
+            value={form.Valid_Responses}
+            onChange={(e) => setForm((f) => ({ ...f, Valid_Responses: e.target.value }))}
+            placeholder="200, 201, 204"
+          />
+        </label>
+        <label className="config-label">
+          Retries (optional)
+          <input
+            className="config-input"
+            type="number"
+            min="0"
+            value={form.Retry_Requests}
+            onChange={(e) => setForm((f) => ({ ...f, Retry_Requests: e.target.value }))}
+            placeholder="3"
+          />
+        </label>
+      </div>
+      <div className="config-form-actions">
+        <button type="submit" className="config-btn config-btn--primary">
+          {submitLabel}
+        </button>
+        <button type="button" className="config-btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+const EMPTY_FORM = { Name: "", URL: "", API_URL: "", Valid_Responses: "", Retry_Requests: "" };
+
+function svcToForm(svc) {
+  return {
+    Name: svc.Name ?? "",
+    URL: svc.URL ?? "",
+    API_URL: svc.API_URL ?? "",
+    Valid_Responses: svc.Valid_Responses?.join(", ") ?? "",
+    Retry_Requests: svc.Retry_Requests != null ? String(svc.Retry_Requests) : "",
+  };
+}
+
+function ServicesPanel({ services, onRefresh }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingKey, setEditingKey] = useState(null);
+  const [status, setStatus] = useState(null);
+
+  const handleAdd = async (payload) => {
     const res = await fetch("/api/config/service", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -44,8 +123,22 @@ function ServicesPanel({ services, onRefresh }) {
     });
     if (res.ok) {
       setStatus({ text: "Service added.", error: false });
-      setForm({ Name: "", URL: "", API_URL: "", Valid_Responses: "", Retry_Requests: "" });
-      setShowForm(false);
+      setShowAddForm(false);
+      onRefresh();
+    } else {
+      setStatus({ text: await res.text(), error: true });
+    }
+  };
+
+  const handleUpdate = async (oldName, payload) => {
+    const res = await fetch("/api/config/service", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_name: oldName, service: payload }),
+    });
+    if (res.ok) {
+      setStatus({ text: "Service updated.", error: false });
+      setEditingKey(null);
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -77,109 +170,61 @@ function ServicesPanel({ services, onRefresh }) {
         <ul className="config-service-list">
           {serviceList.map(([key, svc]) => (
             <li key={key} className="config-service-item">
-              <div className="config-service-info">
-                <span className="config-service-name">{svc.Name || key}</span>
-                <span className="config-service-url">{svc.URL}</span>
-                {svc.Valid_Responses?.length > 0 && (
-                  <span className="config-service-url">
-                    Valid: {svc.Valid_Responses.join(", ")}
-                  </span>
-                )}
-              </div>
-              <button
-                className="config-btn config-btn--danger"
-                onClick={() => handleDelete(svc)}
-              >
-                Remove
-              </button>
+              {editingKey === key ? (
+                <ServiceForm
+                  initial={svcToForm(svc)}
+                  onSubmit={(payload) => handleUpdate(key, payload)}
+                  onCancel={() => setEditingKey(null)}
+                  submitLabel="Save"
+                />
+              ) : (
+                <>
+                  <div className="config-service-info">
+                    <span className="config-service-name">{svc.Name || key}</span>
+                    <span className="config-service-url">{svc.URL}</span>
+                    {svc.Valid_Responses?.length > 0 && (
+                      <span className="config-service-url">
+                        Valid: {svc.Valid_Responses.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="config-form-actions">
+                    <button
+                      className="config-btn"
+                      onClick={() => { setShowAddForm(false); setEditingKey(key); }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="config-btn config-btn--danger"
+                      onClick={() => handleDelete(svc)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {showForm ? (
-        <form className="config-form" onSubmit={handleAdd}>
-          <div className="config-form-grid">
-            <label className="config-label">
-              Name
-              <input
-                className="config-input"
-                value={form.Name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, Name: e.target.value }))
-                }
-                placeholder="My Service"
-                required
-              />
-            </label>
-            <label className="config-label">
-              URL
-              <input
-                className="config-input"
-                value={form.URL}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, URL: e.target.value }))
-                }
-                placeholder="https://example.com"
-                required
-              />
-            </label>
-            <label className="config-label">
-              API URL (optional)
-              <input
-                className="config-input"
-                value={form.API_URL}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, API_URL: e.target.value }))
-                }
-                placeholder="https://api.example.com"
-              />
-            </label>
-            <label className="config-label">
-              Valid Responses (optional)
-              <input
-                className="config-input"
-                value={form.Valid_Responses}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, Valid_Responses: e.target.value }))
-                }
-                placeholder="200, 201, 204"
-              />
-            </label>
-            <label className="config-label">
-              Retries (optional)
-              <input
-                className="config-input"
-                type="number"
-                min="0"
-                value={form.Retry_Requests}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, Retry_Requests: e.target.value }))
-                }
-                placeholder="3"
-              />
-            </label>
-          </div>
-          <div className="config-form-actions">
-            <button type="submit" className="config-btn config-btn--primary">
-              Add
-            </button>
-            <button
-              type="button"
-              className="config-btn"
-              onClick={() => setShowForm(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+      {showAddForm ? (
+        <ServiceForm
+          initial={EMPTY_FORM}
+          onSubmit={handleAdd}
+          onCancel={() => setShowAddForm(false)}
+          submitLabel="Add"
+        />
       ) : (
-        <button
-          className="config-btn config-btn--primary config-add-btn"
-          onClick={() => setShowForm(true)}
-        >
-          + Add Service
-        </button>
+        editingKey === null && (
+          <button
+            className="config-btn config-btn--primary config-add-btn"
+            onClick={() => setShowAddForm(true)}
+          >
+            + Add Service
+          </button>
+        )
       )}
     </div>
   );
