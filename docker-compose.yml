@@ -8,6 +8,8 @@ services:
     volumes:
       - goup-config:/app/config
       - goup-data:/app/data
+      # Optional: Remove the line below to store configuration file in the image volume
+      - ./services.yml:/app/config/services.yml
     # Optional: set timezone for accurate timestamps
     environment:
       - TZ=America/New_York
