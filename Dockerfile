@@ -20,25 +20,12 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /goUp .
 
 # ---- Stage 3: Minimal runtime ----
 FROM alpine:3.20
-
-RUN apk add --no-cache ca-certificates tzdata \
-    && addgroup -S goup && adduser -S goup -G goup
-
+RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
-
 COPY --from=builder /goUp /app/goUp
-
-# Create mount points with correct ownership before switching user
-RUN mkdir -p /app/config /app/data && chown -R goup:goup /app
-
-# Default config mount point
+RUN mkdir -p /app/config /app/data
 VOLUME ["/app/config"]
-# Default database location
 VOLUME ["/app/data"]
-
 EXPOSE 8101
-
-USER goup
-
 ENTRYPOINT ["/app/goUp"]
 CMD ["-config", "/app/config/services.yml"]
