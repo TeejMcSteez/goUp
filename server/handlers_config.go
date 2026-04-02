@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// Reads all configuration data currently in memory
 func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	sData := utils.ReadConfigServices(utils.Current_Config)
@@ -23,6 +24,7 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Handles all methods for services in configuration
 func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
@@ -76,6 +78,7 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Handles all methods for MQTT trigger in configuration
 func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
@@ -107,6 +110,7 @@ func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Handles all methods for Webhook Trigger in configuration
 func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
