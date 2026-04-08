@@ -175,7 +175,10 @@ services:
 	current_size := len(conf.Services)
 	serviceToDelete := conf.Services["example"]
 
-	if err := utils.DeleteConfigService(conf, serviceToDelete); err != nil {
+	db, cleanupDb := setupTestDB(t)
+	defer cleanupDb()
+
+	if err := utils.DeleteConfigService(conf, serviceToDelete, db); err != nil {
 		t.Fatalf("Failed to delete config: %v", err)
 	}
 
