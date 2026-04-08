@@ -122,7 +122,7 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 
 	statement := `SELECT * FROM service_data WHERE id IN (
 		SELECT MAX(id) FROM service_data GROUP BY service_name
-	);`
+	) ORDER BY id DESC;`
 
 	row, err := db.Query(statement)
 	if err != nil {
