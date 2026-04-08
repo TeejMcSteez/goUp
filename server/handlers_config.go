@@ -51,7 +51,7 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := utils.UpdateConfigService(utils.Current_Config, payload.OldName, payload.Service); err != nil {
+		if err := utils.UpdateConfigService(utils.Current_Config, payload.OldName, payload.Service, s.db); err != nil {
 			log.Printf("Error updating config service: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
