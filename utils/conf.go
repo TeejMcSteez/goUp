@@ -110,10 +110,16 @@ func UpdateConfigService(conf *Config, oldName string, updated Service) error {
 	return writeConfig(conf)
 }
 
-func DeleteConfigService(config *Config, serviceToDelete Service) error {
+func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}
+
+	err := DbServiceDelete(db, serviceToDelete)
+	if err != nil {
+		return fmt.Errorf("Failed to remove data from database: %v", err)
+	}
+
 	org_size := len(config.Services)
 	delete(config.Services, serviceToDelete.Name)
 	new_size := len(config.Services)
