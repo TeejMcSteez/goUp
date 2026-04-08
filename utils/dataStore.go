@@ -121,7 +121,9 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 	numOfServices := len(GetServiceEndpoints())
 	sd := []ServiceData{}
 
-	statement := fmt.Sprintf("SELECT * FROM service_data ORDER BY id DESC LIMIT %v;", numOfServices)
+	statement := `SELECT * FROM service_data WHERE id IN (
+		SELECT MAX(id) FROM service_data GROUP BY service_name
+	);`
 
 	row, err := db.Query(statement)
 	if err != nil {
