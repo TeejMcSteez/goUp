@@ -65,7 +65,7 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err := utils.DeleteConfigService(utils.Current_Config, service); err != nil {
+		if err := utils.DeleteConfigService(utils.Current_Config, service, s.db); err != nil {
 			log.Printf("Error deleting config service: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
