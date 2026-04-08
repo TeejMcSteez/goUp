@@ -118,7 +118,6 @@ func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
 
 // Gets recent data defined by total number of service endpoints
 func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
-	numOfServices := len(GetServiceEndpoints())
 	sd := []ServiceData{}
 
 	statement := `SELECT * FROM service_data WHERE id IN (
