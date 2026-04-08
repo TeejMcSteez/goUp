@@ -111,7 +111,10 @@ func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.
 		delete(conf.Services, oldName)
 	}
 	conf.Services[updated.Name] = updated
-	return writeConfig(conf)
+	if err := writeConfig(conf); err != nil {
+		return err
+	}
+	return DbGarbageCollect(db)
 }
 
 func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) error {
@@ -132,7 +135,10 @@ func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) er
 		return fmt.Errorf("failed to remove the element")
 	}
 
-	return writeConfig(config)
+	if err := writeConfig(config); err != nil {
+		return err
+	}
+	return DbGarbageCollect(db)
 }
 
 func DeleteConfigMQTT(config *Config) error {
