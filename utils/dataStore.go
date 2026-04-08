@@ -247,9 +247,9 @@ func CleanupDbFiles() error {
 
 func DbServiceDelete(db *sql.DB, service Service) error {
 
-	statement := fmt.Sprintf("DELETE FROM service_data WHERE service_name = %s", service.Name)
+	statement := `DELETE FROM service_data WHERE service_name = ?`
 
-	res, err := db.Exec(statement)
+	res, err := db.Exec(statement, service.Name)
 	if err != nil {
 		return err
 	}
