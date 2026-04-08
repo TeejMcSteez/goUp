@@ -247,10 +247,7 @@ func CleanupDbFiles() error {
 }
 
 func DbServiceDelete(db *sql.DB, service Service) error {
-
-	statement := `DELETE FROM service_data WHERE service_name = ?`
-
-	res, err := db.Exec(statement, service.Name)
+	res, err := db.Exec(`DELETE FROM service_data WHERE service_name = ?`, service.Name)
 	if err != nil {
 		return err
 	}
@@ -261,6 +258,22 @@ func DbServiceDelete(db *sql.DB, service Service) error {
 	}
 
 	log.Printf("Removed all instances of %s, rows affected: %d", service.Name, rows_affected)
+
+	return nil
+}
+
+func DbServiceRename(db *sql.DB, oldName string, newName string) error {
+	res, err := db.Exec(`UPDATE service_data SET service_name = ? WHERE service_name = ?`, newName, oldName)
+	if err != nil {
+		return err
+	}
+
+	rows_affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Renamed %s to %s in database, rows affected: %d", oldName, newName, rows_affected)
 
 	return nil
 }
