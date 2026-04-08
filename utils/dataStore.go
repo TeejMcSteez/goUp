@@ -277,3 +277,45 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 
 	return nil
 }
+
+func DbGarbageCollect(db *sql.DB) error {
+	if Current_Config == nil {
+		return fmt.Errorf("no config loaded")
+	}
+
+	names := make([]any, 0, len(Current_Config.Services))
+	for name := range Current_Config.Services {
+		names = append(names, name)
+	}
+
+	if len(names) == 0 {
+		res, err := db.Exec(`DELETE FROM service_data`)
+		if err != nil {
+			return err
+		}
+		rows, _ := res.RowsAffected()
+		log.Printf("GC: removed %d orphaned rows (no services in config)", rows)
+		return nil
+	}
+
+	placeholders := make([]byte, 0, len(names)*2)
+	for i := range names {
+		if i > 0 {
+			placeholders = append(placeholders, ',', '?')
+		} else {
+			placeholders = append(placeholders, '?')
+		}
+	}
+
+	stmt := fmt.Sprintf(`DELETE FROM service_data WHERE service_name NOT IN (%s)`, placeholders)
+	res, err := db.Exec(stmt, names...)
+	if err != nil {
+		return err
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows > 0 {
+		log.Printf("GC: removed %d orphaned rows not matching current config", rows)
+	}
+	return nil
+}
