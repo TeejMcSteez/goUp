@@ -1,34 +1,9 @@
-import { useState, useEffect } from "react";
 import Island from "../layout/Island.jsx";
 import QuickServices from "../QuickServices.jsx";
 import useServiceName from "../../hooks/useServiceName.js";
+import useServiceData from "../../hooks/useServiceData.js";
 
-function QuickStats() {
-  const [services, setServices] = useState([]);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const getServiceData = async () => {
-      try {
-        const res = await fetch("/api");
-        if (!res.ok) {
-          throw new Error(`Server error: ${res.status}`);
-        }
-        const data = await res.json();
-        if (data && Array.isArray(data)) {
-          setServices(data);
-        } else {
-          setServices([]);
-        }
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-
-    getServiceData();
-    const intervalId = setInterval(getServiceData, 5000);
-    return () => clearInterval(intervalId);
-  }, []);
+function QuickStats({ services, error }) {
 
   const totalServices = services.length;
   const errorServices = services.filter((s) => s.error).length;
@@ -167,33 +142,8 @@ function QuickStats() {
   );
 }
 
-function MiniServiceGrid() {
-  const [services, setServices] = useState([]);
-  const [error, setError] = useState(null);
+function MiniServiceGrid({ services, error }) {
   const { formatName } = useServiceName();
-
-  useEffect(() => {
-    const getServiceData = async () => {
-      try {
-        const res = await fetch("/api");
-        if (!res.ok) {
-          throw new Error(`Server error: ${res.status}`);
-        }
-        const data = await res.json();
-        if (data && Array.isArray(data)) {
-          setServices(data);
-        } else {
-          setServices([]);
-        }
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-
-    getServiceData();
-    const intervalId = setInterval(getServiceData, 5000);
-    return () => clearInterval(intervalId);
-  }, []);
 
   if (error) {
     return <p>Error loading services: {error}</p>;
@@ -248,13 +198,15 @@ function MiniServiceGrid() {
 }
 
 export default function OverviewView() {
+  const { data: services, error } = useServiceData();
+
   return (
     <div className="overview-view">
       <Island title="System Status">
-        <QuickStats />
+        <QuickStats services={services ?? []} error={error} />
       </Island>
       <Island title="Service Overview">
-        <MiniServiceGrid />
+        <MiniServiceGrid services={services ?? []} error={error} />
       </Island>
     </div>
   );
