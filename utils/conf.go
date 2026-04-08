@@ -97,7 +97,7 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	return writeConfig(config)
 }
 
-func UpdateConfigService(conf *Config, oldName string, updated Service) error {
+func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -105,6 +105,9 @@ func UpdateConfigService(conf *Config, oldName string, updated Service) error {
 		return fmt.Errorf("service %q not found", oldName)
 	}
 	if oldName != updated.Name {
+		if err := DbServiceRename(db, oldName, updated.Name); err != nil {
+			return fmt.Errorf("failed to rename service in database: %w", err)
+		}
 		delete(conf.Services, oldName)
 	}
 	conf.Services[updated.Name] = updated
