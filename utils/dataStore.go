@@ -244,3 +244,22 @@ func CleanupDbFiles() error {
 	log.Println("Database file succesfully removed")
 	return nil
 }
+
+func DbServiceDelete(db *sql.DB, service Service) error {
+
+	statement := fmt.Sprintf("DELETE FROM service_data WHERE service_name = %s", service.Name)
+
+	res, err := db.Exec(statement)
+	if err != nil {
+		return err
+	}
+
+	rows_affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Removed all instances of %s, rows affected: %d", service.Name, rows_affected)
+
+	return nil
+}
