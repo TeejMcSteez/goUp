@@ -22,6 +22,7 @@ export default function QuickServices() {
         } else {
           console.error(`Expected array from /api/status, got: ${data}`);
         }
+        setError(null);
       } catch (err) {
         setError(err.message);
         console.error("Error fetching quick service data:", err);
@@ -35,27 +36,30 @@ export default function QuickServices() {
     return () => clearInterval(intervalId);
   }, []);
 
-  if (error) {
-    return (
-      <div id="quickServices">Error Loading quick service data: {error}</div>
+  let content;
+  if (qs.length === 0) {
+    content = (
+      <a href="#cards" id="quickServicesCard">
+        All Systems Operational ✅
+      </a>
+    );
+  } else {
+    content = (
+      <a href="#cards" id="quickServicesCard">
+        {qs.length} Errors Detected ❌
+      </a>
     );
   }
 
-  if (qs.length === 0) {
-    return (
-      <div id="quickServices">
-        <a href="#cards" id="quickServicesCard">
-          All Systems Operational ✅
-        </a>
-      </div>
-    );
-  }
-  let numberOfDownedServices = qs.length;
   return (
     <div id="quickServices">
-      <a href="#cards" id="quickServicesCard">
-        {numberOfDownedServices} Errors Detected ❌
-      </a>
+      {error ? (
+        <span style={{ color: "var(--error)", fontSize: "0.75rem" }}>
+          Status unavailable: {error}
+        </span>
+      ) : (
+        content
+      )}
     </div>
   );
 }
