@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import Header from "../Header.jsx";
 import Navigation from "./Navigation.jsx";
-import OverviewView from "../views/OverviewView.jsx";
-import ServicesView from "../views/ServicesView.jsx";
-import AnalyticsView from "../views/AnalyticsView.jsx";
-import SettingsView from "../views/SettingsView.jsx";
+
+const OverviewView = lazy(() => import("../views/OverviewView.jsx"));
+const ServicesView = lazy(() => import("../views/ServicesView.jsx"));
+const AnalyticsView = lazy(() => import("../views/AnalyticsView.jsx"));
+const SettingsView = lazy(() => import("../views/SettingsView.jsx"));
 
 export default function AppLayout() {
   const [activeTab, setActiveTab] = useState(() => {
