@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import Header from "../Header.jsx";
 import Navigation from "./Navigation.jsx";
 
@@ -71,7 +71,7 @@ export default function AppLayout() {
         id={`${activeTab}-panel`}
         aria-labelledby={`${activeTab}-tab`}
       >
-        {renderView()}
+        <Suspense fallback={null}>{renderView()}</Suspense>
       </main>
     </div>
   );
