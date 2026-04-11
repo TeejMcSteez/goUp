@@ -1,20 +1,24 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: '../server/static',
+    cssMinify: "esbuild",
+    sourcemap: false,
+    // Want to be performant as possible under 200kb chunks if possible
+    chunkSizeWarningLimit: 200,
+    outDir: "../server/static",
     emptyOutDir: true,
     rollupOptions: {
       // Removes random generated hashes at the end
       output: {
         entryFileNames: `assets/[name].js`,
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name].[ext]",
       },
-    }
+    },
   },
-})
+});
