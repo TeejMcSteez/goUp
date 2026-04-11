@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import StatusMessage from "./StatusMessage";
 
 const inputClass =
@@ -8,16 +8,12 @@ const btnBase =
   "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function WebhookPanel({ webhook, onRefresh }) {
-  const [form, setForm] = useState({ Webhook_url: "", Webhook_key_string: "", Custom_message: "" });
+  const [form, setForm] = useState({
+    Webhook_url: webhook?.Webhook_url ?? "",
+    Webhook_key_string: webhook?.Webhook_key_string ?? "",
+    Custom_message: webhook?.Custom_message ?? "",
+  });
   const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    setForm({
-      Webhook_url: webhook?.Webhook_url ?? "",
-      Webhook_key_string: webhook?.Webhook_key_string ?? "",
-      Custom_message: webhook?.Custom_message ?? "",
-    });
-  }, [webhook]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 

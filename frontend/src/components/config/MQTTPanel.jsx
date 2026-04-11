@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import StatusMessage from "./StatusMessage";
 
 const inputClass =
@@ -8,16 +8,12 @@ const btnBase =
   "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function MQTTPanel({ mqtt, onRefresh }) {
-  const [form, setForm] = useState({ Mqtt_broker: "", Mqtt_username: "", Mqtt_key: "" });
+  const [form, setForm] = useState({
+    Mqtt_broker: mqtt?.Mqtt_broker ?? "",
+    Mqtt_username: mqtt?.Mqtt_username ?? "",
+    Mqtt_key: mqtt?.Mqtt_key ?? "",
+  });
   const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    setForm({
-      Mqtt_broker: mqtt?.Mqtt_broker ?? "",
-      Mqtt_username: mqtt?.Mqtt_username ?? "",
-      Mqtt_key: mqtt?.Mqtt_key ?? "",
-    });
-  }, [mqtt]);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 

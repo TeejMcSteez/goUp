@@ -1,5 +1,4 @@
 import Island from "../layout/Island.jsx";
-import QuickServices from "../QuickServices.jsx";
 import useServiceName from "../../hooks/useServiceName.js";
 import useServiceData from "../../hooks/useServiceData.js";
 
@@ -50,9 +49,9 @@ function MiniServiceGrid({ services, error }) {
 
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
-      {displayServices.map((service, index) => (
+      {displayServices.map((service) => (
         <div
-          key={index}
+          key={service.name}
           className={`p-4 bg-elevated rounded-lg border border-l-4 ${
             service.error
               ? "border-error border-l-error"

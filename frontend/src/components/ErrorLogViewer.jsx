@@ -43,8 +43,8 @@ export default function ErrorLogViewer() {
         ) : loading && !errors ? (
           <p>Loading errors...</p>
         ) : errors && errors.length > 0 ? (
-          errors.map((errorItem, index) => (
-            <div key={index} className="p-4 border-b border-border last:border-b-0">
+          errors.map((errorItem) => (
+            <div key={`${errorItem.name}-${errorItem.timestamp}`} className="p-4 border-b border-border last:border-b-0">
               <div className="flex justify-between items-center mb-2 text-[1.1rem]">
                 <strong>{formatName(errorItem.name)}</strong>
                 <span className="text-[0.9rem] text-muted">
