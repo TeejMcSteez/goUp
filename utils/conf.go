@@ -124,7 +124,7 @@ func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) er
 
 	err := DbServiceDelete(db, serviceToDelete)
 	if err != nil {
-		return fmt.Errorf("Failed to remove data from database: %v", err)
+		return fmt.Errorf("failed to remove data from database: %v", err)
 	}
 
 	org_size := len(config.Services)

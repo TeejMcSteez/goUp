@@ -3,10 +3,10 @@ package server
 import (
 	"database/sql"
 	"embed"
+	scheduler "goUp/workers"
 	"io/fs"
 	"log"
 	"net/http"
-	scheduler "goUp/workers"
 )
 
 type Server struct {
