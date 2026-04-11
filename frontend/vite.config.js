@@ -18,6 +18,14 @@ export default defineConfig({
         entryFileNames: `assets/[name].js`,
         chunkFileNames: "assets/[name].js",
         assetFileNames: "assets/[name].[ext]",
+        manualChunks(id) {
+          if (id.includes("chart.js") || id.includes("react-chartjs-2")) {
+            return "chart-vendor";
+          }
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "react-vendor";
+          }
+        },
       },
     },
   },
