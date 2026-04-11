@@ -150,8 +150,7 @@ function MiniServiceGrid({ services, error }) {
   }
 
   const errorServices = services.filter((s) => s.error);
-  const displayServices =
-    errorServices.length > 0 ? errorServices.slice(0, 6) : services.slice(0, 6);
+  const displayServices = errorServices.length > 0 ? errorServices : services;
 
   return (
     <div
