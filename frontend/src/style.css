@@ -1,19 +1,111 @@
-/* Import modular CSS files */
-@import "./styles/variables.css";
-@import "./styles/layout.css";
-@import "./styles/components.css";
+@import "tailwindcss";
 
-/* Base styles */
-body {
+@theme {
+  /* Brand / semantic colors */
+  --color-app-bg: #0f172a;
+  --color-surface: #1a1a1a;
+  --color-elevated: #27272a;
+  --color-hover: #2e3a47;
+  --color-border: #27272a;
+  --color-focus: #38bdf8;
+  --color-primary: #38bdf8;
+  --color-secondary: #a78bfa;
+  --color-secondary-dark: #8b5cf6;
+  --color-fg: #e5e7eb;
+  --color-muted: #9ca3af;
+  --color-error: #ef4444;
+  --color-success: #10b981;
+
+  /* Font */
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
     min-height: 100vh;
     width: 100vw;
     font-family: var(--font-sans);
-    color: var(--text-primary);
+    color: var(--color-fg);
+    background: var(--color-app-bg);
     margin: 0;
     padding: 0;
-    background: var(--bg-primary);
+  }
+
+  /* Base button reset — individual components add their own variants via Tailwind */
+  button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-fg);
+    font-size: 1rem;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  button:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    background-color: var(--color-elevated);
+    transform: translateY(-2px);
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  input[type="text"],
+  input[type="range"],
+  input[type="number"],
+  input[type="password"],
+  select {
+    font-family: var(--font-sans);
+  }
 }
 
-* {
-    box-sizing: border-box;
+/* Tab active indicator — ::after pseudo-element can't be expressed with Tailwind alone */
+.tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+  animation: slideIn 0.3s ease;
+}
+
+/* Custom scrollbars */
+.scrollbar-custom::-webkit-scrollbar { width: 8px; }
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: var(--color-elevated);
+  border-radius: 4px;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background-color: var(--color-secondary);
+  border-radius: 4px;
+}
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-secondary-dark);
 }

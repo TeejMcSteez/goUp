@@ -61,11 +61,11 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="app-layout">
+    <div className="flex flex-col min-h-screen w-full">
       <Header />
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       <main
-        className="view-container"
+        className="flex-1 max-w-350 w-full mx-auto p-4 md:p-6 xl:p-8 animate-fade-in"
         role="tabpanel"
         id={`${activeTab}-panel`}
         aria-labelledby={`${activeTab}-tab`}

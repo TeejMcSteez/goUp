@@ -24,7 +24,7 @@ export default function UptimeChart() {
 
   if (error) {
     return (
-      <div id="uptimeChart">
+      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
         <p>Could not load chart: {error}</p>
       </div>
     );
@@ -32,7 +32,7 @@ export default function UptimeChart() {
 
   if (loading && !chartData) {
     return (
-      <div id="uptimeChart">
+      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
         <p>Loading chart...</p>
       </div>
     );
@@ -40,14 +40,14 @@ export default function UptimeChart() {
 
   if (!chartData) {
     return (
-      <div id="uptimeChart">
+      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
         <p>No chart data available</p>
       </div>
     );
   }
 
   return (
-    <div id="uptimeChart">
+    <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
       <Bar
         data={chartData}
         options={{

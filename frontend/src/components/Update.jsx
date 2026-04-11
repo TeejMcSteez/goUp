@@ -53,7 +53,7 @@ export default function Update() {
 
   if (loading) {
     return (
-      <div id="schedule">
+      <div className="flex flex-col items-center justify-center">
         <p>Loading schedule...</p>
       </div>
     );
@@ -61,7 +61,7 @@ export default function Update() {
 
   if (error) {
     return (
-      <div id="schedule">
+      <div className="flex flex-col items-center justify-center">
         <h3>Failed to get schedule!</h3>
         <p>{error}</p>
       </div>
@@ -69,13 +69,13 @@ export default function Update() {
   }
 
   return (
-    <div id="schedule">
+    <div className="flex flex-col items-center justify-center">
       {schedule && (
         <p>
           Current: {schedule.timespan} {schedule.interval}
         </p>
       )}
-      <form id="scheduleForm">
+      <form className="flex flex-row p-4 m-4 items-center justify-center text-center gap-4 flex-wrap">
         <label htmlFor="timespan">Timespan: {timespan}</label>
         <input
           id="timespan"
@@ -92,13 +92,17 @@ export default function Update() {
           id="selectTimespan"
           value={interval}
           onChange={(e) => setInterval(e.target.value)}
+          className="flex items-center justify-center text-center rounded-lg p-2"
         >
           <option value="seconds">Seconds</option>
           <option value="minutes">Minutes</option>
           <option value="hours">Hours</option>
         </select>
       </form>
-      <button id="updateButton" onClick={handleUpdateSchedule}>
+      <button
+        className="flex items-center justify-center gap-4 w-full max-w-[600px] mx-auto text-center rounded-2xl p-4 hover:-translate-y-[5px] hover:border-primary"
+        onClick={handleUpdateSchedule}
+      >
         Update
       </button>
     </div>

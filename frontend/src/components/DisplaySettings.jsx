@@ -5,14 +5,7 @@ export default function DisplaySettings() {
 
   return (
     <div>
-      <label
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-md)",
-          cursor: "pointer",
-        }}
-      >
+      <label className="flex items-center gap-4 cursor-pointer">
         <input type="checkbox" checked={prettify} onChange={toggle} />
         Prettify service names (strip URL prefixes, replace underscores with spaces)
       </label>

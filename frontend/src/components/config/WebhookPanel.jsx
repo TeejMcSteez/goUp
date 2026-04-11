@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import StatusMessage from "./StatusMessage";
 
+const inputClass =
+  "px-4 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-focus focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)] placeholder:text-muted placeholder:opacity-50";
+
+const btnBase =
+  "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
+
 export default function WebhookPanel({ webhook, onRefresh }) {
   const [form, setForm] = useState({ Webhook_url: "", Webhook_key_string: "", Custom_message: "" });
   const [status, setStatus] = useState(null);
@@ -46,26 +52,26 @@ export default function WebhookPanel({ webhook, onRefresh }) {
   };
 
   return (
-    <div className="config-panel">
+    <div className="flex flex-col gap-4">
       <StatusMessage message={status?.text} isError={status?.error} />
-      <form className="config-form" onSubmit={handleSave}>
-        <div className="config-form-grid">
-          <label className="config-label">
+      <form className="flex flex-col gap-4 p-4 bg-elevated border border-border rounded-lg" onSubmit={handleSave}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
             Webhook URL
-            <input className="config-input" value={form.Webhook_url} onChange={set("Webhook_url")} placeholder="https://hooks.example.com/..." />
+            <input className={inputClass} value={form.Webhook_url} onChange={set("Webhook_url")} placeholder="https://hooks.example.com/..." />
           </label>
-          <label className="config-label">
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
             Authorization Header
-            <input className="config-input" value={form.Webhook_key_string} onChange={set("Webhook_key_string")} placeholder="Bearer <token>" />
+            <input className={inputClass} value={form.Webhook_key_string} onChange={set("Webhook_key_string")} placeholder="Bearer <token>" />
           </label>
-          <label className="config-label">
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
             Custom Message
-            <input className="config-input" value={form.Custom_message} onChange={set("Custom_message")} placeholder="A service is down!" />
+            <input className={inputClass} value={form.Custom_message} onChange={set("Custom_message")} placeholder="A service is down!" />
           </label>
         </div>
-        <div className="config-form-actions">
-          <button type="submit" className="config-btn config-btn--primary">Save</button>
-          <button type="button" className="config-btn config-btn--danger" onClick={handleClear}>Clear</button>
+        <div className="flex gap-2 flex-wrap">
+          <button type="submit" className={`${btnBase} border-primary text-primary hover:bg-primary/10`}>Save</button>
+          <button type="button" className={`${btnBase} border-error text-error hover:bg-error/10`} onClick={handleClear}>Clear</button>
         </div>
       </form>
     </div>

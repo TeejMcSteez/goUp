@@ -14,6 +14,9 @@ function svcToForm(svc) {
   };
 }
 
+const btnBase =
+  "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
+
 // mode: { type: "list" } | { type: "add" } | { type: "edit", key: string }
 export default function ServicesPanel({ services, onRefresh }) {
   const [mode, setMode] = useState({ type: "list" });
@@ -66,15 +69,15 @@ export default function ServicesPanel({ services, onRefresh }) {
   const serviceList = Object.entries(services || {});
 
   return (
-    <div className="config-panel">
+    <div className="flex flex-col gap-4">
       <StatusMessage message={status?.text} isError={status?.error} />
 
       {serviceList.length === 0 ? (
-        <p className="config-empty">No services configured.</p>
+        <p className="text-muted text-[0.9rem]">No services configured.</p>
       ) : (
-        <ul className="config-service-list">
+        <ul className="list-none m-0 p-0 flex flex-col gap-2">
           {serviceList.map(([key, svc]) => (
-            <li key={key} className="config-service-item">
+            <li key={key} className="flex items-center justify-between px-4 py-2 bg-elevated border border-border rounded-lg gap-4">
               {mode.type === "edit" && mode.key === key ? (
                 <ServiceForm
                   key={key}
@@ -85,16 +88,23 @@ export default function ServicesPanel({ services, onRefresh }) {
                 />
               ) : (
                 <>
-                  <div className="config-service-info">
-                    <span className="config-service-name">{svc.Name || key}</span>
-                    <span className="config-service-url">{svc.URL}</span>
+                  <div className="flex flex-col gap-[2px] min-w-0">
+                    <span className="font-semibold text-fg text-[0.95rem]">{svc.Name || key}</span>
+                    <span className="text-[0.8rem] text-muted overflow-hidden text-ellipsis whitespace-nowrap">{svc.URL}</span>
                     {svc.Valid_Responses?.length > 0 && (
-                      <span className="config-service-url">Valid: {svc.Valid_Responses.join(", ")}</span>
+                      <span className="text-[0.8rem] text-muted overflow-hidden text-ellipsis whitespace-nowrap">
+                        Valid: {svc.Valid_Responses.join(", ")}
+                      </span>
                     )}
                   </div>
-                  <div className="config-form-actions">
-                    <button className="config-btn" onClick={() => setMode({ type: "edit", key })}>Edit</button>
-                    <button className="config-btn config-btn--danger" onClick={() => handleDelete(svc)}>Remove</button>
+                  <div className="flex gap-2 flex-wrap">
+                    <button className={btnBase} onClick={() => setMode({ type: "edit", key })}>Edit</button>
+                    <button
+                      className={`${btnBase} border-error text-error hover:bg-error/10`}
+                      onClick={() => handleDelete(svc)}
+                    >
+                      Remove
+                    </button>
                   </div>
                 </>
               )}
@@ -112,7 +122,10 @@ export default function ServicesPanel({ services, onRefresh }) {
           submitLabel="Add"
         />
       ) : mode.type === "list" && (
-        <button className="config-btn config-btn--primary config-add-btn" onClick={() => setMode({ type: "add" })}>
+        <button
+          className={`${btnBase} self-start border-primary text-primary hover:bg-primary/10`}
+          onClick={() => setMode({ type: "add" })}
+        >
           + Add Service
         </button>
       )}

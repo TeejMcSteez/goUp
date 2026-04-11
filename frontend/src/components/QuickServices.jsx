@@ -39,22 +39,28 @@ export default function QuickServices() {
   let content;
   if (qs.length === 0) {
     content = (
-      <a href="#cards" id="quickServicesCard">
+      <a
+        href="#cards"
+        className="no-underline text-center text-lg text-fg px-6 py-2 rounded-lg transition-colors duration-200 hover:bg-hover"
+      >
         All Systems Operational ✅
       </a>
     );
   } else {
     content = (
-      <a href="#cards" id="quickServicesCard">
+      <a
+        href="#cards"
+        className="no-underline text-center text-lg text-fg px-6 py-2 rounded-lg transition-colors duration-200 hover:bg-hover"
+      >
         {qs.length} Errors Detected ❌
       </a>
     );
   }
 
   return (
-    <div id="quickServices">
+    <div className="flex flex-row items-center justify-center text-center p-4 border-b border-border bg-surface">
       {error ? (
-        <span style={{ color: "var(--error)", fontSize: "0.75rem" }}>
+        <span className="text-error text-xs">
           Status unavailable: {error}
         </span>
       ) : (

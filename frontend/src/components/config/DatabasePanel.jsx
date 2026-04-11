@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import StatusMessage from "./StatusMessage";
 
+const btnBase =
+  "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
+
 export default function DatabasePanel() {
   const [persists, setPersists] = useState(null);
   const [status, setStatus] = useState(null);
@@ -23,13 +26,17 @@ export default function DatabasePanel() {
   };
 
   return (
-    <div className="config-panel">
+    <div className="flex flex-col gap-4">
       <StatusMessage message={status?.text} isError={status?.error} />
-      <div className="config-form-actions">
-        <span className="config-label">
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           Persist database: <strong>{persists === null ? "…" : persists ? "On" : "Off"}</strong>
         </span>
-        <button className="config-btn config-btn--primary" onClick={handleToggle} disabled={persists === null}>
+        <button
+          className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
+          onClick={handleToggle}
+          disabled={persists === null}
+        >
           Toggle
         </button>
       </div>

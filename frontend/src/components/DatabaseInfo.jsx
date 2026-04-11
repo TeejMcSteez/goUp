@@ -91,7 +91,7 @@ export default function DatabaseInfo() {
   };
 
   return (
-    <div id="db-info">
+    <div className="flex flex-col items-center justify-center p-4 my-4 gap-4">
       {error ? (
         <p>Error loading database size: {error}</p>
       ) : dbSize === null ? (
@@ -107,7 +107,11 @@ export default function DatabaseInfo() {
               : "Database file is not persistent"}
         </p>
       )}
-      <button onClick={handleClearDatabase} disabled={dbSize === null}>
+      <button
+        onClick={handleClearDatabase}
+        disabled={dbSize === null}
+        className="hover:border-secondary"
+      >
         Clear Database Memory
       </button>
     </div>
