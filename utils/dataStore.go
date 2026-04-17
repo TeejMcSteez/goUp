@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -206,30 +207,26 @@ func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData,
 
 // Clears all table information from service_data and reclaims unused pages
 func ClearDatabase(db *sql.DB) error {
-	statement := `DELETE FROM service_data;`
 
-	res, err := db.Exec(statement)
+	conn, err := db.Conn(context.Background())
 	if err != nil {
 		return err
 	}
-	if rowsAffected, err := res.RowsAffected(); err != nil {
+	defer conn.Close()
+	statement := `DELETE FROM service_data;`
+
+	if _, err := conn.ExecContext(context.Background(), statement); err != nil {
 		return err
-	} else {
-		log.Printf("Cleared databased, Rows Affected: %v", rowsAffected)
 	}
-
-	// Temporarily switch out of WAL mode so VACUUM replaces the file rather
-	// than checkpointing in-place, which physically shrinks the file on disk.
-	if _, err := db.Exec("PRAGMA journal_mode=DELETE;"); err != nil {
-		return fmt.Errorf("clear succeeded but could not switch journal mode: %w", err)
+	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=DELETE;`); err != nil {
+		return fmt.Errorf("clear completed but could not swtich journal mode: %w", err)
 	}
-	if _, err := db.Exec("VACUUM;"); err != nil {
-		return fmt.Errorf("clear succeeded but vacuum failed: %w", err)
+	if _, err := conn.ExecContext(context.Background(), `VACUUM;`); err != nil {
+		return fmt.Errorf("clear completed but VACUUM failed: %w", err)
 	}
-	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
-		return fmt.Errorf("vacuum succeeded but could not restore WAL mode: %w", err)
+	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=WAL;`); err != nil {
+		return fmt.Errorf("vacuum completed but could not restore WAL mode: %w", err)
 	}
-
 	return nil
 }
 
