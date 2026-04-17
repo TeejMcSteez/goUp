@@ -31,8 +31,8 @@ services:
 
 	if cfg == nil {
 		t.Fatal("Expected config to be loaded, but it was nil")
+		return
 	}
-
 	if *cfg.Database_Location != "./test.db" {
 		t.Errorf("Expected db_path to be './test.db', got '%s'", *cfg.Database_Location)
 	}
