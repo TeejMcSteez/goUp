@@ -28,7 +28,7 @@ func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 			if t > int64(maxSize) {
 				log.Printf("File size is %v, clearing database memory", t)
 				if err := utils.ClearDatabase(db); err != nil {
-					log.Printf("Failed to clear the database: %v", err)
+					log.Printf("error occured clearing database: %v", err)
 				}
 
 			}
