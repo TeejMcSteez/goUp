@@ -42,9 +42,7 @@ func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	if err := utils.ClearDatabase(s.db); err != nil {
-		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
-			http.Error(w, "Failed to parse error message as json", http.StatusInternalServerError)
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 		http.Error(w, "Failed to write ok message", http.StatusInternalServerError)
