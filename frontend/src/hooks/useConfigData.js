@@ -21,7 +21,8 @@ export function useConfigData() {
   };
 
   useEffect(() => {
-    fetchConfig();
+    const id = setTimeout(fetchConfig, 0);
+    return () => clearTimeout(id);
   }, []);
 
   return { config, loading, error, refresh: fetchConfig };

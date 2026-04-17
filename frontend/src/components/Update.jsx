@@ -27,7 +27,8 @@ export default function Update() {
   };
 
   useEffect(() => {
-    fetchSchedule();
+    const id = setTimeout(fetchSchedule, 0);
+    return () => clearTimeout(id);
   }, []);
 
   const handleUpdateSchedule = async () => {

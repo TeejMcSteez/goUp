@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // Helper function to format bytes into human-readable strings
 function formatBytes(bytes, decimals = 2) {
@@ -18,7 +18,7 @@ export default function DatabaseInfo() {
   const [isPersistent, setIsPersistent] = useState(null);
   const [error, setError] = useState(null);
 
-  const fetchDbSize = async () => {
+  const fetchDbSize = useCallback(async () => {
     // Fetch Database Size
     try {
       const res = await fetch("/api/db/size");
@@ -61,13 +61,16 @@ export default function DatabaseInfo() {
     } catch (e) {
       console.error("Error fetching persistence data:", e);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDbSize();
-    const intervalId = setInterval(fetchDbSize, 5000); // Poll every 5 seconds
-    return () => clearInterval(intervalId);
-  }, []);
+    const initialId = setTimeout(fetchDbSize, 0);
+    const intervalId = setInterval(fetchDbSize, 5000);
+    return () => {
+      clearTimeout(initialId);
+      clearInterval(intervalId);
+    };
+  }, [fetchDbSize]);
 
   const handleClearDatabase = async () => {
     if (

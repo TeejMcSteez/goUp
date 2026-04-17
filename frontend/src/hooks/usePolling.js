@@ -20,9 +20,12 @@ export default function usePolling(fetchFunction, interval = 5000) {
   }, [fetchFunction]);
 
   useEffect(() => {
-    fetchData();
+    const initialId = setTimeout(fetchData, 0);
     const intervalId = setInterval(fetchData, interval);
-    return () => clearInterval(intervalId);
+    return () => {
+      clearTimeout(initialId);
+      clearInterval(intervalId);
+    };
   }, [fetchData, interval]);
 
   return { data, loading, error, refetch: fetchData };
