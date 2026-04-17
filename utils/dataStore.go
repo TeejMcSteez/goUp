@@ -206,13 +206,17 @@ func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData,
 }
 
 // Clears all table information from service_data and reclaims unused pages
-func ClearDatabase(db *sql.DB) error {
+func ClearDatabase(db *sql.DB) (retErr error) {
 
 	conn, err := db.Conn(context.Background())
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			retErr = err
+		}
+	}()
 	statement := `DELETE FROM service_data;`
 
 	if _, err := conn.ExecContext(context.Background(), statement); err != nil {
@@ -227,7 +231,7 @@ func ClearDatabase(db *sql.DB) error {
 	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=WAL;`); err != nil {
 		return fmt.Errorf("vacuum completed but could not restore WAL mode: %w", err)
 	}
-	return nil
+	return retErr
 }
 
 // Cleans up database after exit
