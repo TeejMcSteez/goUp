@@ -276,6 +276,17 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 
 	log.Printf("Renamed %s to %s in database, rows affected: %d", oldName, newName, rows_affected)
 
+	res, err = db.Exec(`DELETE FROM service_data WHERE service_name = ?`, oldName)
+	if err != nil {
+		return err
+	}
+	rows_affected, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Removed all orphan rows in database with old name %s, rows affected: %d", oldName, rows_affected)
+
 	return nil
 }
 
