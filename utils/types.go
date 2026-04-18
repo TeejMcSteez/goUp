@@ -74,6 +74,7 @@ type ServiceEndpoints struct {
 
 // Service data from GetServiceData
 type ServiceData struct {
+	ServiceURL          string    `json:"url"`
 	ServiceName         string    `json:"name"`
 	ServiceHTTPResponse string    `json:"response"`
 	ServiceAPIResponse  string    `json:"data"`
