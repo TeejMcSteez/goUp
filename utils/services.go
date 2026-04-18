@@ -101,6 +101,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		var sd ServiceData
 		sd.Timestamp = time.Now()
 		sd.ServiceName = endpoint.Name
+		sd.ServiceURL = endpoint.URL
 		start := time.Now()
 		res, err := http.Get(endpoint.URL)
 
