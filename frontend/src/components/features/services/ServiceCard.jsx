@@ -2,7 +2,7 @@ import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName.js";
 
 export default function ServiceCard({ service }) {
-  const { name, response, response_time, data, error } = service;
+  const { url, name, response, response_time, data, error } = service;
   const { formatName } = useServiceName();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
@@ -12,17 +12,21 @@ export default function ServiceCard({ service }) {
   return (
     <div
       className={`bg-surface rounded-xl p-6 flex flex-col gap-3 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-[5px] hover:shadow-lg border-l-4 border border-border ${
-        error ? "hover:border-error border-l-error" : "hover:border-primary border-l-primary"
+        error
+          ? "hover:border-error border-l-error"
+          : "hover:border-primary border-l-primary"
       }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="m-0 text-fg font-semibold text-lg leading-tight">{formatName(name)}</h3>
+        <h3 className="m-0 text-fg font-semibold text-lg leading-tight">
+          <a href={url} target="_blank">
+            {formatName(name)}
+          </a>
+        </h3>
         <span
           className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${
-            error
-              ? "bg-error/15 text-error"
-              : "bg-success/15 text-success"
+            error ? "bg-error/15 text-error" : "bg-success/15 text-success"
           }`}
         >
           {error ? "Error" : "Operational"}
@@ -34,11 +38,17 @@ export default function ServiceCard({ service }) {
       {/* Stats row */}
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col">
-          <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">Response Time</span>
-          <span className="text-sm font-semibold text-primary">{response_time || "—"}</span>
+          <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+            Response Time
+          </span>
+          <span className="text-sm font-semibold text-primary">
+            {response_time || "—"}
+          </span>
         </div>
         <div className="flex flex-col">
-          <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">HTTP</span>
+          <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+            HTTP
+          </span>
           {isLongHttpResponse ? (
             <button
               onClick={() => setShowFullHttpResponse(!showFullHttpResponse)}
@@ -47,7 +57,9 @@ export default function ServiceCard({ service }) {
               {showFullHttpResponse ? "Hide ▲" : "Show ▼"}
             </button>
           ) : (
-            <span className={`text-sm font-semibold ${error ? "text-error" : "text-success"}`}>
+            <span
+              className={`text-sm font-semibold ${error ? "text-error" : "text-success"}`}
+            >
               {response || "—"}
             </span>
           )}
