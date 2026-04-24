@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import ConfirmModal from "./config/ConfirmModal";
 import type { DbSizeResponse } from "../types";
 
 function formatBytes(bytes: number, decimals = 2): string {
@@ -17,6 +18,7 @@ export default function DatabaseInfo() {
   const [dbSize, setDbSize] = useState<string | null>(null);
   const [isPersistent, setIsPersistent] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const fetchDbSize = useCallback(async () => {
     try {
@@ -69,23 +71,15 @@ export default function DatabaseInfo() {
   }, [fetchDbSize]);
 
   const handleClearDatabase = async () => {
-    if (
-      window.confirm(
-        "Are you sure you want to clear the database memory? This action is irreversible.",
-      )
-    ) {
-      try {
-        const res = await fetch("/api/db/clear");
-        if (!res.ok) {
-          throw new Error(`Server error: ${res.status}`);
-        }
-        alert("Database memory cleared successfully.");
-        fetchDbSize();
-      } catch (err) {
-        setError((err as Error).message);
-        console.error("Error clearing database:", err);
-        alert(`Failed to clear database: ${(err as Error).message}`);
+    try {
+      const res = await fetch("/api/db/clear");
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
       }
+      fetchDbSize();
+    } catch (err) {
+      setError((err as Error).message);
+      console.error("Error clearing database:", err);
     }
   };
 
@@ -107,12 +101,20 @@ export default function DatabaseInfo() {
         </p>
       )}
       <button
-        onClick={handleClearDatabase}
+        onClick={() => setConfirmClear(true)}
         disabled={dbSize === null}
         className="hover:border-secondary"
       >
         Clear Database Memory
       </button>
+
+      {confirmClear && (
+        <ConfirmModal
+          message="Clear all database memory? This action is irreversible."
+          onConfirm={() => { handleClearDatabase(); setConfirmClear(false); }}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
     </div>
   );
 }
