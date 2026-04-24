@@ -145,6 +145,9 @@ func DeleteConfigMQTT(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}
+	if config.Triggers.MQTT.Mqtt_broker == nil {
+		return fmt.Errorf("no MQTT broker to delete")
+	}
 	// Clears MQTT trigger in config
 	config.Triggers.MQTT = MQTTTrigger{}
 	return writeConfig(config)
@@ -153,6 +156,9 @@ func DeleteConfigMQTT(config *Config) error {
 func DeleteConfigTrigger(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Webhook.Webhook_url == nil {
+		return fmt.Errorf("no Webhook to delete")
 	}
 
 	config.Triggers.Webhook = WebhookTrigger{}
