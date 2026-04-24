@@ -2,11 +2,13 @@ import js from "@eslint/js";
 import globals from "globals";
 import eslintReact from "@eslint-react/eslint-plugin";
 import reactHooks from "eslint-plugin-react-hooks";
+import tseslint from "typescript-eslint";
 
-export default [
+export default tseslint.config(
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{ts,tsx}"],
     ...eslintReact.configs.recommended,
     plugins: {
       ...eslintReact.configs.recommended.plugins,
@@ -16,14 +18,11 @@ export default [
       globals: {
         ...globals.browser,
       },
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
     },
     rules: {
       ...eslintReact.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     },
   },
-];
+);
