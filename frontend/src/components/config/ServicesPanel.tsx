@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ServiceForm from "./ServiceForm";
+import BulkEditPanel from "./BulkEditPanel";
 import StatusMessage from "./StatusMessage";
 import type { ServiceConfig, StatusMessage as StatusMsg } from "../../types";
 
@@ -26,7 +27,7 @@ function svcToForm(svc: ServiceConfig): ServiceFormData {
 const btnBase =
   "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
-type Mode = { type: "list" } | { type: "add" } | { type: "edit"; key: string };
+type Mode = { type: "list" } | { type: "add" } | { type: "edit"; key: string } | { type: "bulk" };
 
 interface ServicesPanelProps {
   services?: Record<string, ServiceConfig>;
@@ -64,6 +65,28 @@ export default function ServicesPanel({ services, onRefresh }: ServicesPanelProp
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
+    }
+  };
+
+  const handleBulkSave = async (updates: { oldName: string; service: Partial<ServiceConfig> }[]) => {
+    const results = await Promise.all(
+      updates.map(({ oldName, service }) =>
+        fetch("/api/config/service", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ old_name: oldName, service }),
+        })
+      )
+    );
+    const failed = results.filter((r) => !r.ok);
+    if (failed.length === 0) {
+      setStatus({ text: `${updates.length} services updated.`, error: false });
+      setMode({ type: "list" });
+      onRefresh();
+    } else {
+      const errText = await failed[0].text();
+      setStatus({ text: `${failed.length} update(s) failed: ${errText}`, error: true });
+      onRefresh();
     }
   };
 
@@ -128,7 +151,13 @@ export default function ServicesPanel({ services, onRefresh }: ServicesPanelProp
         </ul>
       )}
 
-      {mode.type === "add" ? (
+      {mode.type === "bulk" ? (
+        <BulkEditPanel
+          services={services ?? {}}
+          onSave={handleBulkSave}
+          onCancel={() => setMode({ type: "list" })}
+        />
+      ) : mode.type === "add" ? (
         <ServiceForm
           key="add"
           initial={EMPTY_FORM}
@@ -137,12 +166,22 @@ export default function ServicesPanel({ services, onRefresh }: ServicesPanelProp
           submitLabel="Add"
         />
       ) : mode.type === "list" && (
-        <button
-          className={`${btnBase} self-start border-primary text-primary hover:bg-primary/10`}
-          onClick={() => setMode({ type: "add" })}
-        >
-          + Add Service
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
+            onClick={() => setMode({ type: "add" })}
+          >
+            + Add Service
+          </button>
+          {serviceList.length > 1 && (
+            <button
+              className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
+              onClick={() => setMode({ type: "bulk" })}
+            >
+              Bulk Edit
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
