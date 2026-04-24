@@ -10,28 +10,32 @@ import (
 )
 
 type Server struct {
-	db  *sql.DB
-	scd *scheduler.Scheduler
+	db      *sql.DB
+	scd     *scheduler.Scheduler
+	serveUi *string
 }
 
 //go:embed all:static
 var content embed.FS
 
 // Returns a new server instance
-func NewServer(db *sql.DB, scd *scheduler.Scheduler) *Server {
-	return &Server{db: db, scd: scd}
+func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi *string) *Server {
+	return &Server{db: db, scd: scd, serveUi: serveUi}
 }
 
 // Starts server with all handler functions
 //
 // Returns an error if a problem with the server occurs
 func (s *Server) Start() error {
-	staticFS, err := fs.Sub(content, "static")
-	if err != nil {
-		return err
+	if *s.serveUi == "y" {
+		staticFS, err := fs.Sub(content, "static")
+		if err != nil {
+			return err
+		}
+		http.Handle("/", http.FileServer(http.FS(staticFS)))
+	} else {
+		http.HandleFunc("/", s.HandleNoUi)
 	}
-
-	http.Handle("/", http.FileServer(http.FS(staticFS)))
 	http.HandleFunc("/api", s.Api)
 	http.HandleFunc("/api/schedule", s.ScheduleApi)
 	http.HandleFunc("/api/status", s.StatusApi)

@@ -35,7 +35,9 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 	}
 
 	scd := scheduler.NewScheduler(db, cfg)
-	srv := server.NewServer(db, scd)
+	val := "y"
+	ptr := &val
+	srv := server.NewServer(db, scd, ptr)
 
 	cleanup := func() {
 		scd.Stop()

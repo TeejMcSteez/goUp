@@ -9,12 +9,18 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
 func main() {
 	configPath := flag.String("config", "services.yml", "path to config file")
+	serveReact := flag.String("ui", "y", "serve frontend React file, otherwise just run API server")
 	flag.Parse()
+	serve := string([]byte(*serveReact)[0])
+	if strings.ToLower(*serveReact) != "y" && strings.ToLower(serve) != "n" {
+		log.Fatalf("UI flag must be 'y' or 'n'\nwas: %v", *serveReact)
+	}
 
 	cfg, err := utils.LoadConfig(*configPath)
 	if err != nil {
@@ -39,7 +45,7 @@ func main() {
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
 		log.Println("Starting server on port 8080")
-		if err := server.NewServer(db, sch).Start(); err != nil {
+		if err := server.NewServer(db, sch, &serve).Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", err)
 		}
 		log.Println("Server started")
