@@ -84,7 +84,7 @@ export default function DatabaseInfo() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 my-4 gap-4">
+    <div className="flex flex-col items-center justify-center p-2 sm:p-4 my-2 sm:my-4 gap-4 w-full min-w-0">
       {error ? (
         <p>Error loading database size: {error}</p>
       ) : dbSize === null ? (
@@ -103,7 +103,7 @@ export default function DatabaseInfo() {
       <button
         onClick={() => setConfirmClear(true)}
         disabled={dbSize === null}
-        className="hover:border-secondary"
+        className="hover:border-secondary w-full sm:w-auto"
       >
         Clear Database Memory
       </button>

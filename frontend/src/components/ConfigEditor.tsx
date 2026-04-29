@@ -29,12 +29,12 @@ export default function ConfigEditor() {
   );
 
   return (
-    <div className="w-full">
-      <div className="flex gap-1 mb-6 border-b border-border pb-2">
+    <div className="w-full min-w-0">
+      <div className="flex flex-wrap gap-1 mb-6 border-b border-border pb-2">
         {SECTIONS.map((s) => (
           <button
             key={s.id}
-            className={`px-6 py-2 border-none text-[0.9rem] font-medium cursor-pointer rounded-lg transition-all duration-200 hover:text-fg hover:bg-elevated hover:translate-y-0 ${
+            className={`px-3 sm:px-6 py-2 border-none text-[0.9rem] font-medium cursor-pointer rounded-lg transition-all duration-200 hover:text-fg hover:bg-elevated hover:translate-y-0 ${
               activeSection === s.id
                 ? "text-primary bg-elevated"
                 : "bg-transparent text-muted"

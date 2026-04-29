@@ -76,8 +76,8 @@ export default function Update() {
           Current: {schedule.timespan} {schedule.interval}
         </p>
       )}
-      <form className="flex flex-row p-4 m-4 items-center justify-center text-center gap-4 flex-wrap">
-        <label htmlFor="timespan">Timespan: {timespan}</label>
+      <form className="flex flex-col sm:flex-row p-4 items-center justify-center text-center gap-4 w-full flex-wrap">
+        <label htmlFor="timespan" className="whitespace-nowrap">Timespan: {timespan}</label>
         <input
           id="timespan"
           type="range"
@@ -86,14 +86,15 @@ export default function Update() {
           value={timespan}
           onChange={(e) => setTimespan(Number(e.target.value))}
           required
+          className="w-full sm:w-auto"
         />
-        <label htmlFor="selectTimespan">interval</label>
+        <label htmlFor="selectTimespan" className="whitespace-nowrap">interval</label>
         <select
           name="timespans"
           id="selectTimespan"
           value={intervalUnit}
           onChange={(e) => setIntervalUnit(e.target.value)}
-          className="flex items-center justify-center text-center rounded-lg p-2"
+          className="flex items-center justify-center text-center rounded-lg p-2 w-full sm:w-auto"
         >
           <option value="seconds">Seconds</option>
           <option value="minutes">Minutes</option>

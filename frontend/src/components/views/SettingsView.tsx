@@ -6,7 +6,7 @@ import DisplaySettings from "../DisplaySettings";
 
 export default function SettingsView() {
   return (
-    <div className="settings-view">
+    <div className="w-full max-w-full overflow-x-hidden">
       <Island title="Update Schedule">
         <Update />
       </Island>
