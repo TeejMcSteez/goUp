@@ -77,7 +77,9 @@ export default function Update() {
         </p>
       )}
       <form className="flex flex-col sm:flex-row p-4 items-center justify-center text-center gap-4 w-full flex-wrap">
-        <label htmlFor="timespan" className="whitespace-nowrap">Timespan: {timespan}</label>
+        <label htmlFor="timespan" className="whitespace-nowrap">
+          Timespan: {timespan}
+        </label>
         <input
           id="timespan"
           type="range"
@@ -88,7 +90,9 @@ export default function Update() {
           required
           className="w-full sm:w-auto"
         />
-        <label htmlFor="selectTimespan" className="whitespace-nowrap">interval</label>
+        <label htmlFor="selectTimespan" className="whitespace-nowrap">
+          Interval
+        </label>
         <select
           name="timespans"
           id="selectTimespan"
