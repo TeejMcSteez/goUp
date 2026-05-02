@@ -10,10 +10,18 @@ export default function DatabasePanel() {
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
   useEffect(() => {
-    fetch("/api/db/persist")
+    const controller = new AbortController();
+
+    fetch("/api/db/persist", { signal: controller.signal })
       .then((r) => r.json())
       .then((data: boolean) => setPersists(data))
-      .catch(() => setStatus({ text: "Failed to load persistence state.", error: true }));
+      .catch((err: Error) => {
+        if (err.name !== "AbortError") {
+          setStatus({ text: "Failed to load persistence state.", error: true });
+        }
+      });
+
+    return () => controller.abort();
   }, []);
 
   const handleToggle = async () => {
@@ -31,7 +39,8 @@ export default function DatabasePanel() {
       <StatusMessage message={status?.text} isError={status?.error} />
       <div className="flex gap-2 flex-wrap items-center">
         <span className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
-          Persist database: <strong>{persists === null ? "…" : persists ? "On" : "Off"}</strong>
+          Persist database:{" "}
+          <strong>{persists === null ? "…" : persists ? "On" : "Off"}</strong>
         </span>
         <button
           className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
