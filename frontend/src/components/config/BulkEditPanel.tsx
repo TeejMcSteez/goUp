@@ -64,41 +64,42 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-elevated border border-border rounded-lg">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[0.85rem]">
-          <thead>
-            <tr>
-              {cols.map((c) => (
-                <th key={c} className="text-left text-muted font-medium pb-2 pr-3 whitespace-nowrap">
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {rows.map((row, idx) => (
-              <tr key={row.key}>
-                <td className="py-2 pr-3">
-                  <input className={inputClass} value={row.Name} onChange={setCell(idx, "Name")} placeholder="Name" required />
-                </td>
-                <td className="py-2 pr-3">
-                  <input className={inputClass} value={row.URL} onChange={setCell(idx, "URL")} placeholder="https://example.com" required />
-                </td>
-                <td className="py-2 pr-3">
-                  <input className={inputClass} value={row.API_URL} onChange={setCell(idx, "API_URL")} placeholder="https://api.example.com" />
-                </td>
-                <td className="py-2 pr-3">
-                  <input className={inputClass} value={row.Valid_Responses} onChange={setCell(idx, "Valid_Responses")} placeholder="200, 201" />
-                </td>
-                <td className="py-2 pr-3">
-                  <input className={inputClass} type="number" min="0" value={row.Retry_Requests} onChange={setCell(idx, "Retry_Requests")} placeholder="3" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="flex flex-col gap-4 p-3 sm:p-4 bg-elevated border border-border rounded-lg">
+      {/* Column headers — desktop only */}
+      <div className="hidden sm:grid sm:grid-cols-[1fr_2fr_2fr_1.5fr_0.6fr] gap-2 text-muted text-[0.8rem] font-medium pb-1 border-b border-border">
+        {cols.map((c) => <span key={c}>{c}</span>)}
       </div>
+
+      <div className="flex flex-col gap-3">
+        {rows.map((row, idx) => (
+          <div
+            key={row.key}
+            className="flex flex-col gap-2 p-3 bg-surface border border-border rounded-lg sm:p-0 sm:bg-transparent sm:border-x-0 sm:border-t-0 sm:rounded-none sm:grid sm:grid-cols-[1fr_2fr_2fr_1.5fr_0.6fr] sm:gap-2 sm:items-center sm:pb-2"
+          >
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">Name</label>
+              <input className={inputClass} value={row.Name} onChange={setCell(idx, "Name")} placeholder="Name" required />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">URL</label>
+              <input className={inputClass} value={row.URL} onChange={setCell(idx, "URL")} placeholder="https://example.com" required />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">API URL</label>
+              <input className={inputClass} value={row.API_URL} onChange={setCell(idx, "API_URL")} placeholder="https://api.example.com" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">Valid Responses</label>
+              <input className={inputClass} value={row.Valid_Responses} onChange={setCell(idx, "Valid_Responses")} placeholder="200, 201" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">Retries</label>
+              <input className={inputClass} type="number" min="0" value={row.Retry_Requests} onChange={setCell(idx, "Retry_Requests")} placeholder="3" />
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex gap-2 flex-wrap">
         <button
           className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
