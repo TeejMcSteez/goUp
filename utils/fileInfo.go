@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+/*
+For regular files returns the size in bytes; system-dependent for others
+
+https://pkg.go.dev/io/fs#FileInfo.Size
+*/
 func GetDatabaseSize() (int64, error) {
 	if Current_Config.Database_Location == nil {
 		return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
@@ -27,6 +32,9 @@ func GetDatabaseSize() (int64, error) {
 	return total, nil
 }
 
+/*
+Returns last known modification time from the OS FileInfo
+*/
 func GetFileTimestamp(path string) (t time.Time, err error) {
 	file, err := os.Open(path)
 	if err != nil {
