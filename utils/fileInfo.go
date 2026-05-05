@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"errors"
+	"io/fs"
 	"log"
 	"os"
 	"time"
@@ -15,7 +17,7 @@ func GetDatabaseSize() (int64, error) {
 	for _, path := range []string{loc, loc + "-wal", loc + "-shm"} {
 		info, err := os.Stat(path)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return 0, err
