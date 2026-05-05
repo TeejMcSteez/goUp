@@ -197,7 +197,7 @@ func GetServiceEndpoints() []Service {
 	return out
 }
 
-// Sets service endpoints (for later frontend use)
+// Sets service endpoints
 func SetServiceEndpoints(validServices []Service) {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
