@@ -85,6 +85,10 @@ func scanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 
 // Gets service data from endpoints
 // Also Checks the data before returning for any bad HTTP errors
+// TODO: Think about implementing concurrent fetching
+// having a response and error group rather than sequentially fetching the data
+// would allow for a more robust fetch and anything that hangs can be handled by the OS thread
+// and not block the main fetch
 func GetServiceData() (data *ServiceResponse, retErr error) {
 	var svcResponse ServiceResponse
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
