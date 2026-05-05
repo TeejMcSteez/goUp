@@ -11,6 +11,9 @@ import (
 
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
 
 type NoServiceEndpointsError struct {
 	Message string
@@ -107,7 +110,7 @@ func GetServiceData() (data *ServiceResponse, retErr error) {
 		sd.ServiceName = endpoint.Name
 		sd.ServiceURL = endpoint.URL
 		start := time.Now()
-		res, err := http.Get(endpoint.URL)
+		res, err := httpClient.Get(endpoint.URL)
 
 		if err != nil {
 			res, err = ErrorRetry(&sd, endpoint, err)
@@ -166,7 +169,7 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 
 	apiReq.Header.Set("Content-Type", "application/json")
 
-	apiRes, apiErr := http.DefaultClient.Do(apiReq)
+	apiRes, apiErr := httpClient.Do(apiReq)
 
 	if apiErr != nil {
 		log.Printf("Error occured during API request: %v\n", apiErr)
