@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestSetupTrigger(t *testing.T) {
@@ -138,5 +139,51 @@ func TestWebhookCustomMessage(t *testing.T) {
 
 	if serviceMap["name"] != "down_service" {
 		t.Errorf("Expected service name 'down_service', got '%s'", serviceMap["name"])
+	}
+}
+
+func TestFireWithBackoff(t *testing.T) {
+	hits := make(chan struct{}, 10)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits <- struct{}{}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	backoff := "50ms"
+	cfg := &utils.Config{
+		Triggers: utils.Trigger{
+			Backoff_Period: &backoff,
+			Webhook: utils.WebhookTrigger{
+				Webhook_url: &server.URL,
+			},
+		},
+	}
+	trigger := utils.SetupTrigger(cfg)
+	data := []utils.ServiceData{{ServiceName: "svc", ServiceHTTPResponse: "200"}}
+
+	// First fire must reach the server.
+	trigger.Fire(data)
+	select {
+	case <-hits:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first Fire() never reached webhook")
+	}
+
+	// Immediate second fire must be suppressed by backoff.
+	trigger.Fire(data)
+	select {
+	case <-hits:
+		t.Error("second Fire() should have been blocked by backoff but reached webhook")
+	case <-time.After(100 * time.Millisecond):
+		// correct — nothing received within backoff window
+	}
+
+	// After the 100 ms wait above the 50 ms backoff has expired; fire again.
+	trigger.Fire(data)
+	select {
+	case <-hits:
+	case <-time.After(2 * time.Second):
+		t.Fatal("third Fire() never reached webhook after backoff expired")
 	}
 }
