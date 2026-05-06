@@ -39,6 +39,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if err := utils.Setup(utils.Current_Config); err != nil {
+			log.Printf("Warning: failed to refresh endpoints after adding service: %v", err)
+		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
 		}
@@ -56,6 +59,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if err := utils.Setup(utils.Current_Config); err != nil {
+			log.Printf("Warning: failed to refresh endpoints after updating service: %v", err)
+		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
 		}
@@ -69,6 +75,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			log.Printf("Error deleting config service: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if err := utils.Setup(utils.Current_Config); err != nil {
+			log.Printf("Warning: failed to refresh endpoints after deleting service: %v", err)
 		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
