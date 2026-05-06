@@ -12,12 +12,11 @@ func StartHotReloader(path string, ctx context.Context) {
 	if err != nil {
 		log.Printf("Failed to get file information while starting hot reloading service: %v", err)
 	}
-	// Checks for file mods every 5 seconds
-	ticker := time.NewTicker(5 * time.Second)
 
+	notify := utils.ConfigWriteNotify()
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	// Runs forever on a ticker and closes with the program
-	// Similar to the scheduler
+
 	for {
 		select {
 		case <-ticker.C:
@@ -26,22 +25,29 @@ func StartHotReloader(path string, ctx context.Context) {
 				log.Printf("Failed to get file information while reloading: %v", err)
 			}
 			if !t.Equal(initialModTime) {
-				log.Println("File change detected, reloading configuration")
-				cfg, err := utils.LoadConfig(path)
-				if err != nil {
-					log.Printf("Hot reload failed loading config: %v", err)
-					return
+				select {
+				case <-notify:
+					// Program wrote this change and already called Setup — just advance baseline.
+					log.Println("Config updated by program, skipping redundant hot reload")
+					initialModTime = t
+				default:
+					// External edit — do the full reload.
+					log.Println("File change detected, reloading configuration")
+					cfg, err := utils.LoadConfig(path)
+					if err != nil {
+						log.Printf("Hot reload failed loading config: %v", err)
+						return
+					}
+					if err := utils.Setup(cfg); err != nil {
+						log.Printf("Hot reload failed: %v", err)
+						return
+					}
+					initialModTime = t
 				}
-				if err := utils.Setup(cfg); err != nil {
-					log.Printf("Hot reload failed: %v", err)
-					return
-				}
-				initialModTime = t
 			}
 		case <-ctx.Done():
 			log.Println("Reloader Worker recieved termination signal")
 			return
 		}
 	}
-
 }
