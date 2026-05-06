@@ -361,3 +361,221 @@ triggers:
 		t.Fatal("Webhook is nil or invalid")
 	}
 }
+
+func TestLoadConfigMissingFile(t *testing.T) {
+	path := "./missing_config_test.yml"
+	defer func() {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove generated config: %v", err)
+		}
+	}()
+
+	cfg, err := utils.LoadConfig(path)
+	if err != nil {
+		t.Fatalf("LoadConfig with missing file returned error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("Expected default config, got nil")
+	}
+	if cfg.Services == nil {
+		t.Error("Expected default Services map to be initialised, got nil")
+	}
+	if cfg.Database_Location == nil || *cfg.Database_Location == "" {
+		t.Error("Expected default Database_Location to be set")
+	}
+
+	// File must have been written so a second load succeeds without error.
+	cfg2, err := utils.LoadConfig(path)
+	if err != nil {
+		t.Fatalf("Second LoadConfig on generated file failed: %v", err)
+	}
+	if cfg2 == nil {
+		t.Fatal("Expected config on second load, got nil")
+	}
+}
+
+func TestUpdateConfigServiceRename(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  old-name:
+    url: "https://example.com"
+    retry: 2
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, cleanupDB := setupTestDB(t)
+	defer cleanupDB()
+
+	updated := utils.Service{Name: "new-name", URL: "https://example.com"}
+	if err := utils.UpdateConfigService(conf, "old-name", updated, db); err != nil {
+		t.Fatalf("UpdateConfigService failed: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+
+	if _, exists := conf.Services["old-name"]; exists {
+		t.Error("Old service name still present after rename")
+	}
+	if _, exists := conf.Services["new-name"]; !exists {
+		t.Error("New service name not found after rename")
+	}
+	if len(conf.Services) != 1 {
+		t.Errorf("Expected 1 service after rename, got %d", len(conf.Services))
+	}
+}
+
+func TestUpdateConfigServiceInPlace(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  my-svc:
+    url: "https://old.example.com"
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, cleanupDB := setupTestDB(t)
+	defer cleanupDB()
+
+	updated := utils.Service{Name: "my-svc", URL: "https://new.example.com"}
+	if err := utils.UpdateConfigService(conf, "my-svc", updated, db); err != nil {
+		t.Fatalf("UpdateConfigService failed: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+
+	svc, exists := conf.Services["my-svc"]
+	if !exists {
+		t.Fatal("Service not found after in-place update")
+	}
+	if svc.URL != "https://new.example.com" {
+		t.Errorf("Expected updated URL, got %q", svc.URL)
+	}
+}
+
+func TestUpdateConfigServiceNotFound(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  existing:
+    url: "https://example.com"
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, cleanupDB := setupTestDB(t)
+	defer cleanupDB()
+
+	err = utils.UpdateConfigService(conf, "does-not-exist", utils.Service{Name: "x", URL: "https://x.com"}, db)
+	if err == nil {
+		t.Fatal("Expected error for non-existent service, got nil")
+	}
+}
+
+func TestUpdateConfigSchedule(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	state := utils.ScheduleState{Span: 15, Interval: "minutes"}
+	if err := utils.UpdateConfigSchedule(conf, state); err != nil {
+		t.Fatalf("UpdateConfigSchedule failed: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+
+	if conf.Schedule == nil {
+		t.Fatal("Schedule is nil after update")
+	}
+	if conf.Schedule.Span != 15 {
+		t.Errorf("Expected Span 15, got %d", conf.Schedule.Span)
+	}
+	if conf.Schedule.Interval != "minutes" {
+		t.Errorf("Expected Interval 'minutes', got %q", conf.Schedule.Interval)
+	}
+}
+
+func TestReadConfigDatabasePersistence(t *testing.T) {
+	conf := &utils.Config{}
+	if utils.ReadConfigDatabasePersistence(conf) {
+		t.Error("Expected false when Persist_db is nil")
+	}
+
+	b := true
+	conf.Persist_db = &b
+	if !utils.ReadConfigDatabasePersistence(conf) {
+		t.Error("Expected true when Persist_db is true")
+	}
+}
+
+func TestUpdateConfigDatabasePersistence(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	// nil → true
+	if err := utils.UpdateConfigDatabasePersistence(conf); err != nil {
+		t.Fatalf("First toggle failed: %v", err)
+	}
+	if conf.Persist_db == nil || !*conf.Persist_db {
+		t.Error("Expected Persist_db true after first toggle")
+	}
+
+	// true → false
+	if err := utils.UpdateConfigDatabasePersistence(conf); err != nil {
+		t.Fatalf("Second toggle failed: %v", err)
+	}
+	if conf.Persist_db == nil || *conf.Persist_db {
+		t.Error("Expected Persist_db false after second toggle")
+	}
+
+	// Verify persisted to disk.
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+	if conf.Persist_db == nil || *conf.Persist_db {
+		t.Error("Expected Persist_db false on disk after two toggles")
+	}
+}
