@@ -292,13 +292,13 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 	return nil
 }
 
-func DbGarbageCollect(db *sql.DB) error {
-	if Current_Config == nil {
+func DbGarbageCollect(db *sql.DB, conf *Config) error {
+	if conf == nil {
 		return fmt.Errorf("no config loaded")
 	}
 
-	names := make([]any, 0, len(Current_Config.Services))
-	for name := range Current_Config.Services {
+	names := make([]any, 0, len(conf.Services))
+	for name := range conf.Services {
 		names = append(names, name)
 	}
 

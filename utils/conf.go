@@ -114,7 +114,7 @@ func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.
 	if err := writeConfig(conf); err != nil {
 		return err
 	}
-	return DbGarbageCollect(db)
+	return DbGarbageCollect(db, conf)
 }
 
 func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) error {
@@ -138,7 +138,7 @@ func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) er
 	if err := writeConfig(config); err != nil {
 		return err
 	}
-	return DbGarbageCollect(db)
+	return DbGarbageCollect(db, config)
 }
 
 func DeleteConfigMQTT(config *Config) error {
