@@ -10,6 +10,15 @@ import (
 
 var Current_Config *Config
 
+// programmaticWrite is signalled by writeConfig so the hot reloader can
+// distinguish program-initiated writes from external file edits.
+var programmaticWrite = make(chan struct{}, 1)
+
+// ConfigWriteNotify returns the channel the hot reloader should listen on.
+func ConfigWriteNotify() <-chan struct{} {
+	return programmaticWrite
+}
+
 /*
 Parses yml file for service information
 */
@@ -57,6 +66,10 @@ func writeConfig(conf *Config) error {
 	}
 	if err := os.WriteFile(conf.ConfigPath, data, 0644); err != nil {
 		return err
+	}
+	select {
+	case programmaticWrite <- struct{}{}:
+	default:
 	}
 	return nil
 }
