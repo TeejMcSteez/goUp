@@ -18,7 +18,9 @@ export default function QuickServices() {
         } else if (data === null) {
           setQs([]);
         } else {
-          console.error(`Expected array from /api/status, got: ${String(data)}`);
+          console.error(
+            `Expected array from /api/status, got: ${String(data)}`,
+          );
         }
         setError(null);
       } catch (err) {
@@ -32,6 +34,11 @@ export default function QuickServices() {
     return () => clearInterval(intervalId);
   }, []);
 
+  function navToServices() {
+    window.dispatchEvent(
+      new CustomEvent("goup:navigate", { detail: "services" }),
+    );
+  }
   const content =
     qs.length === 0 ? (
       <a
@@ -42,7 +49,8 @@ export default function QuickServices() {
       </a>
     ) : (
       <a
-        href="#cards"
+        href="#"
+        onClick={() => navToServices()}
         className="no-underline text-center text-lg text-fg px-6 py-2 rounded-lg transition-colors duration-200 hover:bg-hover"
       >
         {qs.length} Errors Detected ❌
