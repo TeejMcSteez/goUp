@@ -50,7 +50,7 @@ func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	default:
-		http.Error(w, "Bad request", http.StatusInternalServerError)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 }
