@@ -61,6 +61,10 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 		&s.ServiceHTTPResponse,
 		&s.ServiceAPIResponse,
 		&s.ServiceResponseTime,
+		/*
+		 * timestamp buffer is taken in as string
+		 * Formatted to RFC3339Nano timestamp on insert
+		 */
 		&tBuff,
 		&s.Error,
 	)
