@@ -88,6 +88,11 @@ type ServiceResponse struct {
 	DownServices []ServiceData `json:"downed_services"`
 }
 
+type ServiceResponseTime struct {
+	Svc          Service `json:"service"`
+	ResponseTime string  `json:"response_time"`
+}
+
 // Shared paramters used in scheduler
 type ScheduleParameters struct {
 	Span     *int
