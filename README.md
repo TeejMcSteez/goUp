@@ -14,6 +14,20 @@ This application does not include built-in authentication and is designed for us
 
 Development focusing on security may arise but is not planned hence this warning
 
+## Building
+
+Requires a Node package manager (npm, pnpm, yarn, or bun) and the [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`).
+
+The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
+
+| Target | Description |
+|--------|-------------|
+| `make` / `make all` | Generate API docs, build frontend, then compile the Go binary |
+| `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
+| `make build` | Build the frontend then compile the Go binary (`./goUp`) |
+| `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
+| `make clean` | Remove the compiled binary and generated docs directory |
+
 ## AI Disclosure
 
 Portions of this project were generated with the assistance of AI tools.
