@@ -12,7 +12,7 @@ PM := $(shell \
   elif command -v bun  >/dev/null 2>&1; then echo bun;  \
   else echo npm; fi)
 
-.PHONY: all docs build test clean
+.PHONY: all docs build fmt lint test clean
 
 all: docs build
 
@@ -22,6 +22,12 @@ docs:
 build:
 	cd frontend && $(PM) run build
 	go build -o $(BINARY) .
+
+fmt:
+	golangci-lint fmt ./...
+
+lint:
+	golangci-lint run ./...
 
 test:
 	go test ./... -cover
