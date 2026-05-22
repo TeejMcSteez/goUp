@@ -192,7 +192,7 @@ func TestGetResponseTimes(t *testing.T) {
 
 	index := map[string]utils.ServiceResponseTime{}
 	for _, r := range results {
-		index[r.Svc.Name] = r
+		index[r.Svc.ServiceName] = r
 	}
 
 	for _, td := range testData {
@@ -205,8 +205,8 @@ func TestGetResponseTimes(t *testing.T) {
 			t.Errorf("service %q: ResponseTime = %q, want %q (not the HTTP status %q)",
 				td.ServiceName, r.ResponseTime, td.ServiceResponseTime, td.ServiceHTTPResponse)
 		}
-		if r.Svc.URL != td.ServiceURL {
-			t.Errorf("service %q: URL = %q, want %q", td.ServiceName, r.Svc.URL, td.ServiceURL)
+		if r.Svc.ServiceURL != td.ServiceURL {
+			t.Errorf("service %q: URL = %q, want %q", td.ServiceName, r.Svc.ServiceURL, td.ServiceURL)
 		}
 	}
 }

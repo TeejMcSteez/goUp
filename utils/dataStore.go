@@ -229,7 +229,7 @@ func GetResponseTimes(db *sql.DB) (svcRespTimes []ServiceResponseTime, retErr er
 		if err != nil {
 			return nil, err
 		}
-		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: Service{Name: s.ServiceName, URL: s.ServiceURL}, ResponseTime: s.ServiceResponseTime})
+		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
 	}
 	return svcRespTimes, retErr
 }
