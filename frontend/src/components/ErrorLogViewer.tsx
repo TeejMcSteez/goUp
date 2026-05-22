@@ -26,7 +26,9 @@ export default function ErrorLogViewer() {
           <option value={100}>100</option>
           <option value={0}>All</option>
         </select>
-        <label htmlFor="error-sort" className="ml-4">Sort by date: </label>
+        <label htmlFor="error-sort" className="ml-4">
+          Sort by date:{" "}
+        </label>
         <select
           id="error-sort"
           value={sortOrder}
@@ -37,14 +39,17 @@ export default function ErrorLogViewer() {
           <option value="asc">Oldest first</option>
         </select>
       </div>
-      <div className="max-h-[400px] overflow-y-auto pr-4 scrollbar-custom">
+      <div className="max-h-100 overflow-y-auto pr-4 scrollbar-custom">
         {error ? (
           <p>Error loading error logs: {error}</p>
         ) : loading && !errors ? (
           <p>Loading errors...</p>
         ) : errors && errors.length > 0 ? (
           errors.map((errorItem) => (
-            <div key={`${errorItem.name}-${errorItem.timestamp}`} className="p-4 border-b border-border last:border-b-0">
+            <div
+              key={`${errorItem.name}-${errorItem.timestamp}`}
+              className="p-4 border-b border-border last:border-b-0"
+            >
               <div className="flex justify-between items-center mb-2 text-[1.1rem]">
                 <strong>{formatName(errorItem.name)}</strong>
                 <span className="text-[0.9rem] text-muted">
@@ -58,7 +63,7 @@ export default function ErrorLogViewer() {
                 {errorItem.data && (
                   <p className="my-2">
                     <strong>Data:</strong>{" "}
-                    <pre className="bg-hover p-2 rounded whitespace-pre-wrap break-words">
+                    <pre className="bg-hover p-2 rounded whitespace-pre-wrap wrap-break-words">
                       {errorItem.data}
                     </pre>
                   </p>
