@@ -211,6 +211,29 @@ func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData,
 	return sd, retErr
 }
 
+// Gets response time for each service
+// Returns { service: response_time }
+func GetResponseTimes(db *sql.DB) (svcRespTimes []ServiceResponseTime, retErr error) {
+	statement := "SELECT * FROM service_data;"
+	row, err := db.Query(statement)
+	if err != nil {
+		return svcRespTimes, err
+	}
+	defer func() {
+		if err := row.Close(); err != nil {
+			retErr = err
+		}
+	}()
+	for row.Next() {
+		_, s, err := scanServiceDataRow(row)
+		if err != nil {
+			return nil, err
+		}
+		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: Service{Name: s.ServiceName, URL: s.ServiceURL}, ResponseTime: s.ServiceResponseTime})
+	}
+	return svcRespTimes, retErr
+}
+
 // Clears all table information from service_data and reclaims unused pages
 func ClearDatabase(db *sql.DB) (retErr error) {
 
