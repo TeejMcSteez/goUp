@@ -89,8 +89,8 @@ type ServiceResponse struct {
 }
 
 type ServiceResponseTime struct {
-	Svc          Service `json:"service"`
-	ResponseTime string  `json:"response_time"`
+	Svc          ServiceData `json:"service_data"`
+	ResponseTime string      `json:"response_time"`
 }
 
 // Shared paramters used in scheduler
