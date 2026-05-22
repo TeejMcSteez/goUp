@@ -1,0 +1,586 @@
+basePath: /
+definitions:
+  server.ServiceUpdatePayload:
+    properties:
+      old_name:
+        type: string
+      service:
+        $ref: '#/definitions/utils.Service'
+    type: object
+  utils.AverageData:
+    properties:
+      average:
+        type: number
+      name:
+        type: string
+    type: object
+  utils.ConfigData:
+    properties:
+      mqtt:
+        $ref: '#/definitions/utils.MQTTTrigger'
+      services:
+        additionalProperties:
+          $ref: '#/definitions/utils.Service'
+        type: object
+      webhook:
+        $ref: '#/definitions/utils.WebhookTrigger'
+    type: object
+  utils.DatabaseSizePayload:
+    properties:
+      size_string:
+        type: integer
+    type: object
+  utils.MQTTTrigger:
+    properties:
+      mqtt_broker:
+        type: string
+      mqtt_key:
+        type: string
+      mqtt_username:
+        type: string
+    type: object
+  utils.ScheduleState:
+    properties:
+      interval:
+        type: string
+      timespan:
+        type: integer
+    type: object
+  utils.Service:
+    properties:
+      api_KEY:
+        type: string
+      api_URL:
+        type: string
+      name:
+        type: string
+      retry_Requests:
+        type: integer
+      url:
+        type: string
+      valid_Responses:
+        items:
+          type: string
+        type: array
+    type: object
+  utils.ServiceData:
+    properties:
+      data:
+        type: string
+      error:
+        type: boolean
+      name:
+        type: string
+      response:
+        type: string
+      response_time:
+        type: string
+      timestamp:
+        type: string
+      url:
+        type: string
+    type: object
+  utils.ServiceResponse:
+    properties:
+      downed_services:
+        items:
+          $ref: '#/definitions/utils.ServiceData'
+        type: array
+      services:
+        items:
+          $ref: '#/definitions/utils.ServiceData'
+        type: array
+    type: object
+  utils.ServiceResponseTime:
+    properties:
+      response_time:
+        type: string
+      service_data:
+        $ref: '#/definitions/utils.ServiceData'
+    type: object
+  utils.WebhookTrigger:
+    properties:
+      custom_message:
+        type: string
+      webhook_key_string:
+        description: |-
+          Can use any authorization header string
+          Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
+        type: string
+      webhook_url:
+        type: string
+    type: object
+host: localhost:8101
+info:
+  contact: {}
+  description: REST API for monitoring service uptime, response times, and managing
+    configuration.
+  title: goUp API
+  version: "1.0"
+paths:
+  /api:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/utils.ServiceData'
+            type: array
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get all recent service data
+      tags:
+      - data
+  /api/config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.ConfigData'
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get full configuration
+      tags:
+      - config
+  /api/config/mqtt:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: MQTT config (POST only)
+        in: body
+        name: mqtt
+        schema:
+          $ref: '#/definitions/utils.MQTTTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove MQTT trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: MQTT config (POST only)
+        in: body
+        name: mqtt
+        schema:
+          $ref: '#/definitions/utils.MQTTTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove MQTT trigger configuration
+      tags:
+      - config
+  /api/config/service:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service definition (POST and DELETE)
+        in: body
+        name: service
+        schema:
+          $ref: '#/definitions/utils.Service'
+      - description: Old name + new service definition (PUT)
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/server.ServiceUpdatePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Add, update, or delete a monitored service
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service definition (POST and DELETE)
+        in: body
+        name: service
+        schema:
+          $ref: '#/definitions/utils.Service'
+      - description: Old name + new service definition (PUT)
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/server.ServiceUpdatePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Add, update, or delete a monitored service
+      tags:
+      - config
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service definition (POST and DELETE)
+        in: body
+        name: service
+        schema:
+          $ref: '#/definitions/utils.Service'
+      - description: Old name + new service definition (PUT)
+        in: body
+        name: payload
+        schema:
+          $ref: '#/definitions/server.ServiceUpdatePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Add, update, or delete a monitored service
+      tags:
+      - config
+  /api/config/webhook:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Webhook config (POST only)
+        in: body
+        name: webhook
+        schema:
+          $ref: '#/definitions/utils.WebhookTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove webhook trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Webhook config (POST only)
+        in: body
+        name: webhook
+        schema:
+          $ref: '#/definitions/utils.WebhookTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove webhook trigger configuration
+      tags:
+      - config
+  /api/db/clear:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Clear all data from the database
+      tags:
+      - database
+  /api/db/persist:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: persistence enabled (GET) or empty body (POST)
+          schema:
+            type: boolean
+        "400":
+          description: invalid method
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or toggle database persistence
+      tags:
+      - database
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: persistence enabled (GET) or empty body (POST)
+          schema:
+            type: boolean
+        "400":
+          description: invalid method
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or toggle database persistence
+      tags:
+      - database
+  /api/db/size:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.DatabaseSizePayload'
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get database file size
+      tags:
+      - database
+  /api/errors:
+    get:
+      parameters:
+      - description: Max number of results (0 = all)
+        in: query
+        name: limit
+        type: integer
+      - description: Sort order (asc or desc)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/utils.ServiceData'
+            type: array
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get error log entries
+      tags:
+      - data
+  /api/rt:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/utils.ServiceResponseTime'
+            type: array
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get response time history for all services
+      tags:
+      - data
+  /api/schedule:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Schedule to set (POST only)
+        in: body
+        name: schedule
+        schema:
+          $ref: '#/definitions/utils.ScheduleState'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: current schedule (GET) or {updated:true} (POST)
+          schema:
+            $ref: '#/definitions/utils.ScheduleState'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or update the polling schedule
+      tags:
+      - schedule
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Schedule to set (POST only)
+        in: body
+        name: schedule
+        schema:
+          $ref: '#/definitions/utils.ScheduleState'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: current schedule (GET) or {updated:true} (POST)
+          schema:
+            $ref: '#/definitions/utils.ScheduleState'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or update the polling schedule
+      tags:
+      - schedule
+  /api/status:
+    get:
+      description: Returns all currently down services.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.ServiceResponse'
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get current service status
+      tags:
+      - data
+  /api/uptime:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/utils.AverageData'
+            type: array
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get uptime averages for all services
+      tags:
+      - data
+schemes:
+- http
+swagger: "2.0"
