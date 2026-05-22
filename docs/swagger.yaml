@@ -239,6 +239,10 @@ paths:
           description: bad request
           schema:
             type: string
+        "409":
+          description: conflict
+          schema:
+            type: string
         "500":
           description: internal server error
           schema:
@@ -273,6 +277,10 @@ paths:
           description: bad request
           schema:
             type: string
+        "409":
+          description: conflict
+          schema:
+            type: string
         "500":
           description: internal server error
           schema:
@@ -305,6 +313,10 @@ paths:
             type: object
         "400":
           description: bad request
+          schema:
+            type: string
+        "409":
+          description: conflict
           schema:
             type: string
         "500":
