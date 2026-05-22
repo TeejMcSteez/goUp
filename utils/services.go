@@ -86,66 +86,43 @@ func scanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 	return newEndpoints
 }
 
-// Gets service data from endpoints
-// Also Checks the data before returning for any bad HTTP errors
-// TODO: Think about implementing concurrent fetching
-// having a response and error group rather than sequentially fetching the data
-// would allow for a more robust fetch and anything that hangs can be handled by the OS thread
-// and not block the main fetch
-func GetServiceData() (data *ServiceResponse, retErr error) {
-	var svcResponse ServiceResponse
-	if len(svcEndpoints.ServiceEndpoint) == 0 {
-		log.Println("No service endpoints found looking for config . . .")
-		err := Setup(Current_Config)
+// fetchOne performs the HTTP fetch (plus optional API fetch) for a single endpoint.
+func fetchOne(endpoint Service) ServiceData {
+	var sd ServiceData
+	sd.Timestamp = time.Now()
+	sd.ServiceName = endpoint.Name
+	sd.ServiceURL = endpoint.URL
+	start := time.Now()
+
+	res, err := httpClient.Get(endpoint.URL)
+	if err != nil {
+		res, err = ErrorRetry(&sd, endpoint, err)
 		if err != nil {
-			log.Printf("Error in in setting up config while fetching service data!\n%v", err)
-			return nil, err
+			log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
+			sd.ServiceHTTPResponse = err.Error()
+			sd.ServiceResponseTime = time.Since(start).String()
+			return sd
 		}
 	}
-
-	log.Println("Scanning services HTTP endpoints . . .")
-	for _, endpoint := range svcEndpoints.ServiceEndpoint {
-		var sd ServiceData
-		sd.Timestamp = time.Now()
-		sd.ServiceName = endpoint.Name
-		sd.ServiceURL = endpoint.URL
-		start := time.Now()
-		res, err := httpClient.Get(endpoint.URL)
-
-		if err != nil {
-			res, err = ErrorRetry(&sd, endpoint, err)
-			// If all retries fail, err will still be non-nil
-			if err != nil {
-				log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
-				sd.ServiceHTTPResponse = err.Error()
-				sd.ServiceAPIResponse = ""
-				sd.ServiceResponseTime = time.Since(start).String()
-				svcResponse.AllServices = append(svcResponse.AllServices, sd)
-				continue
-			}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("Failed to close response body: %v", err)
 		}
-		defer func() {
-			if err := res.Body.Close(); err != nil {
-				log.Printf("Failed to close response body: %v", err)
-				retErr = err
-			}
-		}()
+	}()
 
-		resType := res.StatusCode
-		sd.ServiceHTTPResponse = strconv.Itoa(resType)
-		// If their is an API URL will attempt to get data
-		if endpoint.API_URL != nil {
-			err := GetAPIData(endpoint, &sd, start)
-			if err != nil {
-				log.Printf("Error getting API data for %s: %v", endpoint.Name, err)
-				sd.Error = true
-				sd.ServiceAPIResponse = err.Error()
-			}
+	sd.ServiceHTTPResponse = strconv.Itoa(res.StatusCode)
+	if endpoint.API_URL != nil {
+		if err := GetAPIData(endpoint, &sd, start); err != nil {
+			log.Printf("Error getting API data for %s: %v", endpoint.Name, err)
+			sd.Error = true
+			sd.ServiceAPIResponse = err.Error()
 		}
-
-		if sd.ServiceResponseTime == "" {
-			sd.ServiceResponseTime = time.Since(start).String()
-		}
+	}
+	if sd.ServiceResponseTime == "" {
+		sd.ServiceResponseTime = time.Since(start).String()
+	}
+	return sd
+}
 
 		svcResponse.AllServices = append(svcResponse.AllServices, sd)
 	}
