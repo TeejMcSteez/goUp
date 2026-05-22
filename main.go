@@ -1,3 +1,11 @@
+// Package main is the entry point for the goUp service uptime monitor.
+//
+// @title goUp API
+// @version 1.0
+// @description REST API for monitoring service uptime, response times, and managing configuration.
+// @host localhost:8101
+// @BasePath /
+// @schemes http
 package main
 
 import (
