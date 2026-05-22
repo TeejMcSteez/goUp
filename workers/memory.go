@@ -49,7 +49,7 @@ func GetMaxSize() float64 {
 	if utils.Current_Config != nil {
 		if utils.Current_Config.Database_Max_Size != nil {
 			str := *utils.Current_Config.Database_Max_Size
-
+			// Must compile panics on failure
 			re := regexp.MustCompile(`^(\d+)([a-zA-Z]+)$`)
 			matches := re.FindStringSubmatch(str)
 
