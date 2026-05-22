@@ -7,7 +7,12 @@ import (
 	"net/http"
 )
 
-// Returns size of database in bytes
+// @Summary Get database file size
+// @Tags database
+// @Produce json
+// @Success 200 {object} utils.DatabaseSizePayload
+// @Failure 500 {string} string "internal server error"
+// @Router /api/db/size [get]
 func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	size, err := utils.GetDatabaseSize()
@@ -19,6 +24,14 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// @Summary Get or toggle database persistence
+// @Tags database
+// @Produce json
+// @Success 200 {boolean} bool "persistence enabled (GET) or empty body (POST)"
+// @Failure 400 {string} string "invalid method"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/db/persist [get]
+// @Router /api/db/persist [post]
 func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
@@ -38,7 +51,12 @@ func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request
 	}
 }
 
-// Clears database
+// @Summary Clear all data from the database
+// @Tags database
+// @Produce json
+// @Success 200 {object} map[string]bool
+// @Failure 500 {string} string "internal server error"
+// @Router /api/db/clear [post]
 func (s *Server) ClearDatabase(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	if err := utils.ClearDatabase(s.db); err != nil {

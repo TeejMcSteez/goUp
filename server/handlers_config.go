@@ -8,7 +8,18 @@ import (
 	"net/http"
 )
 
-// Reads all configuration data currently in memory
+// ServiceUpdatePayload is the request body for PUT /api/config/service.
+type ServiceUpdatePayload struct {
+	OldName string        `json:"old_name"`
+	Service utils.Service `json:"service"`
+}
+
+// @Summary Get full configuration
+// @Tags config
+// @Produce json
+// @Success 200 {object} utils.ConfigData
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config [get]
 func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	sData := utils.ReadConfigServices(utils.Current_Config)
@@ -24,7 +35,18 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Handles all methods for services in configuration
+// @Summary Add, update, or delete a monitored service
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param service body utils.Service false "Service definition (POST and DELETE)"
+// @Param payload body ServiceUpdatePayload false "Old name + new service definition (PUT)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/service [post]
+// @Router /api/config/service [put]
+// @Router /api/config/service [delete]
 func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
@@ -46,10 +68,7 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
 		}
 	case "PUT":
-		var payload struct {
-			OldName string        `json:"old_name"`
-			Service utils.Service `json:"service"`
-		}
+		var payload ServiceUpdatePayload
 		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -87,7 +106,16 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Handles all methods for MQTT trigger in configuration
+// @Summary Set or remove MQTT trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param mqtt body utils.MQTTTrigger false "MQTT config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/mqtt [post]
+// @Router /api/config/mqtt [delete]
 func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
@@ -119,7 +147,16 @@ func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Handles all methods for Webhook Trigger in configuration
+// @Summary Set or remove webhook trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param webhook body utils.WebhookTrigger false "Webhook config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/webhook [post]
+// @Router /api/config/webhook [delete]
 func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {

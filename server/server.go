@@ -3,10 +3,13 @@ package server
 import (
 	"database/sql"
 	"embed"
+	_ "goUp/docs"
 	scheduler "goUp/workers"
 	"io/fs"
 	"log"
 	"net/http"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Server struct {
@@ -49,6 +52,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/service", s.ConfigServiceApi)
 	http.HandleFunc("/api/config/mqtt", s.ConfigMQTTApi)
 	http.HandleFunc("/api/config/webhook", s.ConfigWebhookApi)
+	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err

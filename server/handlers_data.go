@@ -8,7 +8,12 @@ import (
 	"strconv"
 )
 
-// API handler, returns current service data from the database
+// @Summary Get all recent service data
+// @Tags data
+// @Produce json
+// @Success 200 {array} utils.ServiceData
+// @Failure 500 {string} string "internal server error"
+// @Router /api [get]
 func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 	data, err := utils.GetRecentData(s.db)
 	if err != nil {
@@ -24,9 +29,13 @@ func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Gets current status in JSON format for automated fetching
-//
-// Only accepts GET requests which will return currently down services
+// @Summary Get current service status
+// @Description Returns all currently down services.
+// @Tags data
+// @Produce json
+// @Success 200 {object} utils.ServiceResponse
+// @Failure 500 {string} string "internal server error"
+// @Router /api/status [get]
 func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -55,7 +64,12 @@ func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Gets current uptime averages from the backend
+// @Summary Get uptime averages for all services
+// @Tags data
+// @Produce json
+// @Success 200 {array} utils.AverageData
+// @Failure 500 {string} string "internal server error"
+// @Router /api/uptime [get]
 func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
@@ -83,7 +97,14 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Gets all service data which has errored
+// @Summary Get error log entries
+// @Tags data
+// @Produce json
+// @Param limit query int false "Max number of results (0 = all)"
+// @Param sort query string false "Sort order (asc or desc)"
+// @Success 200 {array} utils.ServiceData
+// @Failure 500 {string} string "internal server error"
+// @Router /api/errors [get]
 func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	param := req.URL.Query().Get("limit")
@@ -110,7 +131,12 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Gets all service response times
+// @Summary Get response time history for all services
+// @Tags data
+// @Produce json
+// @Success 200 {array} utils.ServiceResponseTime
+// @Failure 500 {string} string "internal server error"
+// @Router /api/rt [get]
 func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := utils.GetResponseTimes(s.db)

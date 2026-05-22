@@ -6,13 +6,16 @@ import (
 	"net/http"
 )
 
-// Schedule API handler
-//
-// POST: Will try to parse request body as JSON and update the current schedule, will respond with a boolean.
-//
-// GET: Gets current schedule information and returns as JSON
-//
-// Any other method gets a bad request response
+// @Summary Get or update the polling schedule
+// @Tags schedule
+// @Accept json
+// @Produce json
+// @Param schedule body utils.ScheduleState false "Schedule to set (POST only)"
+// @Success 200 {object} utils.ScheduleState "current schedule (GET) or {updated:true} (POST)"
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/schedule [get]
+// @Router /api/schedule [post]
 func (s *Server) ScheduleApi(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "POST":
