@@ -168,6 +168,49 @@ func TestGetRecentData(t *testing.T) {
 	}
 }
 
+func TestGetResponseTimes(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	testData := []utils.ServiceData{
+		{ServiceName: "alpha", ServiceURL: "https://alpha.com", ServiceHTTPResponse: "200", ServiceResponseTime: "12ms"},
+		{ServiceName: "beta", ServiceURL: "https://beta.com", ServiceHTTPResponse: "503", ServiceResponseTime: "340ms"},
+	}
+	for _, sd := range testData {
+		if err := utils.InsertData(db, sd); err != nil {
+			t.Fatalf("InsertData failed: %v", err)
+		}
+	}
+
+	results, err := utils.GetResponseTimes(db)
+	if err != nil {
+		t.Fatalf("GetResponseTimes failed: %v", err)
+	}
+	if len(results) != len(testData) {
+		t.Fatalf("Expected %d results, got %d", len(testData), len(results))
+	}
+
+	index := map[string]utils.ServiceResponseTime{}
+	for _, r := range results {
+		index[r.Svc.Name] = r
+	}
+
+	for _, td := range testData {
+		r, ok := index[td.ServiceName]
+		if !ok {
+			t.Errorf("Missing entry for service %q", td.ServiceName)
+			continue
+		}
+		if r.ResponseTime != td.ServiceResponseTime {
+			t.Errorf("service %q: ResponseTime = %q, want %q (not the HTTP status %q)",
+				td.ServiceName, r.ResponseTime, td.ServiceResponseTime, td.ServiceHTTPResponse)
+		}
+		if r.Svc.URL != td.ServiceURL {
+			t.Errorf("service %q: URL = %q, want %q", td.ServiceName, r.Svc.URL, td.ServiceURL)
+		}
+	}
+}
+
 func TestClearDatabaseVacuums(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
