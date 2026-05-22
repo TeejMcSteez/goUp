@@ -43,6 +43,7 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 // @Param payload body ServiceUpdatePayload false "Old name + new service definition (PUT)"
 // @Success 200 {object} map[string]bool
 // @Failure 400 {string} string "bad request"
+// @Failure 409 {string} string "conflict"
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/service [post]
 // @Router /api/config/service [put]
@@ -54,6 +55,11 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 		var service utils.Service
 		if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		_, valid := utils.Current_Config.Services[service.URL]
+		if !valid {
+			http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
 			return
 		}
 		if err := utils.AddConfigService(utils.Current_Config, service); err != nil {
