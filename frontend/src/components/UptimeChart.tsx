@@ -10,14 +10,21 @@ import {
 } from "chart.js";
 import useUptimeData from "../hooks/useUptimeData";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+);
 
 export default function UptimeChart() {
   const { data: chartData, loading, error } = useUptimeData();
 
   if (error) {
     return (
-      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
+      <div className="w-full flex items-center justify-center p-4 min-h-100">
         <p>Could not load chart: {error}</p>
       </div>
     );
@@ -25,7 +32,7 @@ export default function UptimeChart() {
 
   if (loading && !chartData) {
     return (
-      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
+      <div className="w-full flex items-center justify-center p-4 min-h-100">
         <p>Loading chart...</p>
       </div>
     );
@@ -33,14 +40,14 @@ export default function UptimeChart() {
 
   if (!chartData) {
     return (
-      <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
+      <div className="w-full flex items-center justify-center p-4 min-h-100">
         <p>No chart data available</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full flex items-center justify-center p-4 min-h-[400px]">
+    <div className="w-full flex items-center justify-center p-4 min-h-100">
       <Bar
         data={chartData}
         options={{
