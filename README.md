@@ -6,9 +6,13 @@ The frontend is built with [React](https://react.dev/) and [Vite](https://vite.d
 
 The entire frontend directory is embedded directly into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
 
+**READ BELOW**
+
 This application does not include built-in authentication and is designed for use within a LAN or trusted networks:
 1. Developing authentication solutions was not a primary focus, as it falls outside the scope of this project's initial intent.
 2. The goal is to avoid imposing a specific authentication solution on users.
+
+Development focusing on security may arise but is not planned hence this warning
 
 ## AI Disclosure
 
@@ -23,7 +27,9 @@ This seperates the concern for this codebase and reduces binary size as well as 
 
 ## Example services.yml
 
-The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. When shrinking the database the system switches off WAL mode so the row deletion (and VACUUM) happens on disk then switches back into WAL mode for concurrent read/writes.
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. 
+
+When shrinking the database the system switches off WAL mode so the row deletion (and VACUUM) happens on disk then switches back into WAL mode for concurrent read/writes.
 
 One can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
@@ -121,6 +127,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server	coverage: 31.9% of statements
-- goUp/utils	coverage: 57.4% of statements
-- goUp/workers	coverage: 66.4% of statements
+- goUp/server	coverage: 29.4% of statements
+- goUp/utils	coverage: 67.9% of statements
+- goUp/workers	coverage: 65.2% of statements
