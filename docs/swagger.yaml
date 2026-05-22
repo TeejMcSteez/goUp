@@ -443,7 +443,8 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Get database file size
+      summary: Get database file size in bytes for regular files; system-dependent
+        for others https://pkg.go.dev/io/fs#FileInfo.Size
       tags:
       - database
   /api/errors:

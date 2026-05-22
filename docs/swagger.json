@@ -506,7 +506,7 @@
                 "tags": [
                     "database"
                 ],
-                "summary": "Get database file size",
+                "summary": "Get database file size in bytes for regular files; system-dependent for others https://pkg.go.dev/io/fs#FileInfo.Size",
                 "responses": {
                     "200": {
                         "description": "OK",
