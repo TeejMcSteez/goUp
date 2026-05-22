@@ -124,13 +124,37 @@ func fetchOne(endpoint Service) ServiceData {
 	return sd
 }
 
-		svcResponse.AllServices = append(svcResponse.AllServices, sd)
-	}
-	if svcResponse.DownServices, retErr = Check(svcResponse.AllServices); retErr != nil {
-		return nil, retErr
+// GetServiceData fetches all service endpoints concurrently and returns the results.
+func GetServiceData() (*ServiceResponse, error) {
+	if len(svcEndpoints.ServiceEndpoint) == 0 {
+		log.Println("No service endpoints found looking for config . . .")
+		if err := Setup(Current_Config); err != nil {
+			log.Printf("Error setting up config while fetching service data!\n%v", err)
+			return nil, err
+		}
 	}
 
-	return &svcResponse, retErr
+	endpoints := svcEndpoints.ServiceEndpoint
+	results := make([]ServiceData, len(endpoints))
+	var wg sync.WaitGroup
+
+	log.Println("Scanning services HTTP endpoints . . .")
+	for i, ep := range endpoints {
+		wg.Add(1)
+		go func(i int, ep Service) {
+			defer wg.Done()
+			results[i] = fetchOne(ep)
+		}(i, ep)
+	}
+	wg.Wait()
+
+	var svcResponse ServiceResponse
+	svcResponse.AllServices = results
+	var err error
+	if svcResponse.DownServices, err = Check(svcResponse.AllServices); err != nil {
+		return nil, err
+	}
+	return &svcResponse, nil
 }
 
 // Gets API data
