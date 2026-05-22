@@ -64,6 +64,17 @@ export interface Schedule {
   interval: string;
 }
 
+export interface ResponseTimeEntry {
+  service_data: {
+    name: string;
+    url: string;
+    response: string;
+    response_time: string;
+    error: boolean;
+  };
+  response_time: string;
+}
+
 export interface DbSizeResponse {
   size?: number;
   size_string?: string;
