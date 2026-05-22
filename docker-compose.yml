@@ -6,7 +6,7 @@ services:
     ports:
       - "8101:8101"
     volumes:
-      - goup-config:/app/config
+      - ./config:/app/config
       - goup-data:/app/data
       # Optional: Remove the line below to store configuration file in the image volume
       - ./services.yml:/app/config/services.yml
