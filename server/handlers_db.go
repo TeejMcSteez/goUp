@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-// @Summary Get database file size
+// @Summary Get database file size in bytes for regular files; system-dependent for others https://pkg.go.dev/io/fs#FileInfo.Size
 // @Tags database
 // @Produce json
 // @Success 200 {object} utils.DatabaseSizePayload
