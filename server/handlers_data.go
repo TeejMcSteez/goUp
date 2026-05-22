@@ -104,8 +104,25 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding error data to json: %v", err)
 		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
+			http.Error(w, "Failed to encode error data to json", http.StatusInternalServerError)
+		}
+		return
+	}
+}
+
+// Gets all service response times
+func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	data, err := utils.GetResponseTimes(s.db)
+	if err != nil {
+		log.Printf("Error occured getting response time data from database: %v", err)
+		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
 			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
 		}
 		return
+	}
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding error data to json: %v", err)
+		http.Error(w, "failed to encode data to json", http.StatusInternalServerError)
 	}
 }
