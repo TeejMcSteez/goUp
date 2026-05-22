@@ -14,6 +14,10 @@ This application does not include built-in authentication and is designed for us
 
 Development focusing on security may arise but is not planned hence this warning
 
+## API
+
+A full interactive API reference is available at `/swagger/index.html` when the server is running. Run `make docs` to regenerate it after modifying handler annotations.
+
 ## Building
 
 Requires a Node package manager (npm, pnpm, yarn, or bun) and the [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`).
@@ -25,6 +29,8 @@ The Makefile auto-detects the package manager by matching the existing lock file
 | `make` / `make all` | Generate API docs, build frontend, then compile the Go binary |
 | `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
 | `make build` | Build the frontend then compile the Go binary (`./goUp`) |
+| `make fmt` | Format Go source files via `golangci-lint fmt` |
+| `make lint` | Lint Go source files via `golangci-lint run` |
 | `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
 | `make clean` | Remove the compiled binary and generated docs directory |
 
