@@ -57,10 +57,11 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		_, valid := utils.Current_Config.Services[service.URL]
-		if !valid {
-			http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
-			return
+		for _, svc := range utils.Current_Config.Services {
+			if svc.URL == service.URL {
+				http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
+				return
+			}
 		}
 		if err := utils.AddConfigService(utils.Current_Config, service); err != nil {
 			log.Printf("Error adding config service: %v", err)
