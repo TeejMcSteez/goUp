@@ -355,3 +355,334 @@ func TestNewServer_NotNil(t *testing.T) {
 		t.Error("Expected NewServer to return a non-nil server")
 	}
 }
+
+// setupTestEnvWithConfig is like setupTestEnv but also writes a temp config file
+// so handlers that call writeConfig (config mutations) don't fail on empty ConfigPath.
+func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, func()) {
+	t.Helper()
+	dbPath := "./test_server_cfg.db"
+	cfgFile, err := os.CreateTemp("", "goup-test-*.yml")
+	if err != nil {
+		t.Fatalf("Failed to create temp config file: %v", err)
+	}
+	cfgPath := cfgFile.Name()
+	cfgFile.Close()
+
+	cfg := &utils.Config{
+		Database_Location: &dbPath,
+		ConfigPath:        cfgPath,
+		Schedule:          &utils.ScheduleState{Span: 60, Interval: "seconds"},
+		Services: map[string]utils.Service{
+			"test_service": {Name: "test_service", URL: "http://example.com"},
+		},
+	}
+	utils.Current_Config = cfg
+	utils.SetServiceEndpoints([]utils.Service{
+		{Name: "test_service", URL: "http://example.com"},
+	})
+
+	db, err := utils.InitDB()
+	if err != nil {
+		t.Fatalf("Failed to init test DB: %v", err)
+	}
+
+	scd := scheduler.NewScheduler(db, cfg)
+	val := "y"
+	srv := server.NewServer(db, scd, &val)
+
+	cleanup := func() {
+		scd.Stop()
+		db.Close()
+		os.Remove(dbPath)
+		os.Remove(cfgPath)
+		utils.Current_Config = nil
+		utils.SetServiceEndpoints([]utils.Service{})
+	}
+	return db, scd, srv, cleanup
+}
+
+// --- GetResponseTimes ---
+
+func TestGetResponseTimes_ReturnsJSON(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/rt", nil)
+	w := httptest.NewRecorder()
+
+	srv.GetResponseTimes(w, req)
+
+	res := w.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Expected application/json, got %s", ct)
+	}
+}
+
+// --- UptimeAPI ---
+
+func TestUptimeAPI_InvalidMethod(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/uptime", nil)
+	w := httptest.NewRecorder()
+
+	srv.UptimeAPI(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+// --- GetDatabasePersistence ---
+
+func TestGetDatabasePersistence_Get(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/db/persist", nil)
+	w := httptest.NewRecorder()
+
+	srv.GetDatabasePersistence(w, req)
+
+	res := w.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", res.StatusCode)
+	}
+	var val bool
+	if err := json.NewDecoder(res.Body).Decode(&val); err != nil {
+		t.Errorf("Failed to decode persistence response: %v", err)
+	}
+}
+
+func TestGetDatabasePersistence_Post(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/db/persist", nil)
+	w := httptest.NewRecorder()
+
+	srv.GetDatabasePersistence(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestGetDatabasePersistence_InvalidMethod(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/db/persist", nil)
+	w := httptest.NewRecorder()
+
+	srv.GetDatabasePersistence(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+// --- ConfigServiceApi ---
+
+func TestConfigServiceApi_Post_AddsService(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	body := `{"name":"new_svc","url":"http://new.example.com"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/config/service", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ConfigServiceApi(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigServiceApi_Post_InvalidJSON(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/config/service", strings.NewReader("not json"))
+	w := httptest.NewRecorder()
+
+	srv.ConfigServiceApi(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigServiceApi_Put_UpdatesService(t *testing.T) {
+	db, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	body := `{"old_name":"test_service","service":{"name":"test_service","url":"http://updated.example.com"}}`
+	req := httptest.NewRequest(http.MethodPut, "/api/config/service", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ConfigServiceApi(w, req)
+
+	_ = db
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigServiceApi_Delete_RemovesService(t *testing.T) {
+	db, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	body := `{"name":"test_service","url":"http://example.com"}`
+	req := httptest.NewRequest(http.MethodDelete, "/api/config/service", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ConfigServiceApi(w, req)
+
+	_ = db
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigServiceApi_InvalidMethod(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/config/service", nil)
+	w := httptest.NewRecorder()
+
+	srv.ConfigServiceApi(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+// --- ConfigMQTTApi ---
+
+func TestConfigMQTTApi_Post_SetsMQTT(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	broker := "tcp://broker.example.com:1883"
+	user := "user"
+	key := "pass"
+	body := `{"mqtt_broker":"` + broker + `","mqtt_user":"` + user + `","mqtt_key":"` + key + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/config/mqtt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ConfigMQTTApi(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigMQTTApi_Delete_RemovesMQTT(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	// Seed MQTT config first so there is something to delete.
+	postBody := `{"mqtt_broker":"tcp://broker.example.com:1883","mqtt_user":"u","mqtt_key":"k"}`
+	postReq := httptest.NewRequest(http.MethodPost, "/api/config/mqtt", strings.NewReader(postBody))
+	postReq.Header.Set("Content-Type", "application/json")
+	srv.ConfigMQTTApi(httptest.NewRecorder(), postReq)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/config/mqtt", nil)
+	w := httptest.NewRecorder()
+	srv.ConfigMQTTApi(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigMQTTApi_InvalidMethod(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/config/mqtt", nil)
+	w := httptest.NewRecorder()
+
+	srv.ConfigMQTTApi(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+// --- ConfigWebhookApi ---
+
+func TestConfigWebhookApi_Post_SetsWebhook(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	body := `{"webhook_url":"http://hook.example.com","webhook_key":"Bearer token123"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/config/webhook", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	srv.ConfigWebhookApi(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigWebhookApi_Delete_RemovesWebhook(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnvWithConfig(t)
+	defer cleanup()
+
+	// Seed webhook config first so there is something to delete.
+	postBody := `{"webhook_url":"http://hook.example.com","webhook_key":"Bearer token123"}`
+	postReq := httptest.NewRequest(http.MethodPost, "/api/config/webhook", strings.NewReader(postBody))
+	postReq.Header.Set("Content-Type", "application/json")
+	srv.ConfigWebhookApi(httptest.NewRecorder(), postReq)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/config/webhook", nil)
+	w := httptest.NewRecorder()
+	srv.ConfigWebhookApi(w, req)
+
+	if w.Result().StatusCode != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Result().StatusCode)
+	}
+}
+
+func TestConfigWebhookApi_InvalidMethod(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/api/config/webhook", nil)
+	w := httptest.NewRecorder()
+
+	srv.ConfigWebhookApi(w, req)
+
+	if w.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d", w.Result().StatusCode)
+	}
+}
+
+// --- HandleNoUi ---
+
+func TestHandleNoUi_ReturnsNotImplemented(t *testing.T) {
+	_, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+
+	srv.HandleNoUi(w, req)
+
+	if w.Result().StatusCode != http.StatusNotImplemented {
+		t.Errorf("Expected 501, got %d", w.Result().StatusCode)
+	}
+}
