@@ -40,10 +40,6 @@ func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 }
 
 // Returns max size set in config in bytes or 1 gigabyte as default size
-//
-// Might be slow to use float64 as this is a lot of headroom
-// 32 bit machines will have to spend more compute to handle these float64 operations
-// However, it will be up to debate as I want it to be accurate and don't use any 32 bit machines
 func GetMaxSize() float64 {
 	const GB = 1 * 1e9
 	if utils.Current_Config != nil {
