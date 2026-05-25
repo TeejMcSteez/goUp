@@ -12,7 +12,7 @@ PM := $(shell \
   elif command -v bun  >/dev/null 2>&1; then echo bun;  \
   else echo npm; fi)
 
-.PHONY: all docs build fmt lint test clean
+.PHONY: all docs build fmt lint test clean prof
 
 all: docs build
 
@@ -32,6 +32,13 @@ lint:
 test:
 	go test ./... -cover
 
+prof:
+	mkdir -p perf
+	go test -benchmem -cpuprofile=perf/server.cpu.out -memprofile=perf/server.mem.out ./server
+	go test -benchmem -cpuprofile=perf/utils.cpu.out  -memprofile=perf/utils.mem.out  ./utils
+	go test -benchmem -cpuprofile=perf/workers.cpu.out -memprofile=perf/workers.mem.out ./workers
+
 clean:
 	rm -f $(BINARY)
-	rm -rf docs
+	rm -rf perf
+	rm -f server.test utils.test workers.test
