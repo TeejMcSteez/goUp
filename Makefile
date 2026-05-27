@@ -14,7 +14,7 @@ PM := $(shell \
 
 .PHONY: all docs build fmt lint test clean prof
 
-all: docs build
+all: docs lint fmt test build
 
 docs:
 	$(SWAG) init -g main.go -o docs
