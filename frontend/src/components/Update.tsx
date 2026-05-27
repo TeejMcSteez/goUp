@@ -12,9 +12,7 @@ export default function Update() {
     try {
       setLoading(true);
       const res = await fetch("/api/schedule");
-      if (!res.ok) {
-        throw new Error("Could not get schedule data");
-      }
+      if (!res.ok) throw new Error("Could not get schedule data");
       const json: Schedule = await res.json();
       setSchedule(json);
       setTimespan(json.timespan);
@@ -36,12 +34,8 @@ export default function Update() {
     try {
       const req = await fetch("/api/schedule", {
         method: "POST",
-        body: JSON.stringify({
-          timespan: Number(timespan),
-          interval: intervalUnit,
-        }),
+        body: JSON.stringify({ timespan: Number(timespan), interval: intervalUnit }),
       });
-
       if (!req.ok) {
         alert("Update failed!");
         return;
@@ -54,62 +48,69 @@ export default function Update() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center">
-        <p>Loading schedule...</p>
+      <div className="flex items-center justify-center p-6">
+        <div className="w-5 h-5 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center">
-        <h3>Failed to get schedule!</h3>
-        <p>{error}</p>
+      <div className="flex flex-col items-center justify-center gap-2 p-6">
+        <p className="text-error text-sm font-medium">Failed to load schedule</p>
+        <p className="text-muted text-xs">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col gap-4 p-4">
       {schedule && (
-        <p>
-          Current: {schedule.timespan} {schedule.interval}
+        <p className="text-sm text-muted text-center">
+          Current: <span className="text-fg font-medium">{schedule.timespan} {schedule.interval}</span>
         </p>
       )}
-      <form className="flex flex-col sm:flex-row p-4 items-center justify-center text-center gap-4 w-full flex-wrap">
-        <label htmlFor="timespan" className="whitespace-nowrap">
-          Timespan: {timespan}
-        </label>
-        <input
-          id="timespan"
-          type="range"
-          min="1"
-          max="60"
-          value={timespan}
-          onChange={(e) => setTimespan(Number(e.target.value))}
-          required
-          className="w-full sm:w-auto"
-        />
-        <label htmlFor="selectTimespan" className="whitespace-nowrap">
-          Interval
-        </label>
-        <select
-          name="timespans"
-          id="selectTimespan"
-          value={intervalUnit}
-          onChange={(e) => setIntervalUnit(e.target.value)}
-          className="flex items-center justify-center text-center rounded-lg p-2 w-full sm:w-auto"
-        >
-          <option value="seconds">Seconds</option>
-          <option value="minutes">Minutes</option>
-          <option value="hours">Hours</option>
-        </select>
-      </form>
+
+      <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+        <div className="flex flex-col gap-1 w-full sm:flex-1">
+          <label htmlFor="timespan" className="text-xs text-muted">
+            Timespan: <span className="text-fg font-medium">{timespan}</span>
+          </label>
+          <input
+            id="timespan"
+            type="range"
+            min="1"
+            max="60"
+            value={timespan}
+            onChange={(e) => setTimespan(Number(e.target.value))}
+            required
+            className="w-full accent-primary"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <label htmlFor="selectTimespan" className="text-xs text-muted">
+            Interval
+          </label>
+          <select
+            name="timespans"
+            id="selectTimespan"
+            value={intervalUnit}
+            onChange={(e) => setIntervalUnit(e.target.value)}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg w-full sm:w-auto"
+          >
+            <option value="seconds">Seconds</option>
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+          </select>
+        </div>
+      </div>
+
       <button
-        className="flex items-center justify-center gap-4 w-full max-w-[600px] mx-auto text-center rounded-2xl p-4 hover:-translate-y-[5px] hover:border-primary"
         onClick={handleUpdateSchedule}
+        className="w-full rounded-lg border border-border px-4 py-2 text-sm font-medium text-fg transition-colors hover:border-primary hover:text-primary"
       >
-        Update
+        Update Schedule
       </button>
     </div>
   );
