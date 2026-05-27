@@ -39,10 +39,16 @@ export default function QuickServices() {
       new CustomEvent("goup:navigate", { detail: "services" }),
     );
   }
+  function navToOverview() {
+    window.dispatchEvent(
+      new CustomEvent("goup:navigate", { detail: "overview" }),
+    );
+  }
   const content =
     qs.length === 0 ? (
       <a
         href="#cards"
+        onClick={() => navToOverview()}
         className="no-underline text-center text-lg text-fg px-6 py-2 rounded-lg transition-colors duration-200 hover:bg-hover"
       >
         All Systems Operational ✅
