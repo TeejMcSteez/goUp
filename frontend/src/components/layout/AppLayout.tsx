@@ -155,6 +155,15 @@ export default function AppLayout() {
         e.preventDefault();
         handleTabChange(KEY_MAP[e.key]);
       }
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const views = Object.values(KEY_MAP);
+        const current = views.indexOf(activeTab);
+        if (e.key === "ArrowLeft") {
+          handleTabChange(views[(current - 1 + views.length) % views.length]);
+        } else {
+          handleTabChange(views[(current + 1) % views.length]);
+        }
+      }
     };
 
     const handleNavigate = (e: Event) =>
@@ -166,7 +175,7 @@ export default function AppLayout() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("goup:navigate", handleNavigate);
     };
-  }, [handleTabChange]);
+  }, [handleTabChange, activeTab]);
 
   const ActiveView = VIEWS[activeTab] ?? OverviewView;
 
@@ -182,10 +191,11 @@ export default function AppLayout() {
       >
         <ChunkErrorBoundary resetKey={serverDown}>
           <Suspense fallback={SPINNER}>
-            {serverDown
-              ? <ServerDownBanner networkOnline={networkOnline} />
-              : <ActiveView />
-            }
+            {serverDown ? (
+              <ServerDownBanner networkOnline={networkOnline} />
+            ) : (
+              <ActiveView />
+            )}
           </Suspense>
         </ChunkErrorBoundary>
       </main>
