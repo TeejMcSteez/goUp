@@ -12,10 +12,6 @@ function QuickStats({ services, error }: QuickStatsProps) {
   const totalServices = services.length;
   const errorServices = services.filter((s) => s.error).length;
   const operationalServices = totalServices - errorServices;
-  const uptimePercentage =
-    totalServices > 0
-      ? ((operationalServices / totalServices) * 100).toFixed(1)
-      : 0;
 
   if (error) {
     return <p>Error loading stats: {error}</p>;
@@ -25,19 +21,19 @@ function QuickStats({ services, error }: QuickStatsProps) {
     <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-8">
       <div className="text-center p-6 bg-elevated rounded-xl border border-border">
         <h3 className="m-0 mb-2 text-muted">Total Services</h3>
-        <p className="text-[2rem] font-bold m-0 text-primary">{totalServices}</p>
+        <p className="text-[2rem] font-bold m-0 text-primary">
+          {totalServices}
+        </p>
       </div>
       <div className="text-center p-6 bg-elevated rounded-xl border border-border">
         <h3 className="m-0 mb-2 text-muted">Operational</h3>
-        <p className="text-[2rem] font-bold m-0 text-success">{operationalServices}</p>
+        <p className="text-[2rem] font-bold m-0 text-success">
+          {operationalServices}
+        </p>
       </div>
       <div className="text-center p-6 bg-elevated rounded-xl border border-border">
         <h3 className="m-0 mb-2 text-muted">Errors</h3>
         <p className="text-[2rem] font-bold m-0 text-error">{errorServices}</p>
-      </div>
-      <div className="text-center p-6 bg-elevated rounded-xl border border-border">
-        <h3 className="m-0 mb-2 text-muted">Uptime</h3>
-        <p className="text-[2rem] font-bold m-0 text-primary">{uptimePercentage}%</p>
       </div>
     </div>
   );
@@ -74,10 +70,14 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
               {formatName(service.name)}
             </a>
           </h4>
-          <p className={`m-0 text-sm ${service.error ? "text-error" : "text-success"}`}>
+          <p
+            className={`m-0 text-sm ${service.error ? "text-error" : "text-success"}`}
+          >
             {service.error ? "❌ Error" : "✅ Operational"}
           </p>
-          <p className="mt-1 mb-0 text-sm text-muted">{service.response_time}</p>
+          <p className="mt-1 mb-0 text-sm text-muted">
+            {service.response_time}
+          </p>
         </div>
       ))}
     </div>
