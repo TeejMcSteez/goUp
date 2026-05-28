@@ -171,9 +171,18 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
                       {s.response_time}
                     </span>
                   )}
-                  <span className="text-xs text-error bg-error/15 px-2 py-1 rounded-full font-medium">
+                  <a
+                    className="cursor-pointer text-xs text-error bg-error/15 px-2 py-1 rounded-full font-medium"
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent("goup:navigate", {
+                          detail: "services",
+                        }),
+                      )
+                    }
+                  >
                     Error
-                  </span>
+                  </a>
                 </div>
               </div>
             ))}
