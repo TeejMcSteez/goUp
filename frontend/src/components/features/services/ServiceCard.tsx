@@ -16,7 +16,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
 
   return (
     <div
-      className={`bg-surface rounded-xl p-6 flex flex-col gap-3 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-[5px] hover:shadow-lg border-l-4 border border-border ${
+      className={`bg-surface rounded-xl p-6 flex flex-col gap-3 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1.25 hover:shadow-lg border-l-4 border border-border ${
         error
           ? "hover:border-error border-l-error"
           : "hover:border-primary border-l-primary"
@@ -70,7 +70,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       </div>
 
       {isLongHttpResponse && showFullHttpResponse && (
-        <div className="min-h-0 max-h-[150px] overflow-y-auto bg-error/10 border border-error/30 rounded-lg p-3 text-sm text-error break-words scrollbar-custom">
+        <div className="min-h-0 max-h-37.5 overflow-y-auto bg-error/10 border border-error/30 rounded-lg p-3 text-sm text-error wrap-break-words scrollbar-custom">
           {response}
         </div>
       )}
@@ -84,7 +84,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       </button>
 
       {showApiResponse && (
-        <div className="min-h-0 max-h-[200px] overflow-y-auto bg-hover p-4 rounded-lg text-sm text-muted whitespace-pre-wrap break-words scrollbar-custom">
+        <div className="min-h-0 max-h-50 overflow-y-auto bg-hover p-4 rounded-lg text-sm text-muted whitespace-pre-wrap wrap-break-words scrollbar-custom">
           {data ?? "No API setup in configuration"}
         </div>
       )}

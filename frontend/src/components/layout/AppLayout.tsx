@@ -156,6 +156,10 @@ export default function AppLayout() {
         handleTabChange(KEY_MAP[e.key]);
       }
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        if (activeTab === "settings") return;
+        const tag = (document.activeElement as HTMLElement)?.tagName;
+        const editable = (document.activeElement as HTMLElement)?.isContentEditable;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || editable) return;
         const views = Object.values(KEY_MAP);
         const current = views.indexOf(activeTab);
         if (e.key === "ArrowLeft") {
