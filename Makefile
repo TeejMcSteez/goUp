@@ -12,9 +12,13 @@ PM := $(shell \
   elif command -v bun  >/dev/null 2>&1; then echo bun;  \
   else echo npm; fi)
 
-.PHONY: all docs build fmt lint test clean prof
+.PHONY: all docs build fmt lint test clean prof dev
 
 all: docs lint fmt test build
+
+dev:
+	cd frontend && $(PM) run build
+	go run .
 
 docs:
 	$(SWAG) init -g main.go -o docs
