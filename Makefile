@@ -31,6 +31,7 @@ fmt:
 	golangci-lint fmt ./...
 
 lint:
+	cd frontend && $(PM) lint && cd ../
 	golangci-lint run ./...
 
 test:
