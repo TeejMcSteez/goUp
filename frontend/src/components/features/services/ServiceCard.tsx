@@ -84,7 +84,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       </button>
 
       {showApiResponse && (
-        <div className="min-h-0 max-h-[200px] overflow-y-auto bg-hover p-4 rounded-lg text-sm text-muted whitespace-pre-wrap break-words scrollbar-custom">
+        <div className="min-h-0 max-h-50 overflow-y-auto bg-hover p-4 rounded-lg text-sm text-muted whitespace-pre-wrap wrap-break-words scrollbar-custom">
           {data ?? "No API setup in configuration"}
         </div>
       )}
