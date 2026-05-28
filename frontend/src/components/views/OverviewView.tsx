@@ -44,6 +44,14 @@ interface MiniServiceGridProps {
   error: string | null;
 }
 
+function parseMs(rt?: string): number | null {
+  if (!rt) return null;
+  const match = rt.match(/([\d.]+)\s*(ms|s)/i);
+  if (!match) return null;
+  const val = parseFloat(match[1]);
+  return match[2].toLowerCase() === "s" ? val * 1000 : val;
+}
+
 function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
   const { formatName } = useServiceName();
 
@@ -51,35 +59,127 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
     return <p>Error loading services: {error}</p>;
   }
 
-  const errorServices = services.filter((s) => s.error);
-  const displayServices = errorServices.length > 0 ? errorServices : services;
+  if (!services.length) {
+    return <p className="text-muted">No services to display.</p>;
+  }
+
+  const errored = services.filter((s) => s.error);
+  const operational = services.filter((s) => !s.error);
+
+  const timed = services
+    .map((s) => ({ service: s, ms: parseMs(s.response_time) }))
+    .filter((x): x is { service: Service; ms: number } => x.ms !== null)
+    .sort((a, b) => a.ms - b.ms);
+
+  const fastest = timed[0];
+  const slowest = timed[timed.length - 1];
+  const hasDistinctSlowest =
+    slowest && fastest && slowest.service.name !== fastest.service.name;
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
-      {displayServices.map((service) => (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
-          key={service.name}
-          className={`p-4 bg-elevated rounded-lg border border-l-4 ${
-            service.error
-              ? "border-error border-l-error"
-              : "border-success border-l-success"
+          className={`p-5 rounded-xl border ${
+            errored.length > 0
+              ? "bg-error/10 border-error/30"
+              : "bg-success/10 border-success/30"
           }`}
         >
-          <h4 className="m-0 mb-2">
-            <a href={service.url} target="_blank" rel="noreferrer">
-              {formatName(service.name)}
-            </a>
-          </h4>
+          <span className="text-xs uppercase tracking-wider font-medium text-muted">
+            System Health
+          </span>
           <p
-            className={`m-0 text-sm ${service.error ? "text-error" : "text-success"}`}
+            className={`text-2xl font-bold mt-2 mb-1 ${
+              errored.length > 0 ? "text-error" : "text-success"
+            }`}
           >
-            {service.error ? "❌ Error" : "✅ Operational"}
+            {errored.length > 0
+              ? `${errored.length} Error${errored.length > 1 ? "s" : ""}`
+              : "All Clear"}
           </p>
-          <p className="mt-1 mb-0 text-sm text-muted">
-            {service.response_time}
+          <p className="text-sm text-muted m-0">
+            {operational.length}/{services.length} operational
           </p>
         </div>
-      ))}
+
+        {fastest && (
+          <div className="p-5 rounded-xl border bg-elevated border-border">
+            <span className="text-xs uppercase tracking-wider font-medium text-muted">
+              Fastest Response
+            </span>
+            <p className="text-lg font-bold mt-2 mb-1 text-fg">
+              <a
+                href={fastest.service.url}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-primary transition-colors"
+              >
+                {formatName(fastest.service.name)}
+              </a>
+            </p>
+            <p className="text-sm font-semibold text-primary m-0">
+              {fastest.service.response_time}
+            </p>
+          </div>
+        )}
+
+        {hasDistinctSlowest && (
+          <div className="p-5 rounded-xl border bg-elevated border-border">
+            <span className="text-xs uppercase tracking-wider font-medium text-muted">
+              Slowest Response
+            </span>
+            <p className="text-lg font-bold mt-2 mb-1 text-fg">
+              <a
+                href={slowest.service.url}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-secondary transition-colors"
+              >
+                {formatName(slowest.service.name)}
+              </a>
+            </p>
+            <p className="text-sm font-semibold text-secondary m-0">
+              {slowest.service.response_time}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {errored.length > 0 && (
+        <div className="p-5 rounded-xl border border-error/30 bg-error/5">
+          <span className="text-xs uppercase tracking-wider font-medium text-muted mb-3 block">
+            Services with Errors
+          </span>
+          <div className="flex flex-col">
+            {errored.map((s) => (
+              <div
+                key={s.name}
+                className="flex items-center justify-between py-3 border-b border-error/15 last:border-0"
+              >
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-fg hover:text-primary transition-colors"
+                >
+                  {formatName(s.name)}
+                </a>
+                <div className="flex items-center gap-3">
+                  {s.response_time && (
+                    <span className="text-xs text-muted">
+                      {s.response_time}
+                    </span>
+                  )}
+                  <span className="text-xs text-error bg-error/15 px-2 py-1 rounded-full font-medium">
+                    Error
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
