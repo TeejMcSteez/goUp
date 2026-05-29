@@ -1,12 +1,14 @@
 import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName";
 import { ServiceCardProps } from "../../../types.ts";
+import useServiceIcon from "../../../hooks/useServiceIcon.ts";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
   const { url, name, response, response_time, data, error } = service;
   const { formatName } = useServiceName();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
+  const iconUrl = useServiceIcon({ service });
 
   const isLongHttpResponse = error && response && response.length > 3;
 
@@ -19,7 +21,8 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="m-0 text-fg font-semibold text-lg leading-tight">
+        <h3 className="m-0 text-fg font-semibold text-lg leading-tight flex items-center gap-2">
+          <img src={iconUrl} alt="" className="w-4 h-4 rounded-sm shrink-0" />
           <a href={url} target="_blank" rel="noreferrer">
             {formatName(name)}
           </a>
