@@ -84,3 +84,7 @@ export interface StatusMessage {
   text: string;
   error: boolean;
 }
+
+export interface ServiceCardProps {
+  service: Service;
+}

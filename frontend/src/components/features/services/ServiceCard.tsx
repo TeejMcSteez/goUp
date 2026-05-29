@@ -1,10 +1,6 @@
 import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName";
-import type { Service } from "../../../types";
-
-interface ServiceCardProps {
-  service: Service;
-}
+import { ServiceCardProps } from "../../../types.ts";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
   const { url, name, response, response_time, data, error } = service;
