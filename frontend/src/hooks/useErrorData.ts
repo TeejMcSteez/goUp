@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { ErrorItem } from "../types";
+import { POLL_RATE } from "../constants";
 
 export default function useErrorData(limit = 100, sortOrder = "desc") {
   const fetchErrors = useCallback(async (): Promise<ErrorItem[]> => {
@@ -12,5 +13,5 @@ export default function useErrorData(limit = 100, sortOrder = "desc") {
     return (data as ErrorItem[]) || [];
   }, [limit, sortOrder]);
 
-  return usePolling(fetchErrors, 5000);
+  return usePolling(fetchErrors, POLL_RATE);
 }

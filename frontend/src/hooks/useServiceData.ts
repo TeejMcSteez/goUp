@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { Service } from "../types";
+import { POLL_RATE } from "../constants";
 
 export default function useServiceData() {
   const fetchServices = useCallback(async (): Promise<Service[]> => {
@@ -17,5 +18,5 @@ export default function useServiceData() {
     }
   }, []);
 
-  return usePolling(fetchServices, 5000);
+  return usePolling(fetchServices, POLL_RATE);
 }

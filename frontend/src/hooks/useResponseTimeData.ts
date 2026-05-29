@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { ResponseTimeEntry, UptimeChartData } from "../types";
+import { POLL_RATE } from "../constants";
 
 // Parses Go duration strings (e.g. "12ms", "1.5s", "1m2.3s") to milliseconds.
 function parseDurationMs(d: string): number {
@@ -76,5 +77,5 @@ export default function useResponseTimeData() {
     };
   }, []);
 
-  return usePolling(fetchData, 10000);
+  return usePolling(fetchData, POLL_RATE);
 }
