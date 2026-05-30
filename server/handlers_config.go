@@ -14,6 +14,11 @@ type ServiceUpdatePayload struct {
 	Service utils.Service `json:"service"`
 }
 
+// Used as the response for GET request
+type DatabaseSizePayload struct {
+	Size string `json:"db_max_size"`
+}
+
 // @Summary Get full configuration
 // @Tags config
 // @Produce json
@@ -32,6 +37,59 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 		log.Printf("Error encoding configuration data to json: %v", err)
 		http.Error(w, "Server Error: Failed to parse config data", 500)
 		return
+	}
+}
+
+// @Summary Get the configured database max size
+// @Tags config
+// @Produce json
+// @Success 200 {object} DatabaseSizePayload
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/size [get]
+func (s *Server) configDatabaseGet(w http.ResponseWriter, _ *http.Request) {
+	size, err := utils.ReadDatabaseSize(utils.Current_Config)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(DatabaseSizePayload{Size: size}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// @Summary Update the database max size
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param db_max_size body DatabaseSizePayload true "Size string (e.g. 1kb, 2mb, 3gb)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/size [post]
+func (s *Server) configDatabasePost(w http.ResponseWriter, req *http.Request) {
+	var data DatabaseSizePayload
+	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := utils.UpdateDatabaseSize(utils.Current_Config, data.Size); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+		http.Error(w, "Failed to write message", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) ConfigDatabaseApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "GET":
+		s.configDatabaseGet(w, req)
+	case "POST":
+		s.configDatabasePost(w, req)
+	default:
+		http.Error(w, "Bad method", http.StatusBadRequest)
 	}
 }
 

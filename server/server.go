@@ -52,6 +52,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/service", s.ConfigServiceApi)
 	http.HandleFunc("/api/config/mqtt", s.ConfigMQTTApi)
 	http.HandleFunc("/api/config/webhook", s.ConfigWebhookApi)
+	http.HandleFunc("/api/config/size", s.ConfigDatabaseApi)
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 	log.Println("Starting server at http://localhost:8101/ . . .")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
