@@ -106,6 +106,7 @@ Schema:
 ```sql
 "id" INTEGER PRIMARY KEY AUTOINCREMENT,
 "service_name" TEXT,
+"service_description" TEXT,
 "service_HTTP_response" TEXT,
 "service_API_response" TEXT,
 "timestamp" TEXT,
@@ -149,5 +150,5 @@ With this in mind below are the current coverages of the code found by running `
 
 - goUp coverage: 0.0% of statements
 - goUp/server	coverage: 52.7% of statements
-- goUp/utils	coverage: 68.9% of statements
+- goUp/utils	coverage: 68.0% of statements
 - goUp/workers	coverage: 65.2% of statements
