@@ -3,7 +3,11 @@ package utils
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -72,6 +76,58 @@ func writeConfig(conf *Config) error {
 	default:
 	}
 	return nil
+}
+
+func UpdateDatabaseSize(conf *Config, newSize string) error {
+	_, err := GetSizeFromString(newSize)
+	if err != nil {
+		return err
+	}
+	if newSize == *conf.Database_Max_Size {
+		return fmt.Errorf("new size is equal to current size no change needed")
+	}
+	conf.Database_Max_Size = &newSize
+	return writeConfig(conf)
+}
+
+func GetSizeFromString(str string) (float64, error) {
+
+	re, err := regexp.Compile(`^(\d+)([a-zA-Z]+)$`)
+	if err != nil {
+		return 0, err
+	}
+	matches := re.FindStringSubmatch(str)
+
+	if len(matches) != 3 {
+		log.Printf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
+		return GB, nil
+	}
+
+	number, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		log.Printf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
+		return GB, nil
+	}
+	sizeUnit := strings.ToLower(matches[2])
+
+	switch sizeUnit {
+	case "kb":
+		if number < 4 {
+			log.Print("Database size must be at least 4KB, returning 4KB.\n")
+			return 4 * 1000, nil
+		}
+		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		return number * 1000, nil
+	case "mb":
+		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		return number * 1e6, nil
+	case "gb":
+		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		return number * 1e9, nil
+	default:
+		log.Printf("Invalid size unit: %s. Defaulting to 1GB.", sizeUnit)
+		return GB, nil
+	}
 }
 
 func AddConfigService(conf *Config, newEndpoint Service) error {
