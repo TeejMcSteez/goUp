@@ -100,13 +100,13 @@ func GetSizeFromString(str string) (float64, error) {
 
 	if len(matches) != 3 {
 		log.Printf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
-		return GB, nil
+		return GB, fmt.Errorf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
 	}
 
 	number, err := strconv.ParseFloat(matches[1], 64)
 	if err != nil {
 		log.Printf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
-		return GB, nil
+		return GB, fmt.Errorf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
 	}
 	sizeUnit := strings.ToLower(matches[2])
 
@@ -114,7 +114,7 @@ func GetSizeFromString(str string) (float64, error) {
 	case "kb":
 		if number < 4 {
 			log.Print("Database size must be at least 4KB, returning 4KB.\n")
-			return 4 * 1000, nil
+			return 4 * 1000, fmt.Errorf("Database size must be at least 4KB. Defaulting to 4KB")
 		}
 		log.Printf("Set max database size to: %v%v", number, sizeUnit)
 		return number * 1000, nil
@@ -126,7 +126,7 @@ func GetSizeFromString(str string) (float64, error) {
 		return number * 1e9, nil
 	default:
 		log.Printf("Invalid size unit: %s. Defaulting to 1GB.", sizeUnit)
-		return GB, fmt.Errorf("invalid size unit \"%s\" - defaulting to 1GB", sizeUnit)
+		return GB, fmt.Errorf("invalid size unit \"%s\": Defaulting to 1GB", sizeUnit)
 	}
 }
 
