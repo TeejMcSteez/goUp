@@ -155,7 +155,7 @@ export default function ServicesPanel({
                 />
               ) : (
                 <>
-                  <div className="flex flex-col gap-[2px] min-w-0">
+                  <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="font-semibold text-fg text-[0.95rem]">
                       {svc.Name ?? key}
                     </span>

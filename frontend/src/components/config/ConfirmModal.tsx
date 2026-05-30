@@ -6,9 +6,15 @@ interface ConfirmModalProps {
   onCancel: () => void;
 }
 
-export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmModalProps) {
+export default function ConfirmModal({
+  message,
+  onConfirm,
+  onCancel,
+}: ConfirmModalProps) {
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onCancel]);
@@ -19,7 +25,7 @@ export default function ConfirmModal({ message, onConfirm, onCancel }: ConfirmMo
       onClick={onCancel}
     >
       <div
-        className="bg-surface border border-border rounded-xl shadow-xl p-6 flex flex-col gap-4 min-w-[280px] max-w-sm w-full mx-4"
+        className="bg-surface border border-border rounded-xl shadow-xl p-6 flex flex-col gap-4 min-w-70 max-w-sm w-full mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-fg text-[0.95rem]">{message}</p>
