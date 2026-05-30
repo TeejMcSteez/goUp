@@ -33,6 +33,7 @@ func InitDB() (*sql.DB, error) {
 		"id" INTEGER PRIMARY KEY AUTOINCREMENT,
 		"service_url" TEXT,
 		"service_name" TEXT,
+		"service_description" TEXT,
 		"service_HTTP_response" TEXT,
 		"service_API_response" TEXT,
 		"service_response_time" TEXT,
@@ -58,6 +59,7 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 		&id,
 		&s.ServiceURL,
 		&s.ServiceName,
+		&s.ServiceDescription,
 		&s.ServiceHTTPResponse,
 		&s.ServiceAPIResponse,
 		&s.ServiceResponseTime,
@@ -79,7 +81,7 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 }
 
 func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
-	insertSQL := `INSERT INTO service_data (service_url, service_name, service_HTTP_response, service_API_response, service_response_time, timestamp, error) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	insertSQL := `INSERT INTO service_data (service_url, service_name, service_description, service_HTTP_response, service_API_response, service_response_time, timestamp, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	statement, err := db.Prepare(insertSQL)
 	if err != nil {
 		return err
@@ -90,7 +92,7 @@ func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 			retErr = err
 		}
 	}()
-	_, err = statement.Exec(sd.ServiceURL, sd.ServiceName, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
+	_, err = statement.Exec(sd.ServiceURL, sd.ServiceName, sd.ServiceDescription, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
 	if err != nil {
 		return err
 	}

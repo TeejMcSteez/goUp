@@ -92,6 +92,9 @@ func fetchOne(endpoint Service) ServiceData {
 	sd.Timestamp = time.Now()
 	sd.ServiceName = endpoint.Name
 	sd.ServiceURL = endpoint.URL
+	if endpoint.Description != nil {
+		sd.ServiceDescription = *endpoint.Description
+	}
 	start := time.Now()
 
 	res, err := httpClient.Get(endpoint.URL)

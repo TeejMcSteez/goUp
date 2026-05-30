@@ -60,6 +60,7 @@ type WebhookTrigger struct {
 type Service struct {
 	Name            string    `yaml:"-"`
 	URL             string    `yaml:"url"`
+	Description     *string   `yaml:"description"`
 	API_URL         *string   `yaml:"api_url"`
 	API_KEY         *string   `yaml:"api_key"`
 	Valid_Responses *[]string `yaml:"valid_responses"`
@@ -76,6 +77,7 @@ type ServiceEndpoints struct {
 type ServiceData struct {
 	ServiceURL          string    `json:"url"`
 	ServiceName         string    `json:"name"`
+	ServiceDescription  string    `json:"description"`
 	ServiceHTTPResponse string    `json:"response"`
 	ServiceAPIResponse  string    `json:"data"`
 	ServiceResponseTime string    `json:"response_time"`

@@ -4,6 +4,7 @@ import type { ServiceConfig } from "../../types";
 interface ServiceFormData {
   Name: string;
   URL: string;
+  Description: string;
   API_URL: string;
   Valid_Responses: string;
   Retry_Requests: string;
@@ -30,6 +31,7 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
     onSubmit({
       Name: form.Name,
       URL: form.URL,
+      ...(form.Description && { Description: form.Description }),
       ...(form.API_URL && { API_URL: form.API_URL }),
       ...(validResponses?.length && { Valid_Responses: validResponses.map(Number) }),
       ...(form.Retry_Requests && { Retry_Requests: parseInt(form.Retry_Requests) }),
@@ -52,6 +54,10 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
         <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           URL
           <input className={inputClass} value={form.URL} onChange={set("URL")} placeholder="https://example.com" required />
+        </label>
+        <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+          Description (optional)
+          <input className={inputClass} value={form.Description} onChange={set("Description")} placeholder="What this service does" />
         </label>
         <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           API URL (optional)
