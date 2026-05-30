@@ -83,7 +83,7 @@ func UpdateDatabaseSize(conf *Config, newSize string) error {
 	if err != nil {
 		return err
 	}
-	if newSize == *conf.Database_Max_Size {
+	if conf.Database_Max_Size != nil && newSize == *conf.Database_Max_Size {
 		return fmt.Errorf("new size is equal to current size no change needed")
 	}
 	conf.Database_Max_Size = &newSize
