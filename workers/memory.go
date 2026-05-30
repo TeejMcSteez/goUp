@@ -5,9 +5,6 @@ import (
 	"database/sql"
 	"goUp/utils"
 	"log"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -41,46 +38,16 @@ func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 
 // Returns max size set in config in bytes or 1 gigabyte as default size
 func GetMaxSize() float64 {
-	const GB = 1 * 1e9
 	if utils.Current_Config != nil {
 		if utils.Current_Config.Database_Max_Size != nil {
 			str := *utils.Current_Config.Database_Max_Size
-			// Must compile panics on failure
-			re := regexp.MustCompile(`^(\d+)([a-zA-Z]+)$`)
-			matches := re.FindStringSubmatch(str)
-
-			if len(matches) != 3 {
-				log.Printf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
-				return GB
-			}
-
-			number, err := strconv.ParseFloat(matches[1], 64)
+			size, err := utils.GetSizeFromString(str)
 			if err != nil {
-				log.Printf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
-				return GB
+				panic("Incorrect format, must be <decimal><a-zA-Z>")
 			}
-			sizeUnit := strings.ToLower(matches[2])
-
-			switch sizeUnit {
-			case "kb":
-				if number < 4 {
-					log.Print("Database size must be at least 4KB, returning 4KB.\n")
-					return 4 * 1000
-				}
-				log.Printf("Set max database size to: %v%v", number, sizeUnit)
-				return number * 1000
-			case "mb":
-				log.Printf("Set max database size to: %v%v", number, sizeUnit)
-				return number * 1e6
-			case "gb":
-				log.Printf("Set max database size to: %v%v", number, sizeUnit)
-				return number * 1e9
-			default:
-				log.Printf("Invalid size unit: %s. Defaulting to 1GB.", sizeUnit)
-				return GB
-			}
+			return size
 		}
 	}
 	log.Print("Database max size not set, defaulting to 1GB max size")
-	return GB
+	return utils.GB
 }
