@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { ErrorItem } from "../types";
-import { POLL_RATE } from "../constants";
+import { usePollRate } from "../context/PollRateContext";
 
 export default function useErrorData(limit = 100, sortOrder = "desc") {
+  const { pollRate } = usePollRate();
   const fetchErrors = useCallback(async (): Promise<ErrorItem[]> => {
     const res = await fetch(`/api/errors?limit=${limit}&sort=${sortOrder}`);
     if (!res.ok) {
@@ -13,5 +14,5 @@ export default function useErrorData(limit = 100, sortOrder = "desc") {
     return (data as ErrorItem[]) || [];
   }, [limit, sortOrder]);
 
-  return usePolling(fetchErrors, POLL_RATE);
+  return usePolling(fetchErrors, pollRate);
 }

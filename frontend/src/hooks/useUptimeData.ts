@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { UptimeItem, UptimeChartData } from "../types";
-import { POLL_RATE } from "../constants";
+import { usePollRate } from "../context/PollRateContext";
 
 export default function useUptimeData() {
+  const { pollRate } = usePollRate();
   const fetchUptimeData =
     useCallback(async (): Promise<UptimeChartData | null> => {
       const res = await fetch("/api/uptime");
@@ -33,5 +34,5 @@ export default function useUptimeData() {
       return null;
     }, []);
 
-  return usePolling(fetchUptimeData, POLL_RATE);
+  return usePolling(fetchUptimeData, pollRate);
 }

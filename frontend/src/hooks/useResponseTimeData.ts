@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { ResponseTimeEntry, UptimeChartData } from "../types";
-import { POLL_RATE } from "../constants";
+import { usePollRate } from "../context/PollRateContext";
 
 // Parses Go duration strings (e.g. "12ms", "1.5s", "1m2.3s") to milliseconds.
 function parseDurationMs(d: string): number {
@@ -37,6 +37,7 @@ function parseDurationMs(d: string): number {
 }
 
 export default function useResponseTimeData() {
+  const { pollRate } = usePollRate();
   const fetchData = useCallback(async (): Promise<UptimeChartData | null> => {
     const res = await fetch("/api/rt");
     if (!res.ok)
@@ -77,5 +78,5 @@ export default function useResponseTimeData() {
     };
   }, []);
 
-  return usePolling(fetchData, POLL_RATE);
+  return usePolling(fetchData, pollRate);
 }

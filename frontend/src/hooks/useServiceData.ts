@@ -1,9 +1,10 @@
 import { useCallback } from "react";
 import usePolling from "./usePolling";
 import type { Service } from "../types";
-import { POLL_RATE } from "../constants";
+import { usePollRate } from "../context/PollRateContext";
 
 export default function useServiceData() {
+  const { pollRate } = usePollRate();
   const fetchServices = useCallback(async (): Promise<Service[]> => {
     const res = await fetch("/api");
     if (!res.ok) {
@@ -18,5 +19,5 @@ export default function useServiceData() {
     }
   }, []);
 
-  return usePolling(fetchServices, POLL_RATE);
+  return usePolling(fetchServices, pollRate);
 }
