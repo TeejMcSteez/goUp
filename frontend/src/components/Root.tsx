@@ -1,5 +1,10 @@
+import { PollRateProvider } from "../context/PollRateContext";
 import AppLayout from "./layout/AppLayout";
 
 export default function Root() {
-  return <AppLayout />;
+  return (
+    <PollRateProvider>
+      <AppLayout />
+    </PollRateProvider>
+  );
 }
