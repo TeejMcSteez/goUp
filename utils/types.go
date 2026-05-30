@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const GB = 1 * 1e9
+
 // Main yaml config
 type Config struct {
 	Database_Location *string            `yaml:"db_path"`
