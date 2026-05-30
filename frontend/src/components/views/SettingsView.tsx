@@ -3,6 +3,7 @@ import Update from "../Update";
 import DatabaseInfo from "../DatabaseInfo";
 import ConfigEditor from "../ConfigEditor";
 import DisplaySettings from "../DisplaySettings";
+import RefreshSettingsView from "../RefreshSettings";
 
 export default function SettingsView() {
   return (
@@ -18,6 +19,7 @@ export default function SettingsView() {
       </Island>
       <Island title="Display">
         <DisplaySettings />
+        <RefreshSettingsView />
       </Island>
     </div>
   );
