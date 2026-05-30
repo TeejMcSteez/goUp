@@ -126,7 +126,7 @@ func GetSizeFromString(str string) (float64, error) {
 		return number * 1e9, nil
 	default:
 		log.Printf("Invalid size unit: %s. Defaulting to 1GB.", sizeUnit)
-		return GB, nil
+		return GB, fmt.Errorf("invalid size unit \"%s\" - defaulting to 1GB", sizeUnit)
 	}
 }
 
