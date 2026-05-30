@@ -253,6 +253,13 @@ func ReadConfigDatabasePersistence(config *Config) bool {
 	return *config.Persist_db
 }
 
+func ReadDatabaseSize(config *Config) (string, error) {
+	if config.Persist_db == nil {
+		return "", fmt.Errorf("Current Database size is null!")
+	}
+	return *config.Database_Max_Size, nil
+}
+
 func UpdateConfigSchedule(conf *Config, state ScheduleState) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
