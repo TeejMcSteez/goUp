@@ -1,6 +1,7 @@
 export interface Service {
   name: string;
   url: string;
+  description?: string;
   response?: string;
   response_time?: string;
   data?: string;
@@ -35,6 +36,7 @@ export interface UptimeChartData {
 export interface ServiceConfig {
   Name: string;
   URL: string;
+  Description?: string;
   API_URL?: string;
   Valid_Responses?: number[];
   Retry_Requests?: number;

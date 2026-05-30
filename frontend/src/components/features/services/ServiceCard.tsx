@@ -4,7 +4,8 @@ import { ServiceCardProps } from "../../../types.ts";
 import fallback from "../../../../static/goup.png";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
-  const { url, name, response, response_time, data, error } = service;
+  const { url, name, description, response, response_time, data, error } =
+    service;
   const { formatName } = useServiceName();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
@@ -28,7 +29,9 @@ export default function ServiceCard({ service }: ServiceCardProps) {
             src={faviconUrl}
             alt=""
             className="w-4 h-4 rounded-sm shrink-0"
-            onError={(e) => { e.currentTarget.src = fallback; }}
+            onError={(e) => {
+              e.currentTarget.src = fallback;
+            }}
           />
           <a href={url} target="_blank" rel="noreferrer">
             {formatName(name)}
@@ -44,6 +47,10 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       </div>
 
       <div className="h-px bg-border" />
+
+      <div className={description ? "flex flex-wrap" : "hidden"}>
+        <p className="text-xs">{description}</p>
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col">

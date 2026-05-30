@@ -8,6 +8,7 @@ import type { ServiceConfig, StatusMessage as StatusMsg } from "../../types";
 interface ServiceFormData {
   Name: string;
   URL: string;
+  Description: string;
   API_URL: string;
   Valid_Responses: string;
   Retry_Requests: string;
@@ -16,6 +17,7 @@ interface ServiceFormData {
 const EMPTY_FORM: ServiceFormData = {
   Name: "",
   URL: "",
+  Description: "",
   API_URL: "",
   Valid_Responses: "",
   Retry_Requests: "",
@@ -25,6 +27,7 @@ function svcToForm(svc: ServiceConfig): ServiceFormData {
   return {
     Name: svc.Name ?? "",
     URL: svc.URL ?? "",
+    Description: svc.Description ?? "",
     API_URL: svc.API_URL ?? "",
     Valid_Responses: svc.Valid_Responses?.join(", ") ?? "",
     Retry_Requests:
