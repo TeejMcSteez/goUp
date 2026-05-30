@@ -339,6 +339,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/size": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Get the configured database max size",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.DatabaseSizePayload"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Update the database max size",
+                "parameters": [
+                    {
+                        "description": "Size string (e.g. 1kb, 2mb, 3gb)",
+                        "name": "db_max_size",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.DatabaseSizePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/webhook": {
             "post": {
                 "consumes": [
@@ -756,6 +827,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "server.DatabaseSizePayload": {
+            "type": "object",
+            "properties": {
+                "db_max_size": {
+                    "type": "string"
+                }
+            }
+        },
         "server.ServiceUpdatePayload": {
             "type": "object",
             "properties": {
@@ -837,6 +916,9 @@ const docTemplate = `{
                 "api_URL": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -858,6 +940,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "data": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "error": {

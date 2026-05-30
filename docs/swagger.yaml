@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  server.DatabaseSizePayload:
+    properties:
+      db_max_size:
+        type: string
+    type: object
   server.ServiceUpdatePayload:
     properties:
       old_name:
@@ -52,6 +57,8 @@ definitions:
         type: string
       api_URL:
         type: string
+      description:
+        type: string
       name:
         type: string
       retry_Requests:
@@ -66,6 +73,8 @@ definitions:
   utils.ServiceData:
     properties:
       data:
+        type: string
+      description:
         type: string
       error:
         type: boolean
@@ -324,6 +333,52 @@ paths:
           schema:
             type: string
       summary: Add, update, or delete a monitored service
+      tags:
+      - config
+  /api/config/size:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.DatabaseSizePayload'
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get the configured database max size
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Size string (e.g. 1kb, 2mb, 3gb)
+        in: body
+        name: db_max_size
+        required: true
+        schema:
+          $ref: '#/definitions/server.DatabaseSizePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Update the database max size
       tags:
       - config
   /api/config/webhook:
