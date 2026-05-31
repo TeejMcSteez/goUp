@@ -47,7 +47,7 @@ func GetMaxSize() (float64, error) {
 			str := *utils.Current_Config.Database_Max_Size
 			size, err := utils.GetSizeFromString(str)
 			if err != nil {
-				return 0, fmt.Errorf("Incorrect format, must be <decimal><a-zA-Z>")
+				return 0, fmt.Errorf("incorrect format, must be <decimal><a-zA-Z>")
 			}
 			return size, nil
 		}

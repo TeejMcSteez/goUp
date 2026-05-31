@@ -100,13 +100,13 @@ func GetSizeFromString(str string) (float64, error) {
 
 	if len(matches) != 3 {
 		log.Printf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
-		return GB, fmt.Errorf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
+		return GB, fmt.Errorf("invalid database_max_size format: %s", str)
 	}
 
 	number, err := strconv.ParseFloat(matches[1], 64)
 	if err != nil {
 		log.Printf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
-		return GB, fmt.Errorf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
+		return GB, fmt.Errorf("failed to parse number from database_max_size: %w", err)
 	}
 	sizeUnit := strings.ToLower(matches[2])
 
@@ -114,7 +114,7 @@ func GetSizeFromString(str string) (float64, error) {
 	case "kb":
 		if number < 4 {
 			log.Print("Database size must be at least 4KB, returning 4KB.\n")
-			return 4 * 1000, fmt.Errorf("Database size must be at least 4KB. Defaulting to 4KB")
+			return 4 * 1000, fmt.Errorf("database size must be at least 4KB")
 		}
 		log.Printf("Set max database size to: %v%v", number, sizeUnit)
 		return number * 1000, nil
@@ -255,7 +255,7 @@ func ReadConfigDatabasePersistence(config *Config) bool {
 
 func ReadDatabaseSize(config *Config) (string, error) {
 	if config.Persist_db == nil {
-		return "", fmt.Errorf("Current Database size is null!")
+		return "", fmt.Errorf("current database size is not set")
 	}
 	return *config.Database_Max_Size, nil
 }
