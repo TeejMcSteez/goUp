@@ -27,8 +27,12 @@ func setupIntegrationDB(t *testing.T, services map[string]utils.Service) (*utils
 	}
 
 	return cfg, func() {
-		db.Close()
-		os.Remove(dbPath)
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("os.Remove %s: %v", dbPath, err)
+		}
 		utils.Current_Config = nil
 	}
 }
@@ -45,7 +49,11 @@ func TestGetRecentDataFiltersStaleRowsAfterRename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	// Insert a stale row for the old name "Web" and a live row for "Website".
 	if err := utils.InsertData(db, utils.ServiceData{ServiceName: "Web", ServiceHTTPResponse: "200"}); err != nil {
@@ -80,7 +88,11 @@ func TestGetRecentDataNilConfigReturnsAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	for _, name := range []string{"alpha", "beta", "gamma"} {
 		if err := utils.InsertData(db, utils.ServiceData{ServiceName: name, ServiceHTTPResponse: "200"}); err != nil {
@@ -112,7 +124,11 @@ func TestConcurrentRenameAndGetRecentData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	// Seed some initial "OldName" rows.
 	for range 5 {
@@ -173,7 +189,11 @@ func TestConcurrentGCAndInserts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	stop := make(chan struct{})
@@ -234,7 +254,11 @@ func TestGCRemovesOrphanedRows(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	for _, name := range []string{"kept", "orphan1", "orphan2"} {
 		if err := utils.InsertData(db, utils.ServiceData{ServiceName: name, ServiceHTTPResponse: "200"}); err != nil {
@@ -271,7 +295,11 @@ func TestGetRecentDataReturnsLatestPerService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+	}()
 
 	responses := []struct {
 		name string
