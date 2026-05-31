@@ -20,6 +20,10 @@ export interface UptimeItem {
   average: number;
 }
 
+export interface DatabaseSizePayload {
+  db_max_size: string;
+}
+
 export interface ChartDataset {
   label: string;
   data: number[];
