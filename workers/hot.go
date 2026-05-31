@@ -2,12 +2,13 @@ package workers
 
 import (
 	"context"
+	"database/sql"
 	"goUp/utils"
 	"log"
 	"time"
 )
 
-func StartHotReloader(path string, ctx context.Context) {
+func StartHotReloader(path string, ctx context.Context, db *sql.DB) {
 	initialModTime, err := utils.GetFileTimestamp(path)
 	if err != nil {
 		log.Printf("Failed to get file information while starting hot reloading service: %v", err)
@@ -41,6 +42,9 @@ func StartHotReloader(path string, ctx context.Context) {
 					if err := utils.Setup(cfg); err != nil {
 						log.Printf("Hot reload failed: %v", err)
 						return
+					}
+					if err := utils.DbGarbageCollect(db, cfg); err != nil {
+						log.Printf("Hot reload GC failed: %v", err)
 					}
 					initialModTime = t
 				}
