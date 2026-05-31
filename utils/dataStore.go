@@ -143,15 +143,29 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 		}
 	}()
 
+	// Snapshot current live service names to filter out stale DB rows
+	// that may exist due to renames or deletes not yet garbage-collected.
+	liveNames := make(map[string]struct{})
+	if Current_Config != nil {
+		for name := range Current_Config.Services {
+			liveNames[name] = struct{}{}
+		}
+	}
+
 	for row.Next() {
 		_, s, err := scanServiceDataRow(row)
 		if err != nil {
 			return nil, err
 		}
-		sd = append(sd, s)
+		if len(liveNames) == 0 {
+			sd = append(sd, s)
+			continue
+		}
+		if _, ok := liveNames[s.ServiceName]; ok {
+			sd = append(sd, s)
+		}
 	}
 	return sd, retErr
-
 }
 
 // Gets data for a specific service
