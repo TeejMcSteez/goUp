@@ -49,7 +49,10 @@ func main() {
 	// Starts all background workers
 	sch := workers.NewScheduler(db, cfg)
 	defer sch.Stop()
-	go workers.StartHotReloader(*configPath, ctx)
+	if err := utils.DbGarbageCollect(db, cfg); err != nil {
+		log.Printf("Startup GC failed: %v", err)
+	}
+	go workers.StartHotReloader(*configPath, ctx, db)
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
 		log.Println("Starting server on port 8080")
