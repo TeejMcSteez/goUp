@@ -146,6 +146,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 		if err := utils.Setup(utils.Current_Config); err != nil {
 			log.Printf("Warning: failed to refresh endpoints after updating service: %v", err)
 		}
+		if err := utils.DbGarbageCollect(s.db, utils.Current_Config); err != nil {
+			log.Printf("Warning: GC failed after updating service: %v", err)
+		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
 		}
@@ -162,6 +165,9 @@ func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
 		}
 		if err := utils.Setup(utils.Current_Config); err != nil {
 			log.Printf("Warning: failed to refresh endpoints after deleting service: %v", err)
+		}
+		if err := utils.DbGarbageCollect(s.db, utils.Current_Config); err != nil {
+			log.Printf("Warning: GC failed after deleting service: %v", err)
 		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write message", http.StatusInternalServerError)
