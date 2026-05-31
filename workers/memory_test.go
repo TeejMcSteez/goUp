@@ -17,7 +17,10 @@ func setMaxSize(s string) func() {
 
 func TestGetMaxSizeNilConfig(t *testing.T) {
 	utils.Current_Config = nil
-	got := workers.GetMaxSize()
+	got, err := workers.GetMaxSize()
+	if err != nil {
+		t.Fatalf("Unexpected error for nil config: %v", err)
+	}
 	if got != oneGB {
 		t.Errorf("Expected 1GB default for nil config, got %v", got)
 	}
@@ -27,7 +30,10 @@ func TestGetMaxSizeNilMaxSize(t *testing.T) {
 	utils.Current_Config = &utils.Config{}
 	defer func() { utils.Current_Config = nil }()
 
-	got := workers.GetMaxSize()
+	got, err := workers.GetMaxSize()
+	if err != nil {
+		t.Fatalf("Unexpected error when Database_Max_Size is nil: %v", err)
+	}
 	if got != oneGB {
 		t.Errorf("Expected 1GB default when Database_Max_Size is nil, got %v", got)
 	}
@@ -36,7 +42,10 @@ func TestGetMaxSizeNilMaxSize(t *testing.T) {
 func TestGetMaxSizeKB(t *testing.T) {
 	defer setMaxSize("100kb")()
 
-	got := workers.GetMaxSize()
+	got, err := workers.GetMaxSize()
+	if err != nil {
+		t.Fatalf("Unexpected error for '100kb': %v", err)
+	}
 	want := 100.0 * 1000
 	if got != want {
 		t.Errorf("Expected %v bytes for '100kb', got %v", want, got)
@@ -46,7 +55,10 @@ func TestGetMaxSizeKB(t *testing.T) {
 func TestGetMaxSizeMB(t *testing.T) {
 	defer setMaxSize("500mb")()
 
-	got := workers.GetMaxSize()
+	got, err := workers.GetMaxSize()
+	if err != nil {
+		t.Fatalf("Unexpected error for '500mb': %v", err)
+	}
 	want := 500.0 * 1e6
 	if got != want {
 		t.Errorf("Expected %v bytes for '500mb', got %v", want, got)
@@ -56,39 +68,40 @@ func TestGetMaxSizeMB(t *testing.T) {
 func TestGetMaxSizeGB(t *testing.T) {
 	defer setMaxSize("2gb")()
 
-	got := workers.GetMaxSize()
+	got, err := workers.GetMaxSize()
+	if err != nil {
+		t.Fatalf("Unexpected error for '2gb': %v", err)
+	}
 	want := 2.0 * 1e9
 	if got != want {
 		t.Errorf("Expected %v bytes for '2gb', got %v", want, got)
 	}
 }
 
-// Values below 4KB are clamped to the 4KB minimum
 func TestGetMaxSizeBelowMinimumKB(t *testing.T) {
 	defer setMaxSize("3kb")()
 
-	got := workers.GetMaxSize()
-	want := 4.0 * 1000
-	if got != want {
-		t.Errorf("Expected minimum %v bytes for '3kb', got %v", want, got)
+	_, err := workers.GetMaxSize()
+	if err == nil {
+		t.Error("Expected error for size below 4KB minimum, got nil")
 	}
 }
 
 func TestGetMaxSizeInvalidUnit(t *testing.T) {
 	defer setMaxSize("100tb")()
 
-	got := workers.GetMaxSize()
-	if got != oneGB {
-		t.Errorf("Expected 1GB default for unknown unit 'tb', got %v", got)
+	_, err := workers.GetMaxSize()
+	if err == nil {
+		t.Error("Expected error for unknown unit 'tb', got nil")
 	}
 }
 
 func TestGetMaxSizeInvalidFormat(t *testing.T) {
 	defer setMaxSize("notasize")()
 
-	got := workers.GetMaxSize()
-	if got != oneGB {
-		t.Errorf("Expected 1GB default for invalid format, got %v", got)
+	_, err := workers.GetMaxSize()
+	if err == nil {
+		t.Error("Expected error for invalid format 'notasize', got nil")
 	}
 }
 
