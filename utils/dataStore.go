@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -36,7 +38,7 @@ func InitDB() (*sql.DB, error) {
 		"service_description" TEXT,
 		"service_HTTP_response" TEXT,
 		"service_API_response" TEXT,
-		"service_response_time" TEXT,
+		"service_response_time" INTEGER,
 		"timestamp" TEXT,
 		"error" INTEGER NOT NULL DEFAULT 0
 	);`
@@ -46,8 +48,108 @@ func InitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	log.Println("Database and table ready for queries")
+	// Drop superseded index from earlier schema versions before creating replacements.
+	if _, err = db.Exec(`DROP INDEX IF EXISTS idx_service_data_lookup`); err != nil {
+		return nil, err
+	}
+
+	indexes := []string{
+		// Covers: GetRecentData subquery (GROUP BY service_name, MAX(id)),
+		//         GetDataForService (WHERE service_name = ? ORDER BY id DESC),
+		//         DbServiceDelete / DbServiceRename / DbGarbageCollect (WHERE service_name = ?)
+		`CREATE INDEX IF NOT EXISTS idx_service_name_id
+		 ON service_data(service_name, id)`,
+
+		// Covers: GetErrorData (WHERE error = 1 ORDER BY timestamp ASC/DESC)
+		`CREATE INDEX IF NOT EXISTS idx_error_timestamp
+		 ON service_data(error, timestamp)`,
+	}
+	for _, idx := range indexes {
+		if _, err = db.Exec(idx); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := migrateResponseTimes(db); err != nil {
+		log.Printf("Response time migration warning: %v", err)
+	}
+
+	log.Println("Database ready for queries")
 	return db, nil
+}
+
+// migrateResponseTimes converts legacy TEXT response time values (e.g. "1.234ms")
+// to INTEGER nanoseconds for existing rows written before the schema change.
+func migrateResponseTimes(db *sql.DB) (err error) {
+	rows, err := db.Query("SELECT id, service_response_time FROM service_data")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if e := rows.Close(); e != nil {
+			err = e
+		}
+	}()
+
+	type pending struct {
+		id int
+		ns int64
+	}
+	var updates []pending
+
+	for rows.Next() {
+		var id int
+		var raw string
+		if err := rows.Scan(&id, &raw); err != nil {
+			continue
+		}
+		// Already an integer — no migration needed
+		if _, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			continue
+		}
+		d, err := time.ParseDuration(raw)
+		if err != nil {
+			continue
+		}
+		updates = append(updates, pending{id, d.Nanoseconds()})
+	}
+	defer func() {
+		if e := rows.Close(); e != nil {
+			err = e
+		}
+	}()
+
+	for _, u := range updates {
+		if _, err := db.Exec("UPDATE service_data SET service_response_time = ? WHERE id = ?", u.ns, u.id); err != nil {
+			log.Printf("Migration: failed to update row %d: %v", u.id, err)
+			return err
+		}
+	}
+	if len(updates) > 0 {
+		log.Printf("Migrated %d rows: response time TEXT → INTEGER nanoseconds", len(updates))
+	}
+	return err
+}
+
+// formatResponseTime formats nanoseconds into a frontend-friendly string.
+// Output is always in ms or s to match the frontend parseMs regex.
+// Trailing zeros and the decimal point are stripped (e.g. "12.00ms" → "12ms").
+func formatResponseTime(ns int64) string {
+	trimFloat := func(f float64, prec int) string {
+		s := strconv.FormatFloat(f, 'f', prec, 64)
+		s = strings.TrimRight(s, "0")
+		s = strings.TrimRight(s, ".")
+		return s
+	}
+	switch {
+	case ns >= int64(time.Second):
+		return trimFloat(float64(ns)/float64(time.Second), 2) + "s"
+	case ns >= int64(time.Millisecond):
+		return trimFloat(float64(ns)/float64(time.Millisecond), 2) + "ms"
+	default:
+		// Sub-millisecond: express as fractional ms so the frontend regex still matches
+		return trimFloat(float64(ns)/float64(time.Millisecond), 3) + "ms"
+	}
 }
 
 // scanServiceDataRow scans a single row from *sql.Rows into an int (id) and a ServiceData struct.
@@ -55,6 +157,9 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 	var id int
 	var s ServiceData
 	var tBuff string
+	// Scan response time as []byte so the driver converts any stored type (INTEGER or TEXT)
+	// to its string representation, avoiding interface{} type-assertion fragility.
+	var rtBytes []byte
 	err := row.Scan(
 		&id,
 		&s.ServiceURL,
@@ -62,16 +167,23 @@ func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
 		&s.ServiceDescription,
 		&s.ServiceHTTPResponse,
 		&s.ServiceAPIResponse,
-		&s.ServiceResponseTime,
-		/*
-		 * timestamp buffer is taken in as string
-		 * Formatted to RFC3339Nano timestamp on insert
-		 */
+		&rtBytes,
+		// timestamp is stored as RFC3339Nano string and parsed after scan
 		&tBuff,
 		&s.Error,
 	)
 	if err != nil {
 		log.Printf("Failed scanning database row: %v", err)
+	}
+	if len(rtBytes) > 0 {
+		raw := string(rtBytes)
+		if ns, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			// INTEGER nanoseconds (current format)
+			s.ServiceResponseTime = formatResponseTime(ns)
+		} else {
+			// Legacy TEXT value (e.g. "1.234ms") — pass through unchanged
+			s.ServiceResponseTime = raw
+		}
 	}
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, tBuff)
 	if err != nil {
@@ -92,7 +204,13 @@ func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
 			retErr = err
 		}
 	}()
-	_, err = statement.Exec(sd.ServiceURL, sd.ServiceName, sd.ServiceDescription, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, sd.ServiceResponseTime, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
+
+	var rtNs int64
+	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
+		rtNs = d.Nanoseconds()
+	}
+
+	_, err = statement.Exec(sd.ServiceURL, sd.ServiceName, sd.ServiceDescription, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, rtNs, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
 	if err != nil {
 		return err
 	}
