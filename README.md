@@ -54,9 +54,9 @@ When shrinking the database the system switches off WAL mode so the row deletion
 
 One can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
-Services are defined by their name, URL, and optional `api_url` and `api_key`.
+Services are defined by their name, URL, and optional `description`, `api_url`, and `api_key`.
 
-Only the database path, service name, and service URL are mandatory; `api_url` and `api_key` are optional.
+Only the database path, service name, and service URL are mandatory; all other fields are optional.
 
 Triggers contain the necessary information for sending various messages:
    - `backoff` specifies the delay between trigger activations. Options include `<int><s/m/h>` (e.g., `15s`).
@@ -78,11 +78,13 @@ persist_db: true
 services:
   home_assistant:
     url: "https://ex.com/"
+    description: "Home automation hub"
     api_url: "http://ex.com/api/"
     api_key: "<key>"
 
   truenas_scale:
     url: "http://ex-scale.com/"
+    description: "NAS storage"
 
 triggers:
   backoff: "30m"
@@ -105,14 +107,17 @@ Schema:
 
 ```sql
 "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+"service_url" TEXT,
 "service_name" TEXT,
 "service_description" TEXT,
 "service_HTTP_response" TEXT,
 "service_API_response" TEXT,
+"service_response_time" INTEGER,
 "timestamp" TEXT,
-"service_response_time" TEXT,
 "error" INTEGER NOT NULL DEFAULT 0
 ```
+
+`service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup.
 
 ## Triggers
 
@@ -149,6 +154,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server	coverage: 48.2% of statements
-- goUp/utils	coverage: 65.5% of statements
-- goUp/workers	coverage: 59.8% of statements
+- goUp/server coverage: 48.2% of statements
+- goUp/utils coverage: 64.4% of statements
+- goUp/workers coverage: 59.8% of statements
