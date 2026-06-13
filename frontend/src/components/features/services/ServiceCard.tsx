@@ -38,7 +38,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
           </a>
         </h3>
         <span
-          className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${
+          className={`hidden md:block shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${
             error ? "bg-error/15 text-error" : "bg-success/15 text-success"
           }`}
         >
