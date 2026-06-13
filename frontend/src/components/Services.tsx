@@ -76,7 +76,7 @@ export default function Services() {
       />
       <div
         id="cards"
-        className="w-full py-4 pb-12 grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4 sm:gap-6"
+        className="w-full py-4 pb-12 grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(min(200px,100%),1fr))] gap-4 sm:gap-6"
       >
         {renderCards()}
       </div>
