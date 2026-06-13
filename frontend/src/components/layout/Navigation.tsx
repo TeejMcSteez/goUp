@@ -44,7 +44,6 @@ export default function Navigation({
           </button>
         ))}
       </div>
-
     </nav>
   );
 }
