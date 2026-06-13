@@ -18,7 +18,7 @@ function QuickStats({ services, error }: QuickStatsProps) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-8">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(200px,100%),1fr))] gap-6 mb-8">
       <div className="text-center p-6 bg-elevated rounded-xl border border-border">
         <h3 className="m-0 mb-2 text-muted">Total Services</h3>
         <p className="text-[2rem] font-bold m-0 text-primary">
