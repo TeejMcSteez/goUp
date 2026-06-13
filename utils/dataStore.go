@@ -80,12 +80,16 @@ func InitDB() (*sql.DB, error) {
 
 // migrateResponseTimes converts legacy TEXT response time values (e.g. "1.234ms")
 // to INTEGER nanoseconds for existing rows written before the schema change.
-func migrateResponseTimes(db *sql.DB) error {
+func migrateResponseTimes(db *sql.DB) (err error) {
 	rows, err := db.Query("SELECT id, service_response_time FROM service_data")
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if e := rows.Close(); e != nil {
+			err = e
+		}
+	}()
 
 	type pending struct {
 		id int
@@ -109,17 +113,22 @@ func migrateResponseTimes(db *sql.DB) error {
 		}
 		updates = append(updates, pending{id, d.Nanoseconds()})
 	}
-	rows.Close()
+	defer func() {
+		if e := rows.Close(); e != nil {
+			err = e
+		}
+	}()
 
 	for _, u := range updates {
 		if _, err := db.Exec("UPDATE service_data SET service_response_time = ? WHERE id = ?", u.ns, u.id); err != nil {
 			log.Printf("Migration: failed to update row %d: %v", u.id, err)
+			return err
 		}
 	}
 	if len(updates) > 0 {
 		log.Printf("Migrated %d rows: response time TEXT → INTEGER nanoseconds", len(updates))
 	}
-	return nil
+	return err
 }
 
 // formatResponseTime formats nanoseconds into a frontend-friendly string.
