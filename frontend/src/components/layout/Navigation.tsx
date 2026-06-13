@@ -20,10 +20,6 @@ export default function Navigation({
   activeTab,
   onTabChange,
 }: NavigationProps) {
-  const activeIndex = tabs.findIndex((t) => t.id === activeTab);
-  const thumbPercent = (activeIndex / tabs.length) * 100;
-  const thumbWidth = 100 / tabs.length;
-
   return (
     <nav
       className="sticky top-0 z-100 bg-app-bg border-b border-border px-4"
@@ -49,16 +45,6 @@ export default function Navigation({
         ))}
       </div>
 
-      {/* Position indicator track */}
-      <div className="relative h-0.5 bg-border max-w-350 mx-auto sm:hidden">
-        <div
-          className="absolute top-0 h-full bg-primary rounded-full transition-[left,width] duration-200"
-          style={{
-            left: `${thumbPercent}%`,
-            width: `${thumbWidth}%`,
-          }}
-        />
-      </div>
     </nav>
   );
 }

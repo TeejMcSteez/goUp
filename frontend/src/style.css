@@ -110,11 +110,6 @@
     animation: slideIn 0.3s ease;
 }
 
-@media screen and (max-width: 640px) {
-    .tab-active::after {
-        background: none;
-    }
-}
 
 /* Custom scrollbars */
 .scrollbar-custom::-webkit-scrollbar {
