@@ -29,7 +29,7 @@ func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// @Summary Get current service status
+// @Summary Get current service status returning any downed services or null for no services down
 // @Description Returns all currently down services.
 // @Tags data
 // @Produce json
