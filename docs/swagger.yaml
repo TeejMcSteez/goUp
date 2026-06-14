@@ -628,7 +628,8 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Get current service status
+      summary: Get current service status returning any downed services or null for
+        no services down
       tags:
       - data
   /api/uptime:

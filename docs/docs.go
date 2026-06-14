@@ -780,7 +780,7 @@ const docTemplate = `{
                 "tags": [
                     "data"
                 ],
-                "summary": "Get current service status",
+                "summary": "Get current service status returning any downed services or null for no services down",
                 "responses": {
                     "200": {
                         "description": "OK",
