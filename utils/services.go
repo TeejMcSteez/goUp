@@ -96,6 +96,9 @@ func fetchOne(endpoint Service) ServiceData {
 		sd.ServiceDescription = *endpoint.Description
 	}
 	req, err := http.NewRequest("GET", endpoint.URL, nil)
+	if err != nil {
+		log.Printf("Error creating new HTTP request: %v", err)
+	}
 	req.Header.Add("User-Agent", "GoUp/"+Version)
 	start := time.Now()
 
