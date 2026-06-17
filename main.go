@@ -26,7 +26,7 @@ func main() {
 	serveReact := flag.String("ui", "y", "serve frontend React file, otherwise just run API server")
 	getVersion := flag.Bool("version", false, "Used to display version")
 	flag.Parse()
-	if *getVersion == true {
+	if *getVersion {
 		log.Print("Version: " + utils.GetVersion())
 		return
 	}
