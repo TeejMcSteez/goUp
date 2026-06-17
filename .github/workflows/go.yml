@@ -68,6 +68,8 @@ jobs:
       with:
         name: static-assets
         path: server/static
+    - name: Set version
+      run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
     - name: Cross-compile and Package
       run: |
         mkdir -p dist
@@ -85,11 +87,11 @@ jobs:
           if [ "$GOOS" = "windows" ]; then
             BIN_PATH="${BIN_PATH}.exe"
             ARCHIVE_PATH="${ARCHIVE_PATH}.zip"
-            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$BIN_PATH" .
+            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w -X goUp/utils.Version=${VERSION}" -o "$BIN_PATH" .
             zip -j "$ARCHIVE_PATH" "$BIN_PATH"
           else
             ARCHIVE_PATH="${ARCHIVE_PATH}.tar.gz"
-            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$BIN_PATH" .
+            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w -X goUp/utils.Version=${VERSION}" -o "$BIN_PATH" .
             tar -czvf "$ARCHIVE_PATH" -C "$BIN_DIR" "$(basename "$BIN_PATH")"
           fi
           echo "Created $ARCHIVE_PATH"

@@ -26,7 +26,7 @@ docs:
 
 build:
 	cd frontend && $(PM) run build
-	go build -ldflags "-X goUp/utils.Version=$(VERSION)" -o $(BINARY) .
+	go build -ldflags "-s -w -X goUp/utils.Version=$(VERSION)" -o $(BINARY) .
 
 fmt:
 	golangci-lint fmt ./...
