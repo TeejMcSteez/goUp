@@ -95,9 +95,11 @@ func fetchOne(endpoint Service) ServiceData {
 	if endpoint.Description != nil {
 		sd.ServiceDescription = *endpoint.Description
 	}
+	req, err := http.NewRequest("GET", endpoint.URL, nil)
+	req.Header.Add("User-Agent", "GoUp/0.3.16")
 	start := time.Now()
 
-	res, err := httpClient.Get(endpoint.URL)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		res, err = ErrorRetry(&sd, endpoint, err)
 		if err != nil {
@@ -172,6 +174,7 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	}
 
 	apiReq.Header.Set("Content-Type", "application/json")
+	apiReq.Header.Set("User-Agent", "GoUp/0.3.16")
 
 	apiRes, apiErr := httpClient.Do(apiReq)
 
