@@ -27,7 +27,7 @@ func main() {
 	getVersion := flag.Bool("version", false, "Used to display version")
 	flag.Parse()
 	if *getVersion {
-		log.Print("Build Version: " + utils.GetVersion())
+		log.Print("Build Version: " + utils.Version)
 		return
 	}
 	serve := string([]byte(*serveReact)[0])
