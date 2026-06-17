@@ -16,7 +16,8 @@ RUN go mod download
 COPY . .
 # Bring in the built frontend assets
 COPY --from=frontend /build/server/static ./server/static
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /goUp .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X goUp/utils.Version=${VERSION}" -o /goUp .
 
 # ---- Stage 3: Minimal runtime ----
 FROM alpine:3.20
