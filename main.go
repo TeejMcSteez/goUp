@@ -24,7 +24,12 @@ import (
 func main() {
 	configPath := flag.String("config", "services.yml", "path to config file")
 	serveReact := flag.String("ui", "y", "serve frontend React file, otherwise just run API server")
+	getVersion := flag.Bool("version", false, "Used to display version")
 	flag.Parse()
+	if *getVersion == true {
+		log.Print("Version: " + utils.GetVersion())
+		return
+	}
 	serve := string([]byte(*serveReact)[0])
 	if strings.ToLower(*serveReact) != "y" && strings.ToLower(serve) != "n" {
 		log.Fatalf("UI flag must be 'y' or 'n'\nwas: %v", *serveReact)
