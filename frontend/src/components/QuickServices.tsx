@@ -67,8 +67,7 @@ export default function QuickServices() {
     <div className="flex flex-row items-center justify-center text-center p-4 border-b border-border bg-surface">
       {error ? (
         <span className="text-error text-xs flex flex-row justify-center items-center">
-          <p className="text-error text-xs animate-ping mr-2">O</p> Status
-          unavailable: {error}
+          Status unavailable: {error}
         </span>
       ) : (
         content
