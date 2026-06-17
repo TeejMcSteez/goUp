@@ -1,5 +1,6 @@
 SWAG   := $(shell go env GOPATH)/bin/swag
 BINARY := goUp
+VERSION := $(shell git describe --tags --always --dirty)
 
 # Detect package manager: prefer the one matching the existing lock file,
 # then fall back to whatever is installed, then plain npm.
@@ -25,7 +26,7 @@ docs:
 
 build:
 	cd frontend && $(PM) run build
-	go build -o $(BINARY) .
+	go build -ldflags "-X goUp/utils.Version=$(VERSION)" -o $(BINARY) .
 
 fmt:
 	golangci-lint fmt ./...
