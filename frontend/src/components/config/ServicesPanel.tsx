@@ -162,6 +162,15 @@ export default function ServicesPanel({
                     <span className="font-semibold text-fg text-[0.95rem]">
                       {svc.Name ?? key}
                     </span>
+                    <span
+                      className={
+                        svc.Description
+                          ? "text-[0.6rem] text-muted overflow-hidden text-ellipsis whitespace-nowrap"
+                          : "hidden"
+                      }
+                    >
+                      {svc.Description ?? ""}
+                    </span>
                     <span className="text-[0.8rem] text-muted overflow-hidden text-ellipsis whitespace-nowrap">
                       {svc.URL}
                     </span>
