@@ -78,6 +78,19 @@ export default function DatabasePanel() {
       const res = await fetch("/api/db/clear");
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       setStatus({ text: "Database cleared.", error: false });
+      // Re-fetch database size on clear
+      const res_size = await fetch("/api/db/size");
+      if (!res_size.ok) throw new Error(`Server error: ${res_size.status}`);
+      const data: DbSizeResponse = await res_size.json();
+      const sizeValue = data.size ?? data.size_string;
+      let sizeInBytes: number | null = null;
+      if (typeof sizeValue === "number") {
+        sizeInBytes = sizeValue;
+      } else if (typeof sizeValue === "string") {
+        const parsed = parseInt(sizeValue, 10);
+        if (!isNaN(parsed)) sizeInBytes = parsed;
+      }
+      setDbSize(sizeInBytes !== null ? formatBytes(sizeInBytes) : "N/A");
     } catch (err) {
       setStatus({
         text: `Failed to clear database: ${(err as Error).message}`,
@@ -112,9 +125,16 @@ export default function DatabasePanel() {
       <div className="flex flex-col md:flex-row md:justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted">
-            Persist: <strong className="text-fg">{persists === null ? "…" : persists ? "On" : "Off"}</strong>
+            Persist:{" "}
+            <strong className="text-fg">
+              {persists === null ? "…" : persists ? "On" : "Off"}
+            </strong>
           </span>
-          <button className={btnPrimary} onClick={handleToggle} disabled={persists === null}>
+          <button
+            className={btnPrimary}
+            onClick={handleToggle}
+            disabled={persists === null}
+          >
             Toggle
           </button>
         </div>
@@ -133,7 +153,10 @@ export default function DatabasePanel() {
           {confirmClear && (
             <ConfirmModal
               message="Clear all database memory? This action is irreversible."
-              onConfirm={() => { handleClearDatabase(); setConfirmClear(false); }}
+              onConfirm={() => {
+                handleClearDatabase();
+                setConfirmClear(false);
+              }}
               onCancel={() => setConfirmClear(false)}
             />
           )}
@@ -142,7 +165,9 @@ export default function DatabasePanel() {
         <div className="flex items-center gap-2 md:justify-end">
           <span className="text-sm text-muted whitespace-nowrap">Max size</span>
           <input ref={siRef} placeholder={size?.db_max_size} />
-          <button className={btnPrimary} onClick={handleUpdate}>Update</button>
+          <button className={btnPrimary} onClick={handleUpdate}>
+            Update
+          </button>
         </div>
       </div>
     </div>
