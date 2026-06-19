@@ -32,6 +32,7 @@ type ConfigData struct {
 type Trigger struct {
 	MQTT           MQTTTrigger    `yaml:"mqtt"`
 	Webhook        WebhookTrigger `yaml:"webhook"`
+	SMTP           SMTPTrigger    `yaml:"smtp"`
 	Backoff_Period *string        `yaml:"backoff"`
 
 	backoffDuration time.Duration
@@ -56,6 +57,12 @@ type WebhookTrigger struct {
 	// Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
 	Webhook_key_string *string `yaml:"webhook_key"`
 	Custom_message     *string `yaml:"custom_message"`
+}
+
+type SMTPTrigger struct {
+	Email        *string `yaml:"email"`
+	App_Password *string `yaml:"app_password"`
+	SMTPServer   *string `yaml:"smtp_server"`
 }
 
 // Data for service endponts
