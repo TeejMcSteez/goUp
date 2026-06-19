@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -39,6 +40,9 @@ func SetupTrigger(cfg *Config) *Trigger {
 	}
 	if t.SMTP.IsConfigured() {
 		t.handlers = append(t.handlers, &t.SMTP)
+	}
+	if t.Gotify.IsConfigured() {
+		t.handlers = append(t.handlers, &t.Gotify)
 	}
 
 	if len(t.handlers) == 0 {
@@ -197,4 +201,58 @@ func (e *SMTPTrigger) Fire(data []ServiceData) {
 // Checks if all parameters for the SMTP trigger is is configured
 func (e *SMTPTrigger) IsConfigured() bool {
 	return e.SMTPServer != nil && e.Email != nil && e.App_Password != nil
+}
+
+// Fire sends a Gotify push notification for all downed services.
+func (g *GotifyTrigger) Fire(data []ServiceData) {
+	title := "GoUp Alert"
+	if g.Gotify_Title != nil {
+		title = *g.Gotify_Title
+	}
+	priority := 5
+	if g.Gotify_Priority != nil {
+		priority = *g.Gotify_Priority
+	}
+
+	var body []byte
+	for _, entry := range data {
+		body = fmt.Appendf(body, "Service: %s\nMessage: %s\nAPI Response: %s\n\n",
+			entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"title":    title,
+		"message":  string(body),
+		"priority": priority,
+	})
+	if err != nil {
+		log.Printf("Error building Gotify payload: %v", err)
+		return
+	}
+
+	url := strings.TrimRight(*g.Gotify_Server, "/") + "/message"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		log.Printf("Error creating Gotify request: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Gotify-Key", *g.Gotify_Token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Error sending Gotify notification: %v", err)
+		return
+	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("Error closing Gotify response: %v", err)
+		}
+	}()
+
+	log.Printf("Gotify notification sent, status: %s\n", res.Status)
+}
+
+func (g *GotifyTrigger) IsConfigured() bool {
+	return g.Gotify_Server != nil && g.Gotify_Token != nil
 }
