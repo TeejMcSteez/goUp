@@ -65,6 +65,14 @@ type SMTPTrigger struct {
 	SMTPServer   *string `yaml:"smtp_server"`
 }
 
+type GotifyTrigger struct {
+	Gotify_Server      *string `yaml:"gotify_server"`
+	Gotify_Token       *string `yaml:"gotify_app_token"`
+	Gotify_Application *string `yaml:"gotify_application"`
+	Gotify_Title       *string `yaml:"gotify_title"`
+	Gotify_Priority    *int    `yaml:"gotify_priority"`
+}
+
 // Data for service endponts
 type Service struct {
 	Name            string    `yaml:"-"`
