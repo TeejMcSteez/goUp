@@ -3,9 +3,12 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/smtp"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -34,9 +37,12 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.Webhook.IsConfigured() {
 		t.handlers = append(t.handlers, &t.Webhook)
 	}
+	if t.SMTP.IsConfigured() {
+		t.handlers = append(t.handlers, &t.SMTP)
+	}
 
 	if len(t.handlers) == 0 {
-		log.Println("No MQTT broker or Webhook URL setup, exiting trigger setup")
+		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
 	}
 
@@ -164,4 +170,31 @@ func (w *WebhookTrigger) buildMessage(data []ServiceData) (io.Reader, error) {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonSvcData), nil
+}
+
+// Fire sends all downed service data as an email
+func (e *SMTPTrigger) Fire(data []ServiceData) {
+	host, _, err := net.SplitHostPort(*e.SMTPServer)
+	if err != nil {
+		host = *e.SMTPServer
+	}
+
+	var header []byte
+	header = fmt.Appendf(header, "To: %s\r\nSubject: GoUp Failure Message\r\n\r\n", *e.Email)
+	var msg []byte
+	for _, entry := range data {
+		msg = fmt.Appendf(msg, "Service: %s\r\nMessage: %s\r\nAPI Response: %s\r\n",
+			entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	email := append(header, msg...)
+	if err := smtp.SendMail(*e.SMTPServer, smtp.PlainAuth("", *e.Email, *e.App_Password, host), *e.Email, []string{*e.Email}, email); err != nil {
+		log.Printf("Error SMTP request: %v", err)
+		return
+	}
+	log.Print("SMTP message sent")
+}
+
+// Checks if all parameters for the SMTP trigger is is configured
+func (e *SMTPTrigger) IsConfigured() bool {
+	return e.SMTPServer != nil && e.Email != nil && e.App_Password != nil
 }
