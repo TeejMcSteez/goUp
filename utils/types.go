@@ -33,6 +33,7 @@ type Trigger struct {
 	MQTT           MQTTTrigger    `yaml:"mqtt"`
 	Webhook        WebhookTrigger `yaml:"webhook"`
 	SMTP           SMTPTrigger    `yaml:"smtp"`
+	Gotify         GotifyTrigger  `yaml:"gotify"`
 	Backoff_Period *string        `yaml:"backoff"`
 
 	backoffDuration time.Duration
