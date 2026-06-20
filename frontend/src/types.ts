@@ -68,10 +68,36 @@ export interface WebhookPanelProps {
   onRefresh: () => void;
 }
 
+export interface SMTPConfig {
+  Email?: string;
+  App_Password?: string;
+  SMTPServer?: string;
+}
+
+export interface SMTPPanelProps {
+  smtp?: SMTPConfig;
+  onRefresh: () => void;
+}
+
+export interface GotifyConfig {
+  Gotify_Server?: string;
+  Gotify_Token?: string;
+  Gotify_Application?: string;
+  Gotify_Title?: string;
+  Gotify_Priority?: number;
+}
+
+export interface GotifyPanelProps {
+  gotify?: GotifyConfig;
+  onRefresh: () => void;
+}
+
 export interface AppConfig {
   services?: Record<string, ServiceConfig>;
   mqtt?: MQTTConfig;
   webhook?: WebhookConfig;
+  smtp?: SMTPConfig;
+  gotify?: GotifyConfig;
   database?: boolean;
 }
 
