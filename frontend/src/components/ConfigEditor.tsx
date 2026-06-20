@@ -53,6 +53,8 @@ export default function ConfigEditor() {
           <Triggers
             mqttProps={config?.mqtt ? { mqtt: config.mqtt, onRefresh: refresh } : undefined}
             webhookProps={config?.webhook ? { webhook: config.webhook, onRefresh: refresh } : undefined}
+            smtpProps={config?.smtp ? { smtp: config.smtp, onRefresh: refresh } : undefined}
+            gotifyProps={config?.gotify ? { gotify: config.gotify, onRefresh: refresh } : undefined}
           />
         )}
         {activeSection === "database" && <DatabasePanel />}
