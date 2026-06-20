@@ -240,6 +240,14 @@ func ReadConfigWebhook(config *Config) WebhookTrigger {
 	return config.Triggers.Webhook
 }
 
+func ReadConfigSMTP(config *Config) SMTPTrigger {
+	return config.Triggers.SMTP
+}
+
+func ReadConfigGotify(config *Config) GotifyTrigger {
+	return config.Triggers.Gotify
+}
+
 func ReadConfigDatabasePersistence(config *Config) bool {
 	if config.Persist_db == nil {
 		return false
