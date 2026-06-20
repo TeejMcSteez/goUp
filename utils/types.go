@@ -26,6 +26,8 @@ type ConfigData struct {
 	Services map[string]Service `json:"services"`
 	MQTT     MQTTTrigger        `json:"mqtt"`
 	Webhook  WebhookTrigger     `json:"webhook"`
+	SMTP     SMTPTrigger        `json:"smtp"`
+	Gotify   GotifyTrigger      `json:"gotify"`
 }
 
 // Endpoints and data for triggers
@@ -34,6 +36,7 @@ type Trigger struct {
 	Webhook        WebhookTrigger `yaml:"webhook"`
 	SMTP           SMTPTrigger    `yaml:"smtp"`
 	Gotify         GotifyTrigger  `yaml:"gotify"`
+	Slack          SlackTrigger   `yaml:"slack"`
 	Backoff_Period *string        `yaml:"backoff"`
 
 	backoffDuration time.Duration
@@ -72,6 +75,12 @@ type GotifyTrigger struct {
 	Gotify_Application *string `yaml:"gotify_application"`
 	Gotify_Title       *string `yaml:"gotify_title"`
 	Gotify_Priority    *int    `yaml:"gotify_priority"`
+}
+
+type SlackTrigger struct {
+	Slack_Token   *string `yaml:"slack_token"`
+	Slack_Channel *string `yaml:"slack_channel"`
+	Bot_Username  *string `yaml:"username"`
 }
 
 // Data for service endponts

@@ -166,6 +166,39 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	return writeConfig(config)
 }
 
+func AddConfigSMTPTrigger(config *Config, newSmtp SMTPTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newSmtp == config.Triggers.SMTP {
+		return fmt.Errorf("SMTP config is the same")
+	}
+	config.Triggers.SMTP = newSmtp
+	return writeConfig(config)
+}
+
+func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newGotify == config.Triggers.Gotify {
+		return fmt.Errorf("gotify config is the same")
+	}
+	config.Triggers.Gotify = newGotify
+	return writeConfig(config)
+}
+
+func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newSlack == config.Triggers.Slack {
+		return fmt.Errorf("slack config is the same")
+	}
+	config.Triggers.Slack = newSlack
+	return writeConfig(config)
+}
+
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
@@ -216,7 +249,7 @@ func DeleteConfigMQTT(config *Config) error {
 	return writeConfig(config)
 }
 
-func DeleteConfigTrigger(config *Config) error {
+func DeleteConfigWebhook(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}
@@ -225,6 +258,39 @@ func DeleteConfigTrigger(config *Config) error {
 	}
 
 	config.Triggers.Webhook = WebhookTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigSMTPTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.SMTP.SMTPServer == nil || config.Triggers.SMTP.App_Password == nil || config.Triggers.SMTP.Email == nil {
+		return fmt.Errorf("no SMTP config to delete")
+	}
+	config.Triggers.SMTP = SMTPTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigGotifyTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Gotify.Gotify_Server == nil {
+		return fmt.Errorf("no Gotify config to delete")
+	}
+	config.Triggers.Gotify = GotifyTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigSlackTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Slack.Slack_Channel == nil && config.Triggers.Slack.Slack_Token == nil {
+		return fmt.Errorf("no slack config to delete")
+	}
+	config.Triggers.Slack = SlackTrigger{}
 	return writeConfig(config)
 }
 
@@ -238,6 +304,18 @@ func ReadConfigMQTT(config *Config) MQTTTrigger {
 
 func ReadConfigWebhook(config *Config) WebhookTrigger {
 	return config.Triggers.Webhook
+}
+
+func ReadConfigSMTP(config *Config) SMTPTrigger {
+	return config.Triggers.SMTP
+}
+
+func ReadConfigGotify(config *Config) GotifyTrigger {
+	return config.Triggers.Gotify
+}
+
+func ReadConfigSlack(config *Config) SlackTrigger {
+	return config.Triggers.Slack
 }
 
 func ReadConfigDatabasePersistence(config *Config) bool {

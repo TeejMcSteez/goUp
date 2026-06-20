@@ -1,9 +1,6 @@
 import { useState } from "react";
 import StatusMessage from "./StatusMessage";
-import type {
-  StatusMessage as StatusMsg,
-  WebhookPanelProps,
-} from "../../types";
+import type { StatusMessage as StatusMsg, SMTPPanelProps } from "../../types";
 
 const inputClass =
   "px-4 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-focus focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)] placeholder:text-muted placeholder:opacity-50";
@@ -11,41 +8,37 @@ const inputClass =
 const btnBase =
   "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
-interface WebhookFormData {
-  Webhook_url: string;
-  Webhook_key_string: string;
-  Custom_message: string;
+interface SMTPFormData {
+  Email: string;
+  App_Password: string;
+  SMTPServer: string;
 }
 
-export default function WebhookPanel({
-  webhook,
-  onRefresh,
-}: WebhookPanelProps) {
-  const [form, setForm] = useState<WebhookFormData>({
-    Webhook_url: webhook?.Webhook_url ?? "",
-    Webhook_key_string: webhook?.Webhook_key_string ?? "",
-    Custom_message: webhook?.Custom_message ?? "",
+export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
+  const [form, setForm] = useState<SMTPFormData>({
+    Email: smtp?.Email ?? "",
+    App_Password: smtp?.App_Password ?? "",
+    SMTPServer: smtp?.SMTPServer ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
   const set =
-    (field: keyof WebhookFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
+    (field: keyof SMTPFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    const res = await fetch("/api/config/webhook", {
+    const res = await fetch("/api/config/smtp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        Webhook_url: form.Webhook_url || null,
-        Webhook_key_string: form.Webhook_key_string || null,
-        Custom_message: form.Custom_message || null,
+        Email: form.Email || null,
+        App_Password: form.App_Password || null,
+        SMTPServer: form.SMTPServer || null,
       }),
     });
     if (res.ok) {
-      setStatus({ text: "Webhook config saved.", error: false });
+      setStatus({ text: "SMTP config saved.", error: false });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -53,10 +46,10 @@ export default function WebhookPanel({
   };
 
   const handleClear = async () => {
-    const res = await fetch("/api/config/webhook", { method: "DELETE" });
+    const res = await fetch("/api/config/smtp", { method: "DELETE" });
     if (res.ok) {
-      setStatus({ text: "Webhook config cleared.", error: false });
-      setForm({ Webhook_url: "", Webhook_key_string: "", Custom_message: "" });
+      setStatus({ text: "SMTP config cleared.", error: false });
+      setForm({ Email: "", App_Password: "", SMTPServer: "" });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -72,30 +65,32 @@ export default function WebhookPanel({
       >
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
           <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
-            Webhook URL
+            SMTP Server
             <input
               className={inputClass}
-              value={form.Webhook_url}
-              onChange={set("Webhook_url")}
-              placeholder="https://hooks.example.com/..."
+              value={form.SMTPServer}
+              onChange={set("SMTPServer")}
+              placeholder="smtp.example.com:587"
             />
           </label>
           <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
-            Authorization Header
+            Email
             <input
               className={inputClass}
-              value={form.Webhook_key_string}
-              onChange={set("Webhook_key_string")}
-              placeholder="Bearer <token>"
+              type="email"
+              value={form.Email}
+              onChange={set("Email")}
+              placeholder="you@example.com"
             />
           </label>
           <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
-            Custom Message
+            App Password
             <input
               className={inputClass}
-              value={form.Custom_message}
-              onChange={set("Custom_message")}
-              placeholder="A service is down!"
+              type="password"
+              value={form.App_Password}
+              onChange={set("App_Password")}
+              placeholder="••••••••"
             />
           </label>
         </div>

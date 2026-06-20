@@ -30,8 +30,10 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	sData := utils.ReadConfigServices(utils.Current_Config)
 	mData := utils.ReadConfigMQTT(utils.Current_Config)
 	wData := utils.ReadConfigWebhook(utils.Current_Config)
+	eData := utils.ReadConfigSMTP(utils.Current_Config)
+	gData := utils.ReadConfigGotify(utils.Current_Config)
 
-	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
@@ -246,12 +248,94 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
 		}
 	case "DELETE":
-		if err := utils.DeleteConfigTrigger(utils.Current_Config); err != nil {
+		if err := utils.DeleteConfigWebhook(utils.Current_Config); err != nil {
 			log.Printf("Error deleting webhook config: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
+
+// @Summary Set or remove SMTP trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param smtp body utils.SMTPTrigger false "SMTP config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/smtp [post]
+// @Router /api/config/smtp [delete]
+func (s *Server) ConfigSMTPApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var smtp utils.SMTPTrigger
+		if err := json.NewDecoder(req.Body).Decode(&smtp); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigSMTPTrigger(utils.Current_Config, smtp); err != nil {
+			log.Printf("Error adding SMTP trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigSMTPTrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting SMTP trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
+
+// @Summary Set or remove Gotify trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param gotify body utils.GotifyTrigger false "Gotify config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/gotify [post]
+// @Router /api/config/gotify [delete]
+func (s *Server) ConfigGotifyApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var gotify utils.GotifyTrigger
+		if err := json.NewDecoder(req.Body).Decode(&gotify); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigGotifyTrigger(utils.Current_Config, gotify); err != nil {
+			log.Printf("Error adding Gotify trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigGotifyTrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting Gotify trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
 		}
 	default:

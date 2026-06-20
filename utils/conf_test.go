@@ -261,7 +261,7 @@ triggers:
 		t.Fatal("Failed to load Webhook config from setup")
 	}
 
-	if err := utils.DeleteConfigTrigger(conf); err != nil {
+	if err := utils.DeleteConfigWebhook(conf); err != nil {
 		t.Fatalf("Error occured deleting Webhook: %v", err)
 	}
 

@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useConfigData } from "../hooks/useConfigData";
 import ServicesPanel from "./config/ServicesPanel";
-import MQTTPanel from "./config/MQTTPanel";
-import WebhookPanel from "./config/WebhookPanel";
 import DatabasePanel from "./config/DatabasePanel";
+import Triggers from "./config/Triggers";
 
 interface Section {
   id: string;
@@ -12,8 +11,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: "services", label: "Services" },
-  { id: "mqtt", label: "MQTT" },
-  { id: "webhook", label: "Webhook" },
+  { id: "triggers", label: "Notifications" },
   { id: "database", label: "Database" },
 ];
 
@@ -21,12 +19,14 @@ export default function ConfigEditor() {
   const { config, loading, error, refresh } = useConfigData();
   const [activeSection, setActiveSection] = useState("services");
 
-  if (loading) return <p className="text-muted text-[0.9rem]">Loading configuration…</p>;
-  if (error) return (
-    <p className="text-[0.9rem] m-0 px-4 py-2 rounded-lg text-error bg-error/10 border border-error/30">
-      {error}
-    </p>
-  );
+  if (loading)
+    return <p className="text-muted text-[0.9rem]">Loading configuration…</p>;
+  if (error)
+    return (
+      <p className="text-[0.9rem] m-0 px-4 py-2 rounded-lg text-error bg-error/10 border border-error/30">
+        {error}
+      </p>
+    );
 
   return (
     <div className="w-full min-w-0">
@@ -46,9 +46,17 @@ export default function ConfigEditor() {
         ))}
       </div>
       <div>
-        {activeSection === "services" && <ServicesPanel services={config?.services} onRefresh={refresh} />}
-        {activeSection === "mqtt" && <MQTTPanel mqtt={config?.mqtt} onRefresh={refresh} />}
-        {activeSection === "webhook" && <WebhookPanel webhook={config?.webhook} onRefresh={refresh} />}
+        {activeSection === "services" && (
+          <ServicesPanel services={config?.services} onRefresh={refresh} />
+        )}
+        {activeSection === "triggers" && (
+          <Triggers
+            mqttProps={config?.mqtt ? { mqtt: config.mqtt, onRefresh: refresh } : undefined}
+            webhookProps={config?.webhook ? { webhook: config.webhook, onRefresh: refresh } : undefined}
+            smtpProps={config?.smtp ? { smtp: config.smtp, onRefresh: refresh } : undefined}
+            gotifyProps={config?.gotify ? { gotify: config.gotify, onRefresh: refresh } : undefined}
+          />
+        )}
         {activeSection === "database" && <DatabasePanel />}
       </div>
     </div>

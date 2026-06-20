@@ -52,16 +52,52 @@ export interface MQTTConfig {
   Mqtt_key?: string;
 }
 
+export interface MQTTPanelProps {
+  mqtt?: MQTTConfig;
+  onRefresh: () => void;
+}
+
 export interface WebhookConfig {
   Webhook_url?: string;
   Webhook_key_string?: string;
   Custom_message?: string;
 }
 
+export interface WebhookPanelProps {
+  webhook?: WebhookConfig;
+  onRefresh: () => void;
+}
+
+export interface SMTPConfig {
+  Email?: string;
+  App_Password?: string;
+  SMTPServer?: string;
+}
+
+export interface SMTPPanelProps {
+  smtp?: SMTPConfig;
+  onRefresh: () => void;
+}
+
+export interface GotifyConfig {
+  Gotify_Server?: string;
+  Gotify_Token?: string;
+  Gotify_Application?: string;
+  Gotify_Title?: string;
+  Gotify_Priority?: number;
+}
+
+export interface GotifyPanelProps {
+  gotify?: GotifyConfig;
+  onRefresh: () => void;
+}
+
 export interface AppConfig {
   services?: Record<string, ServiceConfig>;
   mqtt?: MQTTConfig;
   webhook?: WebhookConfig;
+  smtp?: SMTPConfig;
+  gotify?: GotifyConfig;
   database?: boolean;
 }
 
