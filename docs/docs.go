@@ -68,6 +68,98 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/gotify": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Gotify trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Gotify config (POST only)",
+                        "name": "gotify",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.GotifyTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Gotify trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Gotify config (POST only)",
+                        "name": "gotify",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.GotifyTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/mqtt": {
             "post": {
                 "consumes": [
@@ -382,6 +474,98 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/server.DatabaseSizePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/smtp": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove SMTP trigger configuration",
+                "parameters": [
+                    {
+                        "description": "SMTP config (POST only)",
+                        "name": "smtp",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SMTPTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove SMTP trigger configuration",
+                "parameters": [
+                    {
+                        "description": "SMTP config (POST only)",
+                        "name": "smtp",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SMTPTrigger"
                         }
                     }
                 ],
@@ -860,6 +1044,9 @@ const docTemplate = `{
         "utils.ConfigData": {
             "type": "object",
             "properties": {
+                "gotify": {
+                    "$ref": "#/definitions/utils.GotifyTrigger"
+                },
                 "mqtt": {
                     "$ref": "#/definitions/utils.MQTTTrigger"
                 },
@@ -868,6 +1055,9 @@ const docTemplate = `{
                     "additionalProperties": {
                         "$ref": "#/definitions/utils.Service"
                     }
+                },
+                "smtp": {
+                    "$ref": "#/definitions/utils.SMTPTrigger"
                 },
                 "webhook": {
                     "$ref": "#/definitions/utils.WebhookTrigger"
@@ -882,6 +1072,26 @@ const docTemplate = `{
                 }
             }
         },
+        "utils.GotifyTrigger": {
+            "type": "object",
+            "properties": {
+                "gotify_Application": {
+                    "type": "string"
+                },
+                "gotify_Priority": {
+                    "type": "integer"
+                },
+                "gotify_Server": {
+                    "type": "string"
+                },
+                "gotify_Title": {
+                    "type": "string"
+                },
+                "gotify_Token": {
+                    "type": "string"
+                }
+            }
+        },
         "utils.MQTTTrigger": {
             "type": "object",
             "properties": {
@@ -892,6 +1102,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "mqtt_username": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.SMTPTrigger": {
+            "type": "object",
+            "properties": {
+                "app_Password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "smtpserver": {
                     "type": "string"
                 }
             }

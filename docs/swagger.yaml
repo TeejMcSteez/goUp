@@ -21,12 +21,16 @@ definitions:
     type: object
   utils.ConfigData:
     properties:
+      gotify:
+        $ref: '#/definitions/utils.GotifyTrigger'
       mqtt:
         $ref: '#/definitions/utils.MQTTTrigger'
       services:
         additionalProperties:
           $ref: '#/definitions/utils.Service'
         type: object
+      smtp:
+        $ref: '#/definitions/utils.SMTPTrigger'
       webhook:
         $ref: '#/definitions/utils.WebhookTrigger'
     type: object
@@ -35,6 +39,19 @@ definitions:
       size_string:
         type: integer
     type: object
+  utils.GotifyTrigger:
+    properties:
+      gotify_Application:
+        type: string
+      gotify_Priority:
+        type: integer
+      gotify_Server:
+        type: string
+      gotify_Title:
+        type: string
+      gotify_Token:
+        type: string
+    type: object
   utils.MQTTTrigger:
     properties:
       mqtt_broker:
@@ -42,6 +59,15 @@ definitions:
       mqtt_key:
         type: string
       mqtt_username:
+        type: string
+    type: object
+  utils.SMTPTrigger:
+    properties:
+      app_Password:
+        type: string
+      email:
+        type: string
+      smtpserver:
         type: string
     type: object
   utils.ScheduleState:
@@ -159,6 +185,65 @@ paths:
           schema:
             type: string
       summary: Get full configuration
+      tags:
+      - config
+  /api/config/gotify:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Gotify config (POST only)
+        in: body
+        name: gotify
+        schema:
+          $ref: '#/definitions/utils.GotifyTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Gotify trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Gotify config (POST only)
+        in: body
+        name: gotify
+        schema:
+          $ref: '#/definitions/utils.GotifyTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Gotify trigger configuration
       tags:
       - config
   /api/config/mqtt:
@@ -379,6 +464,65 @@ paths:
           schema:
             type: string
       summary: Update the database max size
+      tags:
+      - config
+  /api/config/smtp:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: SMTP config (POST only)
+        in: body
+        name: smtp
+        schema:
+          $ref: '#/definitions/utils.SMTPTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove SMTP trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: SMTP config (POST only)
+        in: body
+        name: smtp
+        schema:
+          $ref: '#/definitions/utils.SMTPTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove SMTP trigger configuration
       tags:
       - config
   /api/config/webhook:
