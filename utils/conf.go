@@ -187,6 +187,29 @@ func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
 	config.Triggers.Gotify = newGotify
 	return writeConfig(config)
 }
+
+func DeleteConfigSMTPTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.SMTP.SMTPServer == nil || config.Triggers.SMTP.App_Password == nil || config.Triggers.SMTP.Email == nil {
+		return fmt.Errorf("no SMTP config to delete")
+	}
+	config.Triggers.SMTP = SMTPTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigGotifyTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Gotify.Gotify_Server == nil {
+		return fmt.Errorf("no Gotify config to delete")
+	}
+	config.Triggers.Gotify = GotifyTrigger{}
+	return writeConfig(config)
+}
+
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
