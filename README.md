@@ -54,20 +54,42 @@ When shrinking the database the system switches off WAL mode so the row deletion
 
 One can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
-Services are defined by their name, URL, and optional `description`, `api_url`, and `api_key`.
+Services are defined by their name, URL, and optional fields. Only `db_path`, the service name, and `url` are mandatory; all other fields are optional.
 
-Only the database path, service name, and service URL are mandatory; all other fields are optional.
+| Service field | Description |
+|---|---|
+| `url` | URL to monitor |
+| `description` | Human-readable label shown in the UI |
+| `api_url` | Secondary endpoint to query for API-level health |
+| `api_key` | Bearer token sent with `api_url` requests |
+| `valid_responses` | List of HTTP status codes considered healthy (default: `["200"]`) |
+| `retry` | Number of times to retry a failed request before triggering |
 
-Triggers contain the necessary information for sending various messages:
-   - `backoff` specifies the delay between trigger activations. Options include `<int><s/m/h>` (e.g., `15s`).
-  - mqtt
-    - mqtt_broker - URL of the MQTT broker
-    - mqtt_user - Username of the MQTT account if any
-    - mqtt_key - Key or password for the MQTT account
-  - webhook
-    - webhook_url - URL to send the webhook message to
-    - webhook_key - Authorization type (Bearer, Basic, etc.) and the key/connection string
-    - custom_message - Extra fields to add to the pre-defined JSON message
+Triggers fire when a service is detected as down. All trigger types are optional; only configure the ones you need.
+
+- `backoff` — minimum time between trigger activations, e.g. `15s`, `5m`, `1h`
+- `mqtt` — publishes service state JSON to a broker
+  - `mqtt_broker` — broker URL (e.g. `mqtt://broker.example.com`)
+  - `mqtt_user` — username (optional)
+  - `mqtt_key` — password (optional)
+- `webhook` — HTTP POST to any URL
+  - `webhook_url` — target URL
+  - `webhook_key` — `Authorization` header value (e.g. `Bearer <token>`)
+  - `custom_message` — JSON object merged with the service payload
+- `smtp` — sends an email via SMTP plain auth
+  - `smtp_server` — server and port (e.g. `smtp.gmail.com:587`)
+  - `email` — sender and recipient address
+  - `app_password` — app password or SMTP credential
+- `gotify` — push notification via a Gotify server
+  - `gotify_server` — base URL of the Gotify instance
+  - `gotify_app_token` — application token
+  - `gotify_application` — application name (optional)
+  - `gotify_title` — notification title (default: `GoUp Alert`)
+  - `gotify_priority` — priority level 0–10 (default: `5`)
+- `slack` — posts to a Slack channel via bot token
+  - `slack_token` — bot OAuth token (`xoxb-...`)
+  - `slack_channel` — channel ID used in the POST request (e.g. `C1234567890`)
+  - `username` — display name for the bot (default: `GoUp Bot`)
 
 ### Example
 
@@ -75,28 +97,43 @@ Triggers contain the necessary information for sending various messages:
 db_path: "./database.db"
 db_max_size: "1gb"
 persist_db: true
+
 services:
   home_assistant:
-    url: "https://ex.com/"
+    url: "https://ha.example.com/"
     description: "Home automation hub"
-    api_url: "http://ex.com/api/"
-    api_key: "<key>"
+    api_url: "https://ha.example.com/api/"
+    api_key: "<token>"
+    valid_responses: ["200", "201"]
+    retry: 2
 
-  truenas_scale:
-    url: "http://ex-scale.com/"
+  truenas:
+    url: "http://nas.example.com/"
     description: "NAS storage"
 
 triggers:
   backoff: "30m"
   mqtt:
-    mqtt_broker: "<url>"
+    mqtt_broker: "mqtt://broker.example.com"
     mqtt_user: "<user>"
-    mqtt_key: "<key>"
+    mqtt_key: "<password>"
   webhook:
-    webhook_url: "https://ex.com/"
-    webhook_key: "<auth_type> <key>"
-    custom_message: '{ "example_tag": "data" }'
-
+    webhook_url: "https://hooks.example.com/alert"
+    webhook_key: "Bearer <token>"
+    custom_message: '{ "source": "goUp" }'
+  smtp:
+    smtp_server: "smtp.gmail.com:587"
+    email: "you@gmail.com"
+    app_password: "<app-password>"
+  gotify:
+    gotify_server: "https://gotify.example.com"
+    gotify_app_token: "<token>"
+    gotify_title: "GoUp Alert"
+    gotify_priority: 5
+  slack:
+    slack_token: "xoxb-<token>"
+    slack_channel: "C1234567890"
+    username: "GoUp Bot"
 ```
 
 ## Storage
@@ -119,22 +156,18 @@ Schema:
 
 `service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup.
 
-## Triggers
+## Notifications
 
-### MQTT Trigger
+These are **subject to change** 
 
-Client ID: goUp MQTT
-State Topic: goup_status
-
-Username and password credentials are utilized only if provided in `services.yml`; otherwise, the system will attempt an unauthorized connection.
-
-Messages will be published to the broker under the "goup_status" topic.
-
-### Webhook Trigger
-
-It sends JSON data regarding service failures to the specified webhook URL. If custom messages are defined, they will be appended to the JSON payload.
-
-The provided key will be injected as an `Authorization` header, supporting values like `Basic`, `Bearer`, etc., as string values in the YAML configuration.
+- [x] Webhook
+- [x] MQTT
+- [x] SMTP (via Gmail App Password currently)
+- [x] Slack (via bot token)
+- [x] Gotify
+- [ ] Telegram
+- [ ] Home Assistant
+- [ ] Discord
 
 ## Arch. Support
 
@@ -154,6 +187,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 48.2% of statements
-- goUp/utils coverage: 64.7% of statements
+- goUp/server coverage: 42.0% of statements
+- goUp/utils coverage: 55.6% of statements
 - goUp/workers coverage: 59.8% of statements
