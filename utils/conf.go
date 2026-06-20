@@ -282,7 +282,7 @@ func DeleteConfigMQTT(config *Config) error {
 	return writeConfig(config)
 }
 
-func DeleteConfigTrigger(config *Config) error {
+func DeleteConfigWebhook(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
 	}

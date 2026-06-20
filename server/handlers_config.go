@@ -248,7 +248,7 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
 		}
 	case "DELETE":
-		if err := utils.DeleteConfigTrigger(utils.Current_Config); err != nil {
+		if err := utils.DeleteConfigWebhook(utils.Current_Config); err != nil {
 			log.Printf("Error deleting webhook config: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
