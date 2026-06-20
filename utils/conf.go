@@ -182,7 +182,7 @@ func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
 		return fmt.Errorf("config is nil")
 	}
 	if newGotify == config.Triggers.Gotify {
-		return fmt.Errorf("Gotify config is the same")
+		return fmt.Errorf("gotify config is the same")
 	}
 	config.Triggers.Gotify = newGotify
 	return writeConfig(config)
