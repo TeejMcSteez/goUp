@@ -36,6 +36,7 @@ type Trigger struct {
 	Webhook        WebhookTrigger `yaml:"webhook"`
 	SMTP           SMTPTrigger    `yaml:"smtp"`
 	Gotify         GotifyTrigger  `yaml:"gotify"`
+	Slack          SlackTrigger   `yaml:"slack"`
 	Backoff_Period *string        `yaml:"backoff"`
 
 	backoffDuration time.Duration

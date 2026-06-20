@@ -44,7 +44,9 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.Gotify.IsConfigured() {
 		t.handlers = append(t.handlers, &t.Gotify)
 	}
-
+	if t.Slack.IsConfigured() {
+		t.handlers = append(t.handlers, &t.Slack)
+	}
 	if len(t.handlers) == 0 {
 		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
