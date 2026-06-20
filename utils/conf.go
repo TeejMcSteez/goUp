@@ -166,6 +166,27 @@ func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
 	return writeConfig(config)
 }
 
+func AddConfigSMTPTrigger(config *Config, newSmtp SMTPTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newSmtp == config.Triggers.SMTP {
+		return fmt.Errorf("SMTP config is the same")
+	}
+	config.Triggers.SMTP = newSmtp
+	return writeConfig(config)
+}
+
+func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newGotify == config.Triggers.Gotify {
+		return fmt.Errorf("Gotify config is the same")
+	}
+	config.Triggers.Gotify = newGotify
+	return writeConfig(config)
+}
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
