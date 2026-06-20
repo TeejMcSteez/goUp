@@ -199,39 +199,6 @@ func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
 	return writeConfig(config)
 }
 
-func DeleteConfigSMTPTrigger(config *Config) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if config.Triggers.SMTP.SMTPServer == nil || config.Triggers.SMTP.App_Password == nil || config.Triggers.SMTP.Email == nil {
-		return fmt.Errorf("no SMTP config to delete")
-	}
-	config.Triggers.SMTP = SMTPTrigger{}
-	return writeConfig(config)
-}
-
-func DeleteConfigGotifyTrigger(config *Config) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if config.Triggers.Gotify.Gotify_Server == nil {
-		return fmt.Errorf("no Gotify config to delete")
-	}
-	config.Triggers.Gotify = GotifyTrigger{}
-	return writeConfig(config)
-}
-
-func DeleteConfigSlackTrigger(config *Config) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if config.Triggers.Slack.Slack_Channel == nil && config.Triggers.Slack.Slack_Token == nil {
-		return fmt.Errorf("no slack config to delete")
-	}
-	config.Triggers.Slack = SlackTrigger{}
-	return writeConfig(config)
-}
-
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
@@ -291,6 +258,39 @@ func DeleteConfigWebhook(config *Config) error {
 	}
 
 	config.Triggers.Webhook = WebhookTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigSMTPTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.SMTP.SMTPServer == nil || config.Triggers.SMTP.App_Password == nil || config.Triggers.SMTP.Email == nil {
+		return fmt.Errorf("no SMTP config to delete")
+	}
+	config.Triggers.SMTP = SMTPTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigGotifyTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Gotify.Gotify_Server == nil {
+		return fmt.Errorf("no Gotify config to delete")
+	}
+	config.Triggers.Gotify = GotifyTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigSlackTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Slack.Slack_Channel == nil && config.Triggers.Slack.Slack_Token == nil {
+		return fmt.Errorf("no slack config to delete")
+	}
+	config.Triggers.Slack = SlackTrigger{}
 	return writeConfig(config)
 }
 
