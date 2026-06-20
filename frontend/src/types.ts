@@ -52,10 +52,20 @@ export interface MQTTConfig {
   Mqtt_key?: string;
 }
 
+export interface MQTTPanelProps {
+  mqtt?: MQTTConfig;
+  onRefresh: () => void;
+}
+
 export interface WebhookConfig {
   Webhook_url?: string;
   Webhook_key_string?: string;
   Custom_message?: string;
+}
+
+export interface WebhookPanelProps {
+  webhook?: WebhookConfig;
+  onRefresh: () => void;
 }
 
 export interface AppConfig {
