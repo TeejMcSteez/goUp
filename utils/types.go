@@ -26,6 +26,8 @@ type ConfigData struct {
 	Services map[string]Service `json:"services"`
 	MQTT     MQTTTrigger        `json:"mqtt"`
 	Webhook  WebhookTrigger     `json:"webhook"`
+	SMTP     SMTPTrigger        `json:"smtp"`
+	Gotify   GotifyTrigger      `json:"gotify"`
 }
 
 // Endpoints and data for triggers

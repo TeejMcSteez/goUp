@@ -30,8 +30,10 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	sData := utils.ReadConfigServices(utils.Current_Config)
 	mData := utils.ReadConfigMQTT(utils.Current_Config)
 	wData := utils.ReadConfigWebhook(utils.Current_Config)
+	eData := utils.ReadConfigSMTP(utils.Current_Config)
+	gData := utils.ReadConfigGotify(utils.Current_Config)
 
-	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
