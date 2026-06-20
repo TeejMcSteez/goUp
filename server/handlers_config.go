@@ -261,6 +261,16 @@ func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// @Summary Set or remove SMTP trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param smtp body utils.SMTPTrigger false "SMTP config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/smtp [post]
+// @Router /api/config/smtp [delete]
 func (s *Server) ConfigSMTPApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
@@ -292,6 +302,16 @@ func (s *Server) ConfigSMTPApi(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// @Summary Set or remove Gotify trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param gotify body utils.GotifyTrigger false "Gotify config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/gotify [post]
+// @Router /api/config/gotify [delete]
 func (s *Server) ConfigGotifyApi(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	switch req.Method {
