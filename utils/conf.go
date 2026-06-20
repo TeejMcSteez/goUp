@@ -188,6 +188,17 @@ func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
 	return writeConfig(config)
 }
 
+func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newSlack == config.Triggers.Slack {
+		return fmt.Errorf("slack config is the same")
+	}
+	config.Triggers.Slack = newSlack
+	return writeConfig(config)
+}
+
 func DeleteConfigSMTPTrigger(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config is nil")
@@ -207,6 +218,17 @@ func DeleteConfigGotifyTrigger(config *Config) error {
 		return fmt.Errorf("no Gotify config to delete")
 	}
 	config.Triggers.Gotify = GotifyTrigger{}
+	return writeConfig(config)
+}
+
+func DeleteConfigSlackTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Slack.Slack_Channel == nil && config.Triggers.Slack.Slack_Token == nil {
+		return fmt.Errorf("no slack config to delete")
+	}
+	config.Triggers.Slack = SlackTrigger{}
 	return writeConfig(config)
 }
 
@@ -290,6 +312,10 @@ func ReadConfigSMTP(config *Config) SMTPTrigger {
 
 func ReadConfigGotify(config *Config) GotifyTrigger {
 	return config.Triggers.Gotify
+}
+
+func ReadConfigSlack(config *Config) SlackTrigger {
+	return config.Triggers.Slack
 }
 
 func ReadConfigDatabasePersistence(config *Config) bool {
