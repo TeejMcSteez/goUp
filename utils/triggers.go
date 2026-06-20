@@ -258,3 +258,59 @@ func (g *GotifyTrigger) Fire(data []ServiceData) {
 func (g *GotifyTrigger) IsConfigured() bool {
 	return g.Gotify_Server != nil && g.Gotify_Token != nil
 }
+
+func (s *SlackTrigger) Fire(data []ServiceData) {
+	var text strings.Builder
+	for _, entry := range data {
+		fmt.Fprintf(&text, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	getUsername := func(str *string) string {
+		if str == nil {
+			return "GoUp Bot"
+		}
+		return *str
+	}
+	payload, err := json.Marshal(map[string]any{
+		"channel":  *s.Slack_Channel,
+		"username": getUsername(s.Bot_Username),
+		"text":     text.String(),
+	})
+	if err != nil {
+		log.Printf("Failed craft payload for Slack trigger: %v", err)
+		return
+	}
+	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer(payload))
+	if err != nil {
+		log.Printf("Failed to create request for slack: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+*s.Slack_Token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Failed to send request to slack: %v", err)
+		return
+	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("Error closing slack response body: %v", err)
+		}
+	}()
+	var slackResp struct {
+		OK    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&slackResp); err != nil {
+		log.Printf("Failed to decode Slack response: %v", err)
+		return
+	}
+	if !slackResp.OK {
+		log.Printf("Slack notification failed: %s", slackResp.Error)
+		return
+	}
+	log.Println("Slack notification sent")
+}
+
+func (s *SlackTrigger) IsConfigured() bool {
+	return s.Slack_Token != nil && s.Slack_Channel != nil
+}
