@@ -76,6 +76,12 @@ type GotifyTrigger struct {
 	Gotify_Priority    *int    `yaml:"gotify_priority"`
 }
 
+type SlackTrigger struct {
+	Slack_Token   *string `yaml:"slack_token"`
+	Slack_Channel *string `yaml:"slack_channel"`
+	Bot_Username  *string `yaml:"username"`
+}
+
 // Data for service endponts
 type Service struct {
 	Name            string    `yaml:"-"`
