@@ -199,6 +199,17 @@ func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
 	return writeConfig(config)
 }
 
+func AddConfigTelegramTrigger(config *Config, newTelegram TelegramTrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newTelegram == config.Triggers.Telegram {
+		return fmt.Errorf("slack config is the same")
+	}
+	config.Triggers.Telegram = newTelegram
+	return writeConfig(config)
+}
+
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
@@ -294,6 +305,17 @@ func DeleteConfigSlackTrigger(config *Config) error {
 	return writeConfig(config)
 }
 
+func DeleteConfigTelegramTrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.Telegram.Telegram_Token == nil && config.Triggers.Telegram.Telegram_Channel_Id == nil {
+		return fmt.Errorf("no telegram config to delete")
+	}
+	config.Triggers.Telegram = TelegramTrigger{}
+	return writeConfig(config)
+}
+
 func ReadConfigServices(config *Config) map[string]Service {
 	return config.Services
 }
@@ -316,6 +338,10 @@ func ReadConfigGotify(config *Config) GotifyTrigger {
 
 func ReadConfigSlack(config *Config) SlackTrigger {
 	return config.Triggers.Slack
+}
+
+func ReadConfigTelegram(config *Config) TelegramTrigger {
+	return config.Triggers.Telegram
 }
 
 func ReadConfigDatabasePersistence(config *Config) bool {
