@@ -32,8 +32,10 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	wData := utils.ReadConfigWebhook(utils.Current_Config)
 	eData := utils.ReadConfigSMTP(utils.Current_Config)
 	gData := utils.ReadConfigGotify(utils.Current_Config)
+	slData := utils.ReadConfigSlack(utils.Current_Config)
+	tgData := utils.ReadConfigTelegram(utils.Current_Config)
 
-	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
@@ -337,6 +339,88 @@ func (s *Server) ConfigGotifyApi(w http.ResponseWriter, req *http.Request) {
 		}
 		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write error message", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
+
+// @Summary Set or remove Slack trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param slack body utils.SlackTrigger false "Slack config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/slack [post]
+// @Router /api/config/slack [delete]
+func (s *Server) ConfigSlackApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var slack utils.SlackTrigger
+		if err := json.NewDecoder(req.Body).Decode(&slack); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigSlackTrigger(utils.Current_Config, slack); err != nil {
+			log.Printf("Error adding Slack trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigSlackTrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting Slack trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
+
+// @Summary Set or remove Telegram trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param telegram body utils.TelegramTrigger false "Telegram config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/telegram [post]
+// @Router /api/config/telegram [delete]
+func (s *Server) ConfigTelegramApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var telegram utils.TelegramTrigger
+		if err := json.NewDecoder(req.Body).Decode(&telegram); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigTelegramTrigger(utils.Current_Config, telegram); err != nil {
+			log.Printf("Error adding Telegram trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigTelegramTrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting Telegram trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
