@@ -337,6 +337,7 @@ func (t *TelegramTrigger) Fire(data []ServiceData) {
 		log.Printf("failed to create request for telegram: %v", err)
 		return
 	}
+	req.Header.Set("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Printf("failed to send request for telegram: %v", err)
