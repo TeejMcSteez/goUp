@@ -343,7 +343,24 @@ func (t *TelegramTrigger) Fire(data []ServiceData) {
 		log.Printf("failed to send request for telegram: %v", err)
 		return
 	}
-	log.Printf("Telegram notification sent: %v", res.Status)
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("Error closing Telegram response body: %v", err)
+		}
+	}()
+	var telegramResp struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&telegramResp); err != nil {
+		log.Printf("Failed to decode Telegram response: %v", err)
+		return
+	}
+	if !telegramResp.OK {
+		log.Printf("Telegram notification failed: %s", telegramResp.Description)
+		return
+	}
+	log.Println("Telegram notification sent")
 }
 
 func (t *TelegramTrigger) IsConfigured() bool {
