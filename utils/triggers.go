@@ -18,6 +18,7 @@ import (
 // SetupTrigger copies Trigger config from cfg and registers configured handlers.
 func SetupTrigger(cfg *Config) *Trigger {
 	t := &cfg.Triggers
+	t.handlers = nil
 
 	if cfg.Triggers.Backoff_Period != nil && *cfg.Triggers.Backoff_Period != "" {
 		dur, err := time.ParseDuration(*cfg.Triggers.Backoff_Period)
