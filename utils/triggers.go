@@ -47,6 +47,9 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.Slack.IsConfigured() {
 		t.handlers = append(t.handlers, &t.Slack)
 	}
+	if t.Telegram.IsConfigured() {
+		t.handlers = append(t.handlers, &t.Telegram)
+	}
 	if len(t.handlers) == 0 {
 		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
@@ -313,4 +316,35 @@ func (s *SlackTrigger) Fire(data []ServiceData) {
 
 func (s *SlackTrigger) IsConfigured() bool {
 	return s.Slack_Token != nil && s.Slack_Channel != nil
+}
+
+func (t *TelegramTrigger) Fire(data []ServiceData) {
+	var text strings.Builder
+	for _, entry := range data {
+		fmt.Fprintf(&text, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"chat_id": *t.Telegram_Channel_Id,
+		"text":    text.String(),
+	})
+	if err != nil {
+		log.Printf("failed to craft payload for telegram: %v", err)
+		return
+	}
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		log.Printf("failed to create request for telegram: %v", err)
+		return
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("failed to send request for telegram: %v", err)
+		return
+	}
+	log.Printf("Telegram notification sent: %v", res.Status)
+}
+
+func (t *TelegramTrigger) IsConfigured() bool {
+	return t.Telegram_Channel_Id != nil && t.Telegram_Token != nil
 }
