@@ -28,6 +28,8 @@ type ConfigData struct {
 	Webhook  WebhookTrigger     `json:"webhook"`
 	SMTP     SMTPTrigger        `json:"smtp"`
 	Gotify   GotifyTrigger      `json:"gotify"`
+	Slack    SlackTrigger       `json:"slack"`
+	Telegram TelegramTrigger    `json:"telegram"`
 }
 
 // Endpoints and data for triggers
