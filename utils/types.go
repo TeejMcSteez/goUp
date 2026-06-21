@@ -32,12 +32,13 @@ type ConfigData struct {
 
 // Endpoints and data for triggers
 type Trigger struct {
-	MQTT           MQTTTrigger    `yaml:"mqtt"`
-	Webhook        WebhookTrigger `yaml:"webhook"`
-	SMTP           SMTPTrigger    `yaml:"smtp"`
-	Gotify         GotifyTrigger  `yaml:"gotify"`
-	Slack          SlackTrigger   `yaml:"slack"`
-	Backoff_Period *string        `yaml:"backoff"`
+	MQTT           MQTTTrigger     `yaml:"mqtt"`
+	Webhook        WebhookTrigger  `yaml:"webhook"`
+	SMTP           SMTPTrigger     `yaml:"smtp"`
+	Gotify         GotifyTrigger   `yaml:"gotify"`
+	Slack          SlackTrigger    `yaml:"slack"`
+	Telegram       TelegramTrigger `yaml:"telegram"`
+	Backoff_Period *string         `yaml:"backoff"`
 
 	backoffDuration time.Duration
 	lastFired       time.Time
@@ -81,6 +82,11 @@ type SlackTrigger struct {
 	Slack_Token   *string `yaml:"slack_token"`
 	Slack_Channel *string `yaml:"slack_channel"`
 	Bot_Username  *string `yaml:"username"`
+}
+
+type TelegramTrigger struct {
+	Telegram_Token      *string `yaml:"telegram_token"`
+	Telegram_Channel_Id *string `yaml:"telegram_channel_id"`
 }
 
 // Data for service endponts
