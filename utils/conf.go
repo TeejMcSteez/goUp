@@ -61,6 +61,8 @@ func LoadConfig(path string) (*Config, error) {
 
 // writeConfig marshals the config back to the file it was loaded from.
 func writeConfig(conf *Config) error {
+	// Refresh triggers on write fix #63
+	conf.Triggers = *SetupTrigger(conf)
 	if conf.ConfigPath == "" {
 		return fmt.Errorf("config path is not set")
 	}
