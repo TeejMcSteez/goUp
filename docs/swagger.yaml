@@ -21,8 +21,12 @@ definitions:
     type: object
   utils.ConfigData:
     properties:
+      discord:
+        $ref: '#/definitions/utils.DiscordTrigger'
       gotify:
         $ref: '#/definitions/utils.GotifyTrigger'
+      ha:
+        $ref: '#/definitions/utils.HATrigger'
       mqtt:
         $ref: '#/definitions/utils.MQTTTrigger'
       services:
@@ -42,6 +46,18 @@ definitions:
     properties:
       size_string:
         type: integer
+    type: object
+  utils.DiscordTrigger:
+    properties:
+      discord_Auth:
+        description: Can be Bot <token> or Bearer <token>
+        type: string
+      discord_Channel:
+        description: |-
+          For now only one channel is supported
+          However, if needed many channels would be optional
+          Just need to use a string array over string pointer to send message to all channels
+        type: string
     type: object
   utils.GotifyTrigger:
     properties:
@@ -212,6 +228,65 @@ paths:
           schema:
             type: string
       summary: Get full configuration
+      tags:
+      - config
+  /api/config/discord:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Discord  config (POST only)
+        in: body
+        name: discord
+        schema:
+          $ref: '#/definitions/utils.DiscordTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Discord trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Discord  config (POST only)
+        in: body
+        name: discord
+        schema:
+          $ref: '#/definitions/utils.DiscordTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Discord trigger configuration
       tags:
       - config
   /api/config/gotify:

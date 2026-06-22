@@ -68,6 +68,98 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/discord": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Discord trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Discord  config (POST only)",
+                        "name": "discord",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.DiscordTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Discord trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Discord  config (POST only)",
+                        "name": "discord",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.DiscordTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/gotify": {
             "post": {
                 "consumes": [
@@ -1320,8 +1412,14 @@ const docTemplate = `{
         "utils.ConfigData": {
             "type": "object",
             "properties": {
+                "discord": {
+                    "$ref": "#/definitions/utils.DiscordTrigger"
+                },
                 "gotify": {
                     "$ref": "#/definitions/utils.GotifyTrigger"
+                },
+                "ha": {
+                    "$ref": "#/definitions/utils.HATrigger"
                 },
                 "mqtt": {
                     "$ref": "#/definitions/utils.MQTTTrigger"
@@ -1351,6 +1449,19 @@ const docTemplate = `{
             "properties": {
                 "size_string": {
                     "type": "integer"
+                }
+            }
+        },
+        "utils.DiscordTrigger": {
+            "type": "object",
+            "properties": {
+                "discord_Auth": {
+                    "description": "Can be Bot \u003ctoken\u003e or Bearer \u003ctoken\u003e",
+                    "type": "string"
+                },
+                "discord_Channel": {
+                    "description": "For now only one channel is supported\nHowever, if needed many channels would be optional\nJust need to use a string array over string pointer to send message to all channels",
+                    "type": "string"
                 }
             }
         },
