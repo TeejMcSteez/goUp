@@ -36,7 +36,7 @@ lint:
 	golangci-lint run ./...
 
 test:
-	go test ./... -cover
+	go test ./... -cover -race
 
 prof:
 	mkdir -p perf
