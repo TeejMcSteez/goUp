@@ -90,6 +90,9 @@ Triggers fire when a service is detected as down. All trigger types are optional
   - `slack_token` — bot OAuth token (`xoxb-...`)
   - `slack_channel` — channel ID used in the POST request (e.g. `C1234567890`)
   - `username` — display name for the bot (default: `GoUp Bot`)
+- `telegram` — sends a message via Telegram Bot API
+  - `telegram_token` — bot token from [@BotFather](https://t.me/BotFather)
+  - `telegram_channel_id` — chat or channel ID (e.g. `@channelname` or `-100123456789`)
 
 ### Example
 
@@ -134,6 +137,9 @@ triggers:
     slack_token: "xoxb-<token>"
     slack_channel: "C1234567890"
     username: "GoUp Bot"
+  telegram:
+    telegram_token: "<bot-token>"
+    telegram_channel_id: "@channelname"
 ```
 
 ## Storage
@@ -165,7 +171,7 @@ These are **subject to change**
 - [x] SMTP (via Gmail App Password currently)
 - [x] Slack (via bot token)
 - [x] Gotify
-- [ ] Telegram
+- [x] Telegram
 - [ ] Home Assistant
 - [ ] Discord
 
