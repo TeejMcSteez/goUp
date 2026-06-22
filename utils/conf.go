@@ -354,7 +354,7 @@ func ReadConfigDatabasePersistence(config *Config) bool {
 }
 
 func ReadDatabaseSize(config *Config) (string, error) {
-	if config.Persist_db == nil {
+	if config.Database_Max_Size == nil {
 		return "", fmt.Errorf("current database size is not set")
 	}
 	return *config.Database_Max_Size, nil
