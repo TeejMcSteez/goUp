@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     cssMinify: "esbuild",
+    target: "esnext",
     sourcemap: false,
     // Want to be performant as possible under 200kb chunks if possible
     chunkSizeWarningLimit: 200,
