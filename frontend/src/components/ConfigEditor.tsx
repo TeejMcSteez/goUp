@@ -55,6 +55,8 @@ export default function ConfigEditor() {
             webhookProps={config?.webhook ? { webhook: config.webhook, onRefresh: refresh } : undefined}
             smtpProps={config?.smtp ? { smtp: config.smtp, onRefresh: refresh } : undefined}
             gotifyProps={config?.gotify ? { gotify: config.gotify, onRefresh: refresh } : undefined}
+            slackProps={config?.slack ? { slack: config.slack, onRefresh: refresh } : undefined}
+            telegramProps={config?.telegram ? { telegram: config.telegram, onRefresh: refresh } : undefined}
           />
         )}
         {activeSection === "database" && <DatabasePanel />}
