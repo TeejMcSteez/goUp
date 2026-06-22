@@ -9,7 +9,7 @@ export default function ErrorLogViewer() {
   const { formatName } = useServiceName();
 
   const selectClass =
-    "max-w-[120px] px-4 py-3 mb-4 inline-block rounded-lg border border-border bg-surface text-fg text-base transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-focus focus:shadow-[0_0_0_3px_rgba(56,189,248,0.3)]";
+    "max-w-[130px] px-4 py-3 mb-4 inline-block rounded-lg border border-border bg-surface text-fg text-base transition-[border-color,box-shadow] duration-200 focus:outline-none focus:border-focus focus:shadow-[0_0_0_3px_rgba(56,189,248,0.3)]";
 
   return (
     <div className="w-full">
