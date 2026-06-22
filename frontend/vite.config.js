@@ -9,6 +9,8 @@ export default defineConfig({
     cssMinify: "esbuild",
     target: "esnext",
     sourcemap: false,
+    // Skip polyfill injection modern browsers handle natively
+    modulePreload: { polyfill: false },
     // Want to be performant as possible under 200kb chunks if possible
     chunkSizeWarningLimit: 200,
     outDir: "../server/static",
