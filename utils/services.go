@@ -30,7 +30,7 @@ func Setup(cfg *Config) error {
 
 	Current_Config = cfg
 	log.Println("Setting up triggers")
-	SetupTrigger(cfg)
+	Current_Config.Triggers = *SetupTrigger(cfg)
 
 	var updatedEndpoints []Service
 	log.Println("Setting up service endpoints")
