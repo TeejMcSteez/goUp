@@ -18,23 +18,6 @@ Development focusing on security may arise but is not planned hence this warning
 
 A full interactive API reference is available at `/swagger/index.html` when the server is running. Run `make docs` to regenerate it after modifying handler annotations.
 
-## Building
-
-Requires a Node package manager (npm, pnpm, yarn, or bun) and the [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`).
-
-The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
-
-| Target | Description |
-|--------|-------------|
-| `make` / `make all` | Generate API docs, build frontend, then compile the Go binary |
-| `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
-| `make build` | Build the frontend then compile the Go binary (`./goUp`) |
-| `make fmt` | Format Go source files via `golangci-lint fmt` |
-| `make lint` | Lint Go source files via `golangci-lint run` |
-| `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
-| `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` |
-| `make clean` | Remove the compiled binary, generated docs, and `perf/` directory |
-
 ## AI Disclosure
 
 Portions of this project were generated with the assistance of AI tools.
@@ -147,6 +130,35 @@ triggers:
     discord_auth: "Bot <token>"
     discord_channel_id: "123456789012345678"
 ```
+## Notifications
+
+These are **subject to change** 
+
+- [x] Webhook
+- [x] MQTT
+- [x] SMTP (via Gmail App Password currently)
+- [x] Slack (via bot token)
+- [x] Gotify
+- [x] Telegram
+- [x] Home Assistant (via event bus)
+- [x] Discord
+
+## Building
+
+Requires a Node package manager (npm, pnpm, yarn, or bun) and the [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`).
+
+The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
+
+| Target | Description |
+|--------|-------------|
+| `make` / `make all` | Generate API docs, build frontend, then compile the Go binary |
+| `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
+| `make build` | Build the frontend then compile the Go binary (`./goUp`) |
+| `make fmt` | Format Go source files via `golangci-lint fmt` |
+| `make lint` | Lint Go source files via `golangci-lint run` |
+| `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
+| `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` |
+| `make clean` | Remove the compiled binary, generated docs, and `perf/` directory |
 
 ## Storage
 
@@ -168,19 +180,6 @@ Schema:
 
 `service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup.
 
-## Notifications
-
-These are **subject to change** 
-
-- [x] Webhook
-- [x] MQTT
-- [x] SMTP (via Gmail App Password currently)
-- [x] Slack (via bot token)
-- [x] Gotify
-- [x] Telegram
-- [x] Home Assistant (via event bus)
-- [x] Discord
-
 ## Arch. Support
 
 - Linux ARM64/AMD64
@@ -198,6 +197,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 37.3% of statements
-- goUp/utils coverage: 53.0% of statements
-- goUp/workers coverage: 65.6% of statements
+- goUp/server coverage: 33.7% of statements
+- goUp/utils coverage: 48.5% of statements
+- goUp/workers coverage: 65.5% of statements
