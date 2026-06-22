@@ -30,6 +30,7 @@ type ConfigData struct {
 	Gotify   GotifyTrigger      `json:"gotify"`
 	Slack    SlackTrigger       `json:"slack"`
 	Telegram TelegramTrigger    `json:"telegram"`
+	HA       HATrigger          `json:"ha"`
 }
 
 // Endpoints and data for triggers
