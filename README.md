@@ -178,7 +178,6 @@ These are **subject to change**
 ### Tested Arch.
 
 - Debian x86_64 (AMD64)
-- Linux raspberrypi(4) (Debian) aarch64 (ARM64)
 
 ## Current Test Coverage (Dev)
 
@@ -187,6 +186,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 42.0% of statements
-- goUp/utils coverage: 55.6% of statements
-- goUp/workers coverage: 59.8% of statements
+- goUp/server coverage: 37.3% of statements
+- goUp/utils coverage: 53.0% of statements
+- goUp/workers coverage: 65.6% of statements
