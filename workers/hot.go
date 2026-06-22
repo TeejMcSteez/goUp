@@ -9,13 +9,23 @@ import (
 )
 
 func StartHotReloader(path string, ctx context.Context, db *sql.DB) {
+	startHotReloader(path, ctx, db, 5*time.Second)
+}
+
+// StartHotReloaderWithInterval is StartHotReloader with a configurable poll
+// interval. Intended for tests that need the reloader to fire quickly.
+func StartHotReloaderWithInterval(path string, ctx context.Context, db *sql.DB, interval time.Duration) {
+	startHotReloader(path, ctx, db, interval)
+}
+
+func startHotReloader(path string, ctx context.Context, db *sql.DB, interval time.Duration) {
 	initialModTime, err := utils.GetFileTimestamp(path)
 	if err != nil {
 		log.Printf("Failed to get file information while starting hot reloading service: %v", err)
 	}
 
 	notify := utils.ConfigWriteNotify()
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
