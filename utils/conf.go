@@ -215,6 +215,17 @@ func AddConfigTelegramTrigger(config *Config, newTelegram TelegramTrigger) error
 	return writeConfig(config)
 }
 
+func AddConfigHATrigger(config *Config, newHA HATrigger) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if newHA == config.Triggers.HA {
+		return fmt.Errorf("ha config is the same")
+	}
+	config.Triggers.HA = newHA
+	return writeConfig(config)
+}
+
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
@@ -321,6 +332,17 @@ func DeleteConfigTelegramTrigger(config *Config) error {
 	return writeConfig(config)
 }
 
+func DeleteConfigHATrigger(config *Config) error {
+	if config == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if config.Triggers.HA.HA_URL == nil && config.Triggers.HA.HA_Token == nil {
+		return fmt.Errorf("no HA config to delete")
+	}
+	config.Triggers.HA = HATrigger{}
+	return writeConfig(config)
+}
+
 func ReadConfigServices(config *Config) map[string]Service {
 	return config.Services
 }
@@ -347,6 +369,10 @@ func ReadConfigSlack(config *Config) SlackTrigger {
 
 func ReadConfigTelegram(config *Config) TelegramTrigger {
 	return config.Triggers.Telegram
+}
+
+func ReadConfigHA(config *Config) HATrigger {
+	return config.Triggers.HA
 }
 
 func ReadConfigDatabasePersistence(config *Config) bool {

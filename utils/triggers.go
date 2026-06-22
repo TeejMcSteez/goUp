@@ -51,6 +51,9 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.Telegram.IsConfigured() {
 		t.handlers = append(t.handlers, &t.Telegram)
 	}
+	if t.HA.IsConfigured() {
+		t.handlers = append(t.handlers, &t.HA)
+	}
 	if len(t.handlers) == 0 {
 		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
@@ -366,4 +369,46 @@ func (t *TelegramTrigger) Fire(data []ServiceData) {
 
 func (t *TelegramTrigger) IsConfigured() bool {
 	return t.Telegram_Channel_Id != nil && t.Telegram_Token != nil
+}
+
+func (h *HATrigger) Fire(data []ServiceData) {
+	var extraStateAttribs strings.Builder
+	for _, entry := range data {
+		fmt.Fprintf(&extraStateAttribs, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	body, err := json.Marshal(map[string]any{
+		"details": extraStateAttribs.String(),
+	})
+	if err != nil {
+		log.Printf("failed to create HA json payload: %v", err)
+		return
+	}
+	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("failed to create HA request: %v", err)
+		return
+	}
+	req.Header.Add("Authorization", "Bearer "+*h.HA_Token)
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("failed to send request for HA: %v", err)
+		return
+	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("error closing HA response body: %v", err)
+		}
+	}()
+	if res.StatusCode != 200 && res.StatusCode != 201 {
+		log.Printf("Failed to send or post sensor state\n Status Code: %d", res.StatusCode)
+		return
+	}
+	log.Println("HA notification sent")
+}
+
+func (h *HATrigger) IsConfigured() bool {
+	return h.HA_URL != nil && h.HA_Token != nil
 }

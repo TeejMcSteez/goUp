@@ -40,6 +40,7 @@ type Trigger struct {
 	Gotify         GotifyTrigger   `yaml:"gotify"`
 	Slack          SlackTrigger    `yaml:"slack"`
 	Telegram       TelegramTrigger `yaml:"telegram"`
+	HA             HATrigger       `yaml:"home_assistant"`
 	Backoff_Period *string         `yaml:"backoff"`
 
 	backoffDuration time.Duration
@@ -89,6 +90,11 @@ type SlackTrigger struct {
 type TelegramTrigger struct {
 	Telegram_Token      *string `yaml:"telegram_token"`
 	Telegram_Channel_Id *string `yaml:"telegram_channel_id"`
+}
+
+type HATrigger struct {
+	HA_Token *string `yaml:"ha_token"`
+	HA_URL   *string `yaml:"ha_url"`
 }
 
 // Data for service endponts
