@@ -426,3 +426,44 @@ func (s *Server) ConfigTelegramApi(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
 }
+
+// @Summary Set or remove Home Assistant trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param ha body utils.HATrigger false "Home Assistant config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/ha [post]
+// @Router /api/config/ha [delete]
+func (s *Server) ConfigHAApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var ha utils.HATrigger
+		if err := json.NewDecoder(req.Body).Decode(&ha); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigHATrigger(utils.Current_Config, ha); err != nil {
+			log.Printf("Error adding Home Assistant trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigHATrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting Home Assistant trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
