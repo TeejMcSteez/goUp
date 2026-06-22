@@ -40,12 +40,6 @@ The Makefile auto-detects the package manager by matching the existing lock file
 Portions of this project were generated with the assistance of AI tools.
 All generated code was reviewed and modified by the author.
 
-## Note About TLS
-
-This project is soely focused on HTTP, routes, and the logic. A reverse proxy is recommended to handle TLS errors for servers that are HTTPS that one wants to test.
-
-This seperates the concern for this codebase and reduces binary size as well as offloads the work of handling HTTPS to projects that are much more qualified.
-
 ## Example services.yml
 
 The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. 
