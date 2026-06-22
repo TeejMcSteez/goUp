@@ -87,6 +87,9 @@ Triggers fire when a service is detected as down. All trigger types are optional
 - `telegram` — sends a message via Telegram Bot API
   - `telegram_token` — bot token from [@BotFather](https://t.me/BotFather)
   - `telegram_channel_id` — chat or channel ID (e.g. `@channelname` or `-100123456789`)
+- `home_assistant` — fires a `goup_alert` event on the HA event bus; use an automation with `trigger: event_type: goup_alert` to act on it. Event data contains a `details` field with downed service info.
+  - `ha_url` — base URL of your HA instance (e.g. `http://homeassistant.local:8123`)
+  - `ha_token` — long-lived access token
 
 ### Example
 
@@ -134,6 +137,9 @@ triggers:
   telegram:
     telegram_token: "<bot-token>"
     telegram_channel_id: "@channelname"
+  home_assistant:
+    ha_url: "http://homeassistant.local:8123"
+    ha_token: "<long-lived-access-token>"
 ```
 
 ## Storage
@@ -166,7 +172,7 @@ These are **subject to change**
 - [x] Slack (via bot token)
 - [x] Gotify
 - [x] Telegram
-- [ ] Home Assistant
+- [x] Home Assistant (via event bus)
 - [ ] Discord
 
 ## Arch. Support
