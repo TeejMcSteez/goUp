@@ -113,6 +113,16 @@ export interface TelegramPanelProps {
   onRefresh: () => void;
 }
 
+export interface HAConfig {
+  HA_URL?: string;
+  HA_Token?: string;
+}
+
+export interface HAPanelProps {
+  ha?: HAConfig;
+  onRefresh: () => void;
+}
+
 export interface AppConfig {
   services?: Record<string, ServiceConfig>;
   mqtt?: MQTTConfig;
@@ -121,6 +131,7 @@ export interface AppConfig {
   gotify?: GotifyConfig;
   slack?: SlackConfig;
   telegram?: TelegramConfig;
+  ha?: HAConfig;
   database?: boolean;
 }
 

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { MQTTPanelProps, WebhookPanelProps, SMTPPanelProps, GotifyPanelProps, SlackPanelProps, TelegramPanelProps } from "../../types";
+import { MQTTPanelProps, WebhookPanelProps, SMTPPanelProps, GotifyPanelProps, SlackPanelProps, TelegramPanelProps, HAPanelProps } from "../../types";
 import MQTTPanel from "./MQTTPanel";
 import WebhookPanel from "./WebhookPanel";
 import SMTPPanel from "./SMTPPanel";
 import GotifyPanel from "./GotifyPanel";
 import SlackPanel from "./SlackPanel";
 import TelegramPanel from "./TelegramPanel";
+import HAPanel from "./HAPanel";
 
 interface TriggerProps {
   mqttProps: MQTTPanelProps | undefined;
@@ -14,16 +15,17 @@ interface TriggerProps {
   gotifyProps: GotifyPanelProps | undefined;
   slackProps: SlackPanelProps | undefined;
   telegramProps: TelegramPanelProps | undefined;
+  haProps: HAPanelProps | undefined;
 }
 
-type Tab = "mqtt" | "webhook" | "smtp" | "gotify" | "slack" | "telegram";
+type Tab = "mqtt" | "webhook" | "smtp" | "gotify" | "slack" | "telegram" | "ha";
 
 const tabBtn = (active: boolean) =>
   `px-4 py-1.5 text-[0.85rem] font-medium rounded-md border-none cursor-pointer transition-all duration-200 ${
     active ? "bg-surface text-primary" : "bg-transparent text-muted hover:text-fg"
   }`;
 
-export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyProps, slackProps, telegramProps }: TriggerProps) {
+export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyProps, slackProps, telegramProps, haProps }: TriggerProps) {
   const [tab, setTab] = useState<Tab>("mqtt");
 
   return (
@@ -46,6 +48,9 @@ export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyPro
         </button>
         <button className={tabBtn(tab === "telegram")} onClick={() => setTab("telegram")}>
           Telegram
+        </button>
+        <button className={tabBtn(tab === "ha")} onClick={() => setTab("ha")}>
+          Home Assistant
         </button>
       </div>
       {tab === "mqtt" && (
@@ -82,6 +87,12 @@ export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyPro
         <TelegramPanel
           onRefresh={telegramProps?.onRefresh ?? function () {}}
           telegram={telegramProps?.telegram}
+        />
+      )}
+      {tab === "ha" && (
+        <HAPanel
+          onRefresh={haProps?.onRefresh ?? function () {}}
+          ha={haProps?.ha}
         />
       )}
     </div>

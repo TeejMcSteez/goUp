@@ -57,6 +57,7 @@ export default function ConfigEditor() {
             gotifyProps={config?.gotify ? { gotify: config.gotify, onRefresh: refresh } : undefined}
             slackProps={config?.slack ? { slack: config.slack, onRefresh: refresh } : undefined}
             telegramProps={config?.telegram ? { telegram: config.telegram, onRefresh: refresh } : undefined}
+            haProps={config?.ha ? { ha: config.ha, onRefresh: refresh } : undefined}
           />
         )}
         {activeSection === "database" && <DatabasePanel />}
