@@ -35,8 +35,9 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	slData := utils.ReadConfigSlack(utils.Current_Config)
 	tgData := utils.ReadConfigTelegram(utils.Current_Config)
 	haData := utils.ReadConfigHA(utils.Current_Config)
+	dData := utils.ReadConfigDiscord(utils.Current_Config)
 
-	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData, HA: haData}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData, HA: haData, Discord: dData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
@@ -466,5 +467,47 @@ func (s *Server) ConfigHAApi(w http.ResponseWriter, req *http.Request) {
 		}
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
+
+// @Summary Set or remove Discord trigger configuration
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param discord body utils.DiscordTrigger false "Discord  config (POST only)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/discord [post]
+// @Router /api/config/discord [delete]
+func (s *Server) ConfigDiscordApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "POST":
+		var discord utils.DiscordTrigger
+		if err := json.NewDecoder(req.Body).Decode(&discord); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.AddConfigDiscordTrigger(utils.Current_Config, discord); err != nil {
+			log.Printf("Error adding Discord trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	case "DELETE":
+		if err := utils.DeleteConfigDiscordTrigger(utils.Current_Config); err != nil {
+			log.Printf("Error deleting Discord trigger: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+
 	}
 }

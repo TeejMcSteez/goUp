@@ -57,6 +57,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/slack", s.ConfigSlackApi)
 	http.HandleFunc("/api/config/telegram", s.ConfigTelegramApi)
 	http.HandleFunc("/api/config/ha", s.ConfigHAApi)
+	http.HandleFunc("/api/config/discord", s.ConfigDiscordApi)
 	http.HandleFunc("/api/config/size", s.ConfigDatabaseApi)
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 	log.Println("Starting server at http://localhost:8101/ . . .")

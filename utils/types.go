@@ -31,6 +31,7 @@ type ConfigData struct {
 	Slack    SlackTrigger       `json:"slack"`
 	Telegram TelegramTrigger    `json:"telegram"`
 	HA       HATrigger          `json:"ha"`
+	Discord  DiscordTrigger     `json:"discord"`
 }
 
 // Endpoints and data for triggers
