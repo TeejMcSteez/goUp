@@ -42,6 +42,7 @@ type Trigger struct {
 	Slack          SlackTrigger    `yaml:"slack"`
 	Telegram       TelegramTrigger `yaml:"telegram"`
 	HA             HATrigger       `yaml:"home_assistant"`
+	Discord        DiscordTrigger  `yaml:"discord"`
 	Backoff_Period *string         `yaml:"backoff"`
 
 	backoffDuration time.Duration
@@ -96,6 +97,15 @@ type TelegramTrigger struct {
 type HATrigger struct {
 	HA_Token *string `yaml:"ha_token"`
 	HA_URL   *string `yaml:"ha_url"`
+}
+
+type DiscordTrigger struct {
+	// Can be Bot <token> or Bearer <token>
+	Discord_Auth *string `yaml:"discord_auth"`
+	// For now only one channel is supported
+	// However, if needed many channels would be optional
+	// Just need to use a string array over string pointer to send message to all channels
+	Discord_Channel *string `yaml:"discord_channel_id"`
 }
 
 // Data for service endponts

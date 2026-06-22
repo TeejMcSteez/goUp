@@ -54,6 +54,9 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.HA.IsConfigured() {
 		t.handlers = append(t.handlers, &t.HA)
 	}
+	if t.Discord.IsConfigured() {
+		t.handlers = append(t.handlers, &t.Discord)
+	}
 	if len(t.handlers) == 0 {
 		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
@@ -411,4 +414,47 @@ func (h *HATrigger) Fire(data []ServiceData) {
 
 func (h *HATrigger) IsConfigured() bool {
 	return h.HA_URL != nil && h.HA_Token != nil
+}
+
+// TODO: Handle chunked messages for discord 2000 char limit on API content
+func (d *DiscordTrigger) Fire(data []ServiceData) {
+	var text strings.Builder
+
+	for _, entry := range data {
+		fmt.Fprintf(&text, "\nService: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"content": "**Server Error Detected**\n" + text.String(),
+	})
+	if err != nil {
+		log.Printf("failed to create payload for discord notification request: %v", err)
+		return
+	}
+	api_url := "https://discord.com/api"
+	req, err := http.NewRequest("POST", api_url+fmt.Sprintf("/channels/%s/messages", *d.Discord_Channel), bytes.NewBuffer(payload))
+	if err != nil {
+		log.Printf("failed to create request for discord notification: %v", err)
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", *d.Discord_Auth)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("error sending discord notification: %v", err)
+		return
+	}
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			log.Printf("error closing HA response body: %v", err)
+		}
+	}()
+	if res.StatusCode != 200 {
+		log.Printf("error in discord notification response\nResponse Code: %d", res.StatusCode)
+		return
+	}
+	log.Print("discord notification sent")
+}
+
+func (d *DiscordTrigger) IsConfigured() bool {
+	return d.Discord_Auth != nil && d.Discord_Channel != nil
 }
