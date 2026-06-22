@@ -67,7 +67,6 @@ export default function Services() {
 
   return (
     <div className="w-full flex flex-col items-center text-center justify-center">
-      <h1>Current Services</h1>
       <ServiceControls
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
