@@ -92,12 +92,35 @@ export interface GotifyPanelProps {
   onRefresh: () => void;
 }
 
+export interface SlackConfig {
+  Slack_Token?: string;
+  Slack_Channel?: string;
+  Bot_Username?: string;
+}
+
+export interface SlackPanelProps {
+  slack?: SlackConfig;
+  onRefresh: () => void;
+}
+
+export interface TelegramConfig {
+  Telegram_Token?: string;
+  Telegram_Channel_Id?: string;
+}
+
+export interface TelegramPanelProps {
+  telegram?: TelegramConfig;
+  onRefresh: () => void;
+}
+
 export interface AppConfig {
   services?: Record<string, ServiceConfig>;
   mqtt?: MQTTConfig;
   webhook?: WebhookConfig;
   smtp?: SMTPConfig;
   gotify?: GotifyConfig;
+  slack?: SlackConfig;
+  telegram?: TelegramConfig;
   database?: boolean;
 }
 
