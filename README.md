@@ -90,6 +90,9 @@ Triggers fire when a service is detected as down. All trigger types are optional
 - `home_assistant` — fires a `goup_alert` event on the HA event bus; use an automation with `trigger: event_type: goup_alert` to act on it. Event data contains a `details` field with downed service info.
   - `ha_url` — base URL of your HA instance (e.g. `http://homeassistant.local:8123`)
   - `ha_token` — long-lived access token
+- `discord` — posts a message to a Discord channel via the bot API
+  - `discord_auth` — authorization header value (`Bot <token>` or `Bearer <token>`)
+  - `discord_channel_id` — target channel ID (e.g. `123456789012345678`)
 
 ### Example
 
@@ -140,6 +143,9 @@ triggers:
   home_assistant:
     ha_url: "http://homeassistant.local:8123"
     ha_token: "<long-lived-access-token>"
+  discord:
+    discord_auth: "Bot <token>"
+    discord_channel_id: "123456789012345678"
 ```
 
 ## Storage
@@ -173,7 +179,7 @@ These are **subject to change**
 - [x] Gotify
 - [x] Telegram
 - [x] Home Assistant (via event bus)
-- [ ] Discord
+- [x] Discord
 
 ## Arch. Support
 
