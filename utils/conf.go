@@ -136,6 +136,9 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
+	if conf.Services == nil {
+		conf.Services = make(map[string]Service)
+	}
 	org_len := len(conf.Services)
 	conf.Services[newEndpoint.Name] = newEndpoint
 	new_len := len(conf.Services)
