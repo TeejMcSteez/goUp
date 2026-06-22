@@ -502,6 +502,98 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/slack": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Slack trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Slack config (POST only)",
+                        "name": "slack",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SlackTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Slack trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Slack config (POST only)",
+                        "name": "slack",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SlackTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/smtp": {
             "post": {
                 "consumes": [
@@ -566,6 +658,98 @@ const docTemplate = `{
                         "in": "body",
                         "schema": {
                             "$ref": "#/definitions/utils.SMTPTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/config/telegram": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Telegram trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Telegram config (POST only)",
+                        "name": "telegram",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.TelegramTrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Telegram trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Telegram config (POST only)",
+                        "name": "telegram",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.TelegramTrigger"
                         }
                     }
                 ],
@@ -1056,8 +1240,14 @@ const docTemplate = `{
                         "$ref": "#/definitions/utils.Service"
                     }
                 },
+                "slack": {
+                    "$ref": "#/definitions/utils.SlackTrigger"
+                },
                 "smtp": {
                     "$ref": "#/definitions/utils.SMTPTrigger"
+                },
+                "telegram": {
+                    "$ref": "#/definitions/utils.TelegramTrigger"
                 },
                 "webhook": {
                     "$ref": "#/definitions/utils.WebhookTrigger"
@@ -1214,6 +1404,31 @@ const docTemplate = `{
                 },
                 "service_data": {
                     "$ref": "#/definitions/utils.ServiceData"
+                }
+            }
+        },
+        "utils.SlackTrigger": {
+            "type": "object",
+            "properties": {
+                "bot_Username": {
+                    "type": "string"
+                },
+                "slack_Channel": {
+                    "type": "string"
+                },
+                "slack_Token": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.TelegramTrigger": {
+            "type": "object",
+            "properties": {
+                "telegram_Channel_Id": {
+                    "type": "string"
+                },
+                "telegram_Token": {
+                    "type": "string"
                 }
             }
         },

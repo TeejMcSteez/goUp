@@ -29,8 +29,12 @@ definitions:
         additionalProperties:
           $ref: '#/definitions/utils.Service'
         type: object
+      slack:
+        $ref: '#/definitions/utils.SlackTrigger'
       smtp:
         $ref: '#/definitions/utils.SMTPTrigger'
+      telegram:
+        $ref: '#/definitions/utils.TelegramTrigger'
       webhook:
         $ref: '#/definitions/utils.WebhookTrigger'
     type: object
@@ -132,6 +136,22 @@ definitions:
         type: string
       service_data:
         $ref: '#/definitions/utils.ServiceData'
+    type: object
+  utils.SlackTrigger:
+    properties:
+      bot_Username:
+        type: string
+      slack_Channel:
+        type: string
+      slack_Token:
+        type: string
+    type: object
+  utils.TelegramTrigger:
+    properties:
+      telegram_Channel_Id:
+        type: string
+      telegram_Token:
+        type: string
     type: object
   utils.WebhookTrigger:
     properties:
@@ -466,6 +486,65 @@ paths:
       summary: Update the database max size
       tags:
       - config
+  /api/config/slack:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Slack config (POST only)
+        in: body
+        name: slack
+        schema:
+          $ref: '#/definitions/utils.SlackTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Slack trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Slack config (POST only)
+        in: body
+        name: slack
+        schema:
+          $ref: '#/definitions/utils.SlackTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Slack trigger configuration
+      tags:
+      - config
   /api/config/smtp:
     delete:
       consumes:
@@ -523,6 +602,65 @@ paths:
           schema:
             type: string
       summary: Set or remove SMTP trigger configuration
+      tags:
+      - config
+  /api/config/telegram:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Telegram config (POST only)
+        in: body
+        name: telegram
+        schema:
+          $ref: '#/definitions/utils.TelegramTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Telegram trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Telegram config (POST only)
+        in: body
+        name: telegram
+        schema:
+          $ref: '#/definitions/utils.TelegramTrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Telegram trigger configuration
       tags:
       - config
   /api/config/webhook:
