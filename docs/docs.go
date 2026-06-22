@@ -160,6 +160,98 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/ha": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Home Assistant trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Home Assistant config (POST only)",
+                        "name": "ha",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HATrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Set or remove Home Assistant trigger configuration",
+                "parameters": [
+                    {
+                        "description": "Home Assistant config (POST only)",
+                        "name": "ha",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HATrigger"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/mqtt": {
             "post": {
                 "consumes": [
@@ -1278,6 +1370,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "gotify_Token": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.HATrigger": {
+            "type": "object",
+            "properties": {
+                "ha_Token": {
+                    "type": "string"
+                },
+                "ha_URL": {
                     "type": "string"
                 }
             }

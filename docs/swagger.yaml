@@ -56,6 +56,13 @@ definitions:
       gotify_Token:
         type: string
     type: object
+  utils.HATrigger:
+    properties:
+      ha_Token:
+        type: string
+      ha_URL:
+        type: string
+    type: object
   utils.MQTTTrigger:
     properties:
       mqtt_broker:
@@ -264,6 +271,65 @@ paths:
           schema:
             type: string
       summary: Set or remove Gotify trigger configuration
+      tags:
+      - config
+  /api/config/ha:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: Home Assistant config (POST only)
+        in: body
+        name: ha
+        schema:
+          $ref: '#/definitions/utils.HATrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Home Assistant trigger configuration
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Home Assistant config (POST only)
+        in: body
+        name: ha
+        schema:
+          $ref: '#/definitions/utils.HATrigger'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Set or remove Home Assistant trigger configuration
       tags:
       - config
   /api/config/mqtt:
