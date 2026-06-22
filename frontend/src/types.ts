@@ -123,6 +123,16 @@ export interface HAPanelProps {
   onRefresh: () => void;
 }
 
+export interface DiscordConfig {
+  Discord_Auth?: string;
+  Discord_Channel?: string;
+}
+
+export interface DiscordPanelProps {
+  discord?: DiscordConfig;
+  onRefresh: () => void;
+}
+
 export interface AppConfig {
   services?: Record<string, ServiceConfig>;
   mqtt?: MQTTConfig;
@@ -132,6 +142,7 @@ export interface AppConfig {
   slack?: SlackConfig;
   telegram?: TelegramConfig;
   ha?: HAConfig;
+  discord?: DiscordConfig;
   database?: boolean;
 }
 
