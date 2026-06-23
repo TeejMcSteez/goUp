@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName";
 import { ServiceCardProps } from "../../../types.ts";
-import fallback from "../../../../static/goup.png";
+import fallback from "../../../../static/goup.webp";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
   const { url, name, description, response, response_time, data, error } =
