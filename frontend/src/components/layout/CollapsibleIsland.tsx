@@ -12,7 +12,7 @@ export default function CollapsibleIsland({
   title,
   children,
   headerAction,
-  defaultOpen = true,
+  defaultOpen = false,
 }: CollapsibleIslandProps) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -30,7 +30,9 @@ export default function CollapsibleIsland({
           >
             <path d="M6 4l4 4-4 4V4z" />
           </svg>
-          <h2 className="m-0 text-primary text-xl sm:text-2xl font-semibold">{title}</h2>
+          <h2 className="m-0 text-primary text-xl sm:text-2xl font-semibold">
+            {title}
+          </h2>
         </div>
         {headerAction && (
           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
@@ -39,7 +41,9 @@ export default function CollapsibleIsland({
         )}
       </div>
 
-      <div className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+      <div
+        className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
         <div className="overflow-hidden">
           <div className="px-4 lg:px-6 pb-4 lg:pb-6 border-t border-border pt-4">
             {children}
