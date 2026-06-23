@@ -17,7 +17,7 @@ func setMaxSize(s string) func() {
 
 func TestGetMaxSizeNilConfig(t *testing.T) {
 	utils.Current_Config = nil
-	got, err := workers.GetMaxSize()
+	got, err := utils.GetMaxSize()
 	if err != nil {
 		t.Fatalf("Unexpected error for nil config: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestGetMaxSizeNilMaxSize(t *testing.T) {
 	utils.Current_Config = &utils.Config{}
 	defer func() { utils.Current_Config = nil }()
 
-	got, err := workers.GetMaxSize()
+	got, err := utils.GetMaxSize()
 	if err != nil {
 		t.Fatalf("Unexpected error when Database_Max_Size is nil: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestGetMaxSizeNilMaxSize(t *testing.T) {
 func TestGetMaxSizeKB(t *testing.T) {
 	defer setMaxSize("100kb")()
 
-	got, err := workers.GetMaxSize()
+	got, err := utils.GetMaxSize()
 	if err != nil {
 		t.Fatalf("Unexpected error for '100kb': %v", err)
 	}
@@ -55,7 +55,7 @@ func TestGetMaxSizeKB(t *testing.T) {
 func TestGetMaxSizeMB(t *testing.T) {
 	defer setMaxSize("500mb")()
 
-	got, err := workers.GetMaxSize()
+	got, err := utils.GetMaxSize()
 	if err != nil {
 		t.Fatalf("Unexpected error for '500mb': %v", err)
 	}
@@ -68,7 +68,7 @@ func TestGetMaxSizeMB(t *testing.T) {
 func TestGetMaxSizeGB(t *testing.T) {
 	defer setMaxSize("2gb")()
 
-	got, err := workers.GetMaxSize()
+	got, err := utils.GetMaxSize()
 	if err != nil {
 		t.Fatalf("Unexpected error for '2gb': %v", err)
 	}
@@ -81,7 +81,7 @@ func TestGetMaxSizeGB(t *testing.T) {
 func TestGetMaxSizeBelowMinimumKB(t *testing.T) {
 	defer setMaxSize("3kb")()
 
-	_, err := workers.GetMaxSize()
+	_, err := utils.GetMaxSize()
 	if err == nil {
 		t.Error("Expected error for size below 4KB minimum, got nil")
 	}
@@ -90,7 +90,7 @@ func TestGetMaxSizeBelowMinimumKB(t *testing.T) {
 func TestGetMaxSizeInvalidUnit(t *testing.T) {
 	defer setMaxSize("100tb")()
 
-	_, err := workers.GetMaxSize()
+	_, err := utils.GetMaxSize()
 	if err == nil {
 		t.Error("Expected error for unknown unit 'tb', got nil")
 	}
@@ -99,7 +99,7 @@ func TestGetMaxSizeInvalidUnit(t *testing.T) {
 func TestGetMaxSizeInvalidFormat(t *testing.T) {
 	defer setMaxSize("notasize")()
 
-	_, err := workers.GetMaxSize()
+	_, err := utils.GetMaxSize()
 	if err == nil {
 		t.Error("Expected error for invalid format 'notasize', got nil")
 	}

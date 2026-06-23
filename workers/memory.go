@@ -3,14 +3,13 @@ package workers
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"goUp/utils"
 	"log"
 	"time"
 )
 
 func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
-	maxSize, err := GetMaxSize()
+	maxSize, err := utils.GetMaxSize()
 	if err != nil {
 		log.Fatalf("Failed to get database max size: %v", err)
 	}
@@ -38,20 +37,4 @@ func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 			return
 		}
 	}
-}
-
-// Returns max size set in config in bytes or 1 gigabyte as default size
-func GetMaxSize() (float64, error) {
-	if utils.Current_Config != nil {
-		if utils.Current_Config.Database_Max_Size != nil {
-			str := *utils.Current_Config.Database_Max_Size
-			size, err := utils.GetSizeFromString(str)
-			if err != nil {
-				return 0, fmt.Errorf("incorrect format, must be <decimal><a-zA-Z>")
-			}
-			return size, nil
-		}
-	}
-	log.Print("Database max size not set, defaulting to 1GB max size")
-	return utils.GB, nil
 }

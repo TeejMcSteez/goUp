@@ -92,8 +92,23 @@ func UpdateDatabaseSize(conf *Config, newSize string) error {
 	return writeConfig(conf)
 }
 
-func GetSizeFromString(str string) (float64, error) {
+// Returns max size set in config in bytes or 1 gigabyte as default size
+func GetMaxSize() (float64, error) {
+	if Current_Config != nil {
+		if Current_Config.Database_Max_Size != nil {
+			str := *Current_Config.Database_Max_Size
+			size, err := GetSizeFromString(str)
+			if err != nil {
+				return 0, fmt.Errorf("incorrect format, must be <decimal><a-zA-Z>")
+			}
+			return size, nil
+		}
+	}
+	log.Print("Database max size not set, defaulting to 1GB max size")
+	return GB, nil
+}
 
+func GetSizeFromString(str string) (float64, error) {
 	re, err := regexp.Compile(`^(\d+)([a-zA-Z]+)$`)
 	if err != nil {
 		return 0, err
