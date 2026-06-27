@@ -198,5 +198,5 @@ With this in mind below are the current coverages of the code found by running `
 
 - goUp coverage: 0.0% of statements
 - goUp/server coverage: 33.7% of statements
-- goUp/utils coverage: 48.5% of statements
-- goUp/workers coverage: 65.5% of statements
+- goUp/utils coverage: 67.2% of statements
+- goUp/workers coverage: 62.7% of statements
