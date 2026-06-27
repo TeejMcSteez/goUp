@@ -579,3 +579,562 @@ services:
 		t.Error("Expected Persist_db false on disk after two toggles")
 	}
 }
+
+func TestAddSMTPTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	server := "smtp.gmail.com:587"
+	email := "you@gmail.com"
+	password := "secret"
+	newSMTP := utils.SMTPTrigger{SMTPServer: &server, Email: &email, App_Password: &password}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigSMTPTrigger(conf, newSMTP); err != nil {
+		t.Fatalf("AddConfigSMTPTrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.SMTP.SMTPServer == nil || *conf.Triggers.SMTP.SMTPServer != server {
+		t.Errorf("Expected server %q, got %v", server, conf.Triggers.SMTP.SMTPServer)
+	}
+	if conf.Triggers.SMTP.Email == nil || *conf.Triggers.SMTP.Email != email {
+		t.Errorf("Expected email %q, got %v", email, conf.Triggers.SMTP.Email)
+	}
+}
+
+func TestDeleteSMTPTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  smtp:
+    smtp_server: "smtp.gmail.com:587"
+    email: "you@gmail.com"
+    app_password: "secret"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.SMTP.SMTPServer == nil {
+		t.Fatal("SMTP not loaded from YAML")
+	}
+	if err := utils.DeleteConfigSMTPTrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigSMTPTrigger: %v", err)
+	}
+	if conf.Triggers.SMTP.SMTPServer != nil || conf.Triggers.SMTP.Email != nil {
+		t.Error("SMTP fields not cleared after delete")
+	}
+}
+
+func TestReadSMTP(t *testing.T) {
+	server := "smtp.example.com:587"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  smtp:
+    smtp_server: "`+server+`"
+    email: "a@b.com"
+    app_password: "pw"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	s := utils.ReadConfigSMTP(conf)
+	if s.SMTPServer == nil || *s.SMTPServer != server {
+		t.Errorf("Expected SMTP server %q, got %v", server, s.SMTPServer)
+	}
+}
+
+func TestAddGotifyTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	gotifyServer := "https://gotify.example.com"
+	token := "mytoken"
+	newGotify := utils.GotifyTrigger{Gotify_Server: &gotifyServer, Gotify_Token: &token}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigGotifyTrigger(conf, newGotify); err != nil {
+		t.Fatalf("AddConfigGotifyTrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.Gotify.Gotify_Server == nil || *conf.Triggers.Gotify.Gotify_Server != gotifyServer {
+		t.Errorf("Expected Gotify server %q, got %v", gotifyServer, conf.Triggers.Gotify.Gotify_Server)
+	}
+}
+
+func TestDeleteGotifyTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  gotify:
+    gotify_server: "https://gotify.example.com"
+    gotify_app_token: "tok"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.Gotify.Gotify_Server == nil {
+		t.Fatal("Gotify not loaded from YAML")
+	}
+	if err := utils.DeleteConfigGotifyTrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigGotifyTrigger: %v", err)
+	}
+	if conf.Triggers.Gotify.Gotify_Server != nil {
+		t.Error("Gotify server not cleared after delete")
+	}
+}
+
+func TestReadGotify(t *testing.T) {
+	srv := "https://gotify.example.com"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  gotify:
+    gotify_server: "`+srv+`"
+    gotify_app_token: "tok"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	g := utils.ReadConfigGotify(conf)
+	if g.Gotify_Server == nil || *g.Gotify_Server != srv {
+		t.Errorf("Expected Gotify server %q, got %v", srv, g.Gotify_Server)
+	}
+}
+
+func TestAddSlackTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	token := "xoxb-test"
+	channel := "C1234567890"
+	newSlack := utils.SlackTrigger{Slack_Token: &token, Slack_Channel: &channel}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigSlackTrigger(conf, newSlack); err != nil {
+		t.Fatalf("AddConfigSlackTrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.Slack.Slack_Token == nil || *conf.Triggers.Slack.Slack_Token != token {
+		t.Errorf("Expected Slack token %q, got %v", token, conf.Triggers.Slack.Slack_Token)
+	}
+	if conf.Triggers.Slack.Slack_Channel == nil || *conf.Triggers.Slack.Slack_Channel != channel {
+		t.Errorf("Expected Slack channel %q, got %v", channel, conf.Triggers.Slack.Slack_Channel)
+	}
+}
+
+func TestDeleteSlackTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  slack:
+    slack_token: "xoxb-test"
+    slack_channel: "C1234"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.Slack.Slack_Token == nil {
+		t.Fatal("Slack not loaded from YAML")
+	}
+	if err := utils.DeleteConfigSlackTrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigSlackTrigger: %v", err)
+	}
+	if conf.Triggers.Slack.Slack_Token != nil || conf.Triggers.Slack.Slack_Channel != nil {
+		t.Error("Slack fields not cleared after delete")
+	}
+}
+
+func TestReadSlack(t *testing.T) {
+	channel := "C9876543210"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  slack:
+    slack_token: "xoxb-abc"
+    slack_channel: "`+channel+`"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	s := utils.ReadConfigSlack(conf)
+	if s.Slack_Channel == nil || *s.Slack_Channel != channel {
+		t.Errorf("Expected Slack channel %q, got %v", channel, s.Slack_Channel)
+	}
+}
+
+func TestAddTelegramTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	token := "123456:ABC-DEF"
+	channelID := "@mychannel"
+	newTelegram := utils.TelegramTrigger{Telegram_Token: &token, Telegram_Channel_Id: &channelID}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigTelegramTrigger(conf, newTelegram); err != nil {
+		t.Fatalf("AddConfigTelegramTrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.Telegram.Telegram_Token == nil || *conf.Triggers.Telegram.Telegram_Token != token {
+		t.Errorf("Expected Telegram token %q, got %v", token, conf.Triggers.Telegram.Telegram_Token)
+	}
+	if conf.Triggers.Telegram.Telegram_Channel_Id == nil || *conf.Triggers.Telegram.Telegram_Channel_Id != channelID {
+		t.Errorf("Expected Telegram channel ID %q, got %v", channelID, conf.Triggers.Telegram.Telegram_Channel_Id)
+	}
+}
+
+func TestDeleteTelegramTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  telegram:
+    telegram_token: "123456:ABC-DEF"
+    telegram_channel_id: "@mychannel"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.Telegram.Telegram_Token == nil {
+		t.Fatal("Telegram not loaded from YAML")
+	}
+	if err := utils.DeleteConfigTelegramTrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigTelegramTrigger: %v", err)
+	}
+	if conf.Triggers.Telegram.Telegram_Token != nil || conf.Triggers.Telegram.Telegram_Channel_Id != nil {
+		t.Error("Telegram fields not cleared after delete")
+	}
+}
+
+func TestReadTelegram(t *testing.T) {
+	channelID := "-100123456789"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  telegram:
+    telegram_token: "tok"
+    telegram_channel_id: "`+channelID+`"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	tg := utils.ReadConfigTelegram(conf)
+	if tg.Telegram_Channel_Id == nil || *tg.Telegram_Channel_Id != channelID {
+		t.Errorf("Expected Telegram channel ID %q, got %v", channelID, tg.Telegram_Channel_Id)
+	}
+}
+
+func TestAddHATrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	haURL := "https://ha.example.com"
+	haToken := "ha-token"
+	newHA := utils.HATrigger{HA_URL: &haURL, HA_Token: &haToken}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigHATrigger(conf, newHA); err != nil {
+		t.Fatalf("AddConfigHATrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.HA.HA_URL == nil || *conf.Triggers.HA.HA_URL != haURL {
+		t.Errorf("Expected HA URL %q, got %v", haURL, conf.Triggers.HA.HA_URL)
+	}
+}
+
+func TestDeleteHATrigger(t *testing.T) {
+	haURL := "https://ha.example.com"
+	haToken := "tok"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  home_assistant:
+    ha_url: "`+haURL+`"
+    ha_token: "`+haToken+`"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.HA.HA_URL == nil {
+		t.Fatal("HA not loaded from YAML")
+	}
+	if err := utils.DeleteConfigHATrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigHATrigger: %v", err)
+	}
+	if conf.Triggers.HA.HA_URL != nil || conf.Triggers.HA.HA_Token != nil {
+		t.Error("HA fields not cleared after delete")
+	}
+}
+
+func TestReadHA(t *testing.T) {
+	haURL := "https://ha.example.com"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  home_assistant:
+    ha_url: "`+haURL+`"
+    ha_token: "tok"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	ha := utils.ReadConfigHA(conf)
+	if ha.HA_URL == nil || *ha.HA_URL != haURL {
+		t.Errorf("Expected HA URL %q, got %v", haURL, ha.HA_URL)
+	}
+}
+
+func TestAddDiscordTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	auth := "Bot mytoken"
+	channel := "123456789012345678"
+	newDiscord := utils.DiscordTrigger{Discord_Auth: &auth, Discord_Channel: &channel}
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if err := utils.AddConfigDiscordTrigger(conf, newDiscord); err != nil {
+		t.Fatalf("AddConfigDiscordTrigger: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Triggers.Discord.Discord_Auth == nil || *conf.Triggers.Discord.Discord_Auth != auth {
+		t.Errorf("Expected Discord auth %q, got %v", auth, conf.Triggers.Discord.Discord_Auth)
+	}
+	if conf.Triggers.Discord.Discord_Channel == nil || *conf.Triggers.Discord.Discord_Channel != channel {
+		t.Errorf("Expected Discord channel %q, got %v", channel, conf.Triggers.Discord.Discord_Channel)
+	}
+}
+
+func TestDeleteDiscordTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  discord:
+    discord_auth: "Bot mytoken"
+    discord_channel_id: "123456789012345678"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.Triggers.Discord.Discord_Auth == nil {
+		t.Fatal("Discord not loaded from YAML")
+	}
+	if err := utils.DeleteConfigDiscordTrigger(conf); err != nil {
+		t.Fatalf("DeleteConfigDiscordTrigger: %v", err)
+	}
+	if conf.Triggers.Discord.Discord_Auth != nil || conf.Triggers.Discord.Discord_Channel != nil {
+		t.Error("Discord fields not cleared after delete")
+	}
+}
+
+func TestReadDiscord(t *testing.T) {
+	channel := "123456789012345678"
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  discord:
+    discord_auth: "Bot tok"
+    discord_channel_id: "`+channel+`"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	d := utils.ReadConfigDiscord(conf)
+	if d.Discord_Channel == nil || *d.Discord_Channel != channel {
+		t.Errorf("Expected Discord channel %q, got %v", channel, d.Discord_Channel)
+	}
+}
+
+func TestUpdateDatabaseSize(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	if err := utils.UpdateDatabaseSize(conf, "500mb"); err != nil {
+		t.Fatalf("UpdateDatabaseSize: %v", err)
+	}
+	if conf.Database_Max_Size == nil || *conf.Database_Max_Size != "500mb" {
+		t.Errorf("Expected '500mb', got %v", conf.Database_Max_Size)
+	}
+
+	// Same value should return an error.
+	if err := utils.UpdateDatabaseSize(conf, "500mb"); err == nil {
+		t.Error("Expected error when setting same size, got nil")
+	}
+
+	// Invalid format should return an error without changing the value.
+	if err := utils.UpdateDatabaseSize(conf, "notasize"); err == nil {
+		t.Error("Expected error for invalid size format, got nil")
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if conf.Database_Max_Size == nil || *conf.Database_Max_Size != "500mb" {
+		t.Errorf("Expected '500mb' on disk after reload, got %v", conf.Database_Max_Size)
+	}
+}
+
+func TestReadDatabaseSize(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+db_max_size: "2gb"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	size, err := utils.ReadDatabaseSize(conf)
+	if err != nil {
+		t.Fatalf("ReadDatabaseSize: %v", err)
+	}
+	if size != "2gb" {
+		t.Errorf("Expected '2gb', got %q", size)
+	}
+
+	// Nil pointer should return an error.
+	conf.Database_Max_Size = nil
+	if _, err := utils.ReadDatabaseSize(conf); err == nil {
+		t.Error("Expected error when Database_Max_Size is nil, got nil")
+	}
+}
