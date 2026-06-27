@@ -1,14 +1,36 @@
 package utils_test
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"goUp/utils"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
+
+// interceptTLS creates a TLS test server and redirects http.DefaultTransport so all
+// outbound connections (including HTTPS to hardcoded external hosts) go to it instead.
+// The returned cleanup function restores the original transport and closes the server.
+func interceptTLS(t *testing.T, handler http.HandlerFunc) (*httptest.Server, func()) {
+	t.Helper()
+	server := httptest.NewTLSServer(handler)
+	old := http.DefaultTransport
+	http.DefaultTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return net.Dial("tcp", server.Listener.Addr().String())
+		},
+	}
+	return server, func() {
+		http.DefaultTransport = old
+		server.Close()
+	}
+}
 
 func TestSetupTrigger(t *testing.T) {
 	broker := "tcp://localhost:1883"
@@ -139,6 +161,397 @@ func TestWebhookCustomMessage(t *testing.T) {
 
 	if serviceMap["name"] != "down_service" {
 		t.Errorf("Expected service name 'down_service', got '%s'", serviceMap["name"])
+	}
+}
+
+func TestMQTTIsConfigured(t *testing.T) {
+	m := utils.MQTTTrigger{}
+	if m.IsConfigured() {
+		t.Error("expected false when broker is nil")
+	}
+	broker := "tcp://localhost:1883"
+	m.Mqtt_broker = &broker
+	if !m.IsConfigured() {
+		t.Error("expected true when broker is set")
+	}
+}
+
+func TestWebhookIsConfigured(t *testing.T) {
+	w := utils.WebhookTrigger{}
+	if w.IsConfigured() {
+		t.Error("expected false when URL is nil")
+	}
+	url := "http://localhost/hook"
+	w.Webhook_url = &url
+	if !w.IsConfigured() {
+		t.Error("expected true when URL is set")
+	}
+}
+
+func TestSMTPIsConfigured(t *testing.T) {
+	e := utils.SMTPTrigger{}
+	if e.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	server := "smtp.example.com:587"
+	email := "user@example.com"
+	pass := "secret"
+	e.SMTPServer = &server
+	if e.IsConfigured() {
+		t.Error("expected false with only server set")
+	}
+	e.Email = &email
+	if e.IsConfigured() {
+		t.Error("expected false with server and email but no password")
+	}
+	e.App_Password = &pass
+	if !e.IsConfigured() {
+		t.Error("expected true when all three fields are set")
+	}
+}
+
+func TestGotifyIsConfigured(t *testing.T) {
+	g := utils.GotifyTrigger{}
+	if g.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	srv := "http://gotify.example.com"
+	g.Gotify_Server = &srv
+	if g.IsConfigured() {
+		t.Error("expected false with only server set")
+	}
+	tok := "token123"
+	g.Gotify_Token = &tok
+	if !g.IsConfigured() {
+		t.Error("expected true when server and token are set")
+	}
+}
+
+func TestFireGotify(t *testing.T) {
+	var gotPath, gotKey string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotKey = r.Header.Get("X-Gotify-Key")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	title := "Test Alert"
+	priority := 7
+	token := "gotify-token"
+	g := utils.GotifyTrigger{
+		Gotify_Server:   &server.URL,
+		Gotify_Token:    &token,
+		Gotify_Title:    &title,
+		Gotify_Priority: &priority,
+	}
+
+	data := []utils.ServiceData{
+		{ServiceName: "api", ServiceHTTPResponse: "500", ServiceAPIResponse: "error"},
+	}
+	g.Fire(data)
+
+	if gotPath != "/message" {
+		t.Errorf("expected path /message, got %s", gotPath)
+	}
+	if gotKey != token {
+		t.Errorf("expected X-Gotify-Key %q, got %q", token, gotKey)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal payload: %v", err)
+	}
+	if payload["title"] != title {
+		t.Errorf("expected title %q, got %v", title, payload["title"])
+	}
+	if payload["priority"].(float64) != float64(priority) {
+		t.Errorf("expected priority %d, got %v", priority, payload["priority"])
+	}
+	if payload["message"] == "" {
+		t.Error("expected non-empty message body")
+	}
+}
+
+func TestFireGotifyDefaults(t *testing.T) {
+	var gotBody []byte
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	token := "tok"
+	g := utils.GotifyTrigger{
+		Gotify_Server: &server.URL,
+		Gotify_Token:  &token,
+	}
+	g.Fire([]utils.ServiceData{{ServiceName: "svc"}})
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal payload: %v", err)
+	}
+	if payload["title"] != "GoUp Alert" {
+		t.Errorf("expected default title 'GoUp Alert', got %v", payload["title"])
+	}
+	if payload["priority"].(float64) != 5 {
+		t.Errorf("expected default priority 5, got %v", payload["priority"])
+	}
+}
+
+func TestSlackIsConfigured(t *testing.T) {
+	s := utils.SlackTrigger{}
+	if s.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	tok := "xoxb-token"
+	s.Slack_Token = &tok
+	if s.IsConfigured() {
+		t.Error("expected false with only token set")
+	}
+	ch := "#alerts"
+	s.Slack_Channel = &ch
+	if !s.IsConfigured() {
+		t.Error("expected true when token and channel are set")
+	}
+}
+
+func TestFireSlack(t *testing.T) {
+	var gotAuth, gotBody string
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	defer cleanup()
+
+	tok := "xoxb-slack-token"
+	ch := "#ops"
+	s := utils.SlackTrigger{
+		Slack_Token:   &tok,
+		Slack_Channel: &ch,
+	}
+
+	data := []utils.ServiceData{
+		{ServiceName: "db", ServiceHTTPResponse: "503"},
+	}
+	s.Fire(data)
+
+	if gotAuth != "Bearer "+tok {
+		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(gotBody), &payload); err != nil {
+		t.Fatalf("failed to unmarshal Slack payload: %v", err)
+	}
+	if payload["channel"] != ch {
+		t.Errorf("expected channel %q, got %v", ch, payload["channel"])
+	}
+	if payload["text"] == "" {
+		t.Error("expected non-empty text in Slack payload")
+	}
+	if payload["username"] != "GoUp Bot" {
+		t.Errorf("expected default username 'GoUp Bot', got %v", payload["username"])
+	}
+}
+
+func TestFireSlackCustomUsername(t *testing.T) {
+	var gotBody string
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	defer cleanup()
+
+	tok := "tok"
+	ch := "#ch"
+	name := "Watcher"
+	s := utils.SlackTrigger{
+		Slack_Token:   &tok,
+		Slack_Channel: &ch,
+		Bot_Username:  &name,
+	}
+	s.Fire([]utils.ServiceData{{ServiceName: "svc"}})
+
+	var payload map[string]any
+	json.Unmarshal([]byte(gotBody), &payload)
+	if payload["username"] != name {
+		t.Errorf("expected username %q, got %v", name, payload["username"])
+	}
+}
+
+func TestTelegramIsConfigured(t *testing.T) {
+	tg := utils.TelegramTrigger{}
+	if tg.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	tok := "bot-token"
+	tg.Telegram_Token = &tok
+	if tg.IsConfigured() {
+		t.Error("expected false with only token set")
+	}
+	ch := "-1001234567890"
+	tg.Telegram_Channel_Id = &ch
+	if !tg.IsConfigured() {
+		t.Error("expected true when token and channel ID are set")
+	}
+}
+
+func TestFireTelegram(t *testing.T) {
+	var gotBody []byte
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	defer cleanup()
+
+	tok := "123456:ABC-telegram-token"
+	ch := "-1001234567890"
+	tg := utils.TelegramTrigger{
+		Telegram_Token:      &tok,
+		Telegram_Channel_Id: &ch,
+	}
+
+	data := []utils.ServiceData{
+		{ServiceName: "cache", ServiceHTTPResponse: "500"},
+	}
+	tg.Fire(data)
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Telegram payload: %v", err)
+	}
+	if payload["chat_id"] != ch {
+		t.Errorf("expected chat_id %q, got %v", ch, payload["chat_id"])
+	}
+	if payload["text"] == "" {
+		t.Error("expected non-empty text in Telegram payload")
+	}
+}
+
+func TestHAIsConfigured(t *testing.T) {
+	h := utils.HATrigger{}
+	if h.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	url := "http://homeassistant.local:8123"
+	h.HA_URL = &url
+	if h.IsConfigured() {
+		t.Error("expected false with only URL set")
+	}
+	tok := "ha-long-lived-token"
+	h.HA_Token = &tok
+	if !h.IsConfigured() {
+		t.Error("expected true when URL and token are set")
+	}
+}
+
+func TestFireHA(t *testing.T) {
+	var gotPath, gotAuth string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	tok := "ha-token"
+	h := utils.HATrigger{
+		HA_URL:   &server.URL,
+		HA_Token: &tok,
+	}
+
+	data := []utils.ServiceData{
+		{ServiceName: "lights", ServiceHTTPResponse: "503"},
+	}
+	h.Fire(data)
+
+	if gotPath != "/api/events/goup_alert" {
+		t.Errorf("expected path /api/events/goup_alert, got %s", gotPath)
+	}
+	if gotAuth != "Bearer "+tok {
+		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal HA payload: %v", err)
+	}
+	if payload["details"] == "" {
+		t.Error("expected non-empty details in HA payload")
+	}
+}
+
+func TestDiscordIsConfigured(t *testing.T) {
+	d := utils.DiscordTrigger{}
+	if d.IsConfigured() {
+		t.Error("expected false when unconfigured")
+	}
+	auth := "Bot my-discord-token"
+	d.Discord_Auth = &auth
+	if d.IsConfigured() {
+		t.Error("expected false with only auth set")
+	}
+	ch := "123456789012345678"
+	d.Discord_Channel = &ch
+	if !d.IsConfigured() {
+		t.Error("expected true when auth and channel are set")
+	}
+}
+
+func TestFireDiscord(t *testing.T) {
+	var gotAuth string
+	var gotBody []byte
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	auth := "Bot discord-bot-token"
+	ch := "987654321098765432"
+	d := utils.DiscordTrigger{
+		Discord_Auth:    &auth,
+		Discord_Channel: &ch,
+	}
+
+	data := []utils.ServiceData{
+		{ServiceName: "api", ServiceHTTPResponse: "500"},
+	}
+	d.Fire(data)
+
+	if gotAuth != auth {
+		t.Errorf("expected Authorization %q, got %q", auth, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Discord payload: %v", err)
+	}
+	content, ok := payload["content"].(string)
+	if !ok || content == "" {
+		t.Errorf("expected non-empty content in Discord payload, got %v", payload["content"])
 	}
 }
 
