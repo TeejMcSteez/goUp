@@ -377,11 +377,13 @@ func TestLoadConfigMissingFile(t *testing.T) {
 	if cfg == nil {
 		t.Fatal("Expected default config, got nil")
 	}
-	if cfg.Services == nil {
-		t.Error("Expected default Services map to be initialised, got nil")
-	}
-	if cfg.Database_Location == nil || *cfg.Database_Location == "" {
-		t.Error("Expected default Database_Location to be set")
+	if cfg != nil {
+		if cfg.Services == nil {
+			t.Error("Expected default Services map to be initialised, got nil")
+		}
+		if cfg.Database_Location == nil || *cfg.Database_Location == "" {
+			t.Error("Expected default Database_Location to be set")
+		}
 	}
 
 	// File must have been written so a second load succeeds without error.

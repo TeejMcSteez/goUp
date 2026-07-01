@@ -387,7 +387,9 @@ func TestFireSlackCustomUsername(t *testing.T) {
 	s.Fire([]utils.ServiceData{{ServiceName: "svc"}})
 
 	var payload map[string]any
-	json.Unmarshal([]byte(gotBody), &payload)
+	if err := json.Unmarshal([]byte(gotBody), &payload); err != nil {
+		print("failed to marshal json")
+	}
 	if payload["username"] != name {
 		t.Errorf("expected username %q, got %v", name, payload["username"])
 	}
