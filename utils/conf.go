@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -449,6 +450,50 @@ func UpdateConfigDatabasePersistence(conf *Config) error {
 		conf.Persist_db = &b
 	} else {
 		*conf.Persist_db = !*org_state
+	}
+
+	return writeConfig(conf)
+}
+
+func UpdateBackoff(conf *Config, newTime string, trigger string) error {
+	if conf == nil {
+		return fmt.Errorf("config is nil")
+	}
+	parsedT, err := time.ParseDuration(newTime)
+	if err != nil {
+		return err
+	}
+
+	switch trigger {
+	case "mqtt":
+		conf.Triggers.MQTT.Backoff_Period = &newTime
+		conf.Triggers.MQTT.backoffDuration = parsedT
+	case "webhook":
+		conf.Triggers.Webhook.Backoff_Period = &newTime
+		conf.Triggers.Webhook.backoffDuration = parsedT
+	case "smtp":
+		conf.Triggers.SMTP.Backoff_Period = &newTime
+		conf.Triggers.SMTP.backoffDuration = parsedT
+	case "gotify":
+		conf.Triggers.Gotify.Backoff_Period = &newTime
+		conf.Triggers.Gotify.backoffDuration = parsedT
+	case "slack":
+		conf.Triggers.Slack.Backoff_Period = &newTime
+		conf.Triggers.SMTP.backoffDuration = parsedT
+	case "telegram":
+		conf.Triggers.Telegram.Backoff_Period = &newTime
+		conf.Triggers.Telegram.backoffDuration = parsedT
+	case "ha":
+		conf.Triggers.HA.Backoff_Period = &newTime
+		conf.Triggers.HA.backoffDuration = parsedT
+	case "discord":
+		conf.Triggers.Discord.Backoff_Period = &newTime
+		conf.Triggers.Discord.backoffDuration = parsedT
+	case "", "global":
+		conf.Triggers.Backoff_Period = &newTime
+		conf.Triggers.backoffDuration = parsedT
+	default:
+		return fmt.Errorf("unknown trigger %q", trigger)
 	}
 
 	return writeConfig(conf)
