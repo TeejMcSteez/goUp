@@ -57,9 +57,12 @@ type TriggerHandler interface {
 }
 
 type MQTTTrigger struct {
-	Mqtt_broker   *string `yaml:"mqtt_broker"`
-	Mqtt_username *string `yaml:"mqtt_user"`
-	Mqtt_key      *string `yaml:"mqtt_key"`
+	Mqtt_broker     *string `yaml:"mqtt_broker"`
+	Mqtt_username   *string `yaml:"mqtt_user"`
+	Mqtt_key        *string `yaml:"mqtt_key"`
+	Backoff_Period  *string `yaml:"backoff"`
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 type WebhookTrigger struct {
@@ -68,12 +71,18 @@ type WebhookTrigger struct {
 	// Ex: Basic <creds>/Digest username=<username>.../Bearer <token_string>
 	Webhook_key_string *string `yaml:"webhook_key"`
 	Custom_message     *string `yaml:"custom_message"`
+	Backoff_Period     *string `yaml:"backoff"`
+	backoffDuration    time.Duration
+	lastFired          time.Time
 }
 
 type SMTPTrigger struct {
-	Email        *string `yaml:"email"`
-	App_Password *string `yaml:"app_password"`
-	SMTPServer   *string `yaml:"smtp_server"`
+	Email           *string `yaml:"email"`
+	App_Password    *string `yaml:"app_password"`
+	SMTPServer      *string `yaml:"smtp_server"`
+	Backoff_Period  *string `yaml:"backoff"`
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 type GotifyTrigger struct {
@@ -82,22 +91,34 @@ type GotifyTrigger struct {
 	Gotify_Application *string `yaml:"gotify_application"`
 	Gotify_Title       *string `yaml:"gotify_title"`
 	Gotify_Priority    *int    `yaml:"gotify_priority"`
+	Backoff_Period     *string `yaml:"backoff"`
+	backoffDuration    time.Duration
+	lastFired          time.Time
 }
 
 type SlackTrigger struct {
-	Slack_Token   *string `yaml:"slack_token"`
-	Slack_Channel *string `yaml:"slack_channel"`
-	Bot_Username  *string `yaml:"username"`
+	Slack_Token     *string `yaml:"slack_token"`
+	Slack_Channel   *string `yaml:"slack_channel"`
+	Bot_Username    *string `yaml:"username"`
+	Backoff_Period  *string `yaml:"backoff"`
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 type TelegramTrigger struct {
 	Telegram_Token      *string `yaml:"telegram_token"`
 	Telegram_Channel_Id *string `yaml:"telegram_channel_id"`
+	Backoff_Period      *string `yaml:"backoff"`
+	backoffDuration     time.Duration
+	lastFired           time.Time
 }
 
 type HATrigger struct {
-	HA_Token *string `yaml:"ha_token"`
-	HA_URL   *string `yaml:"ha_url"`
+	HA_Token        *string `yaml:"ha_token"`
+	HA_URL          *string `yaml:"ha_url"`
+	Backoff_Period  *string `yaml:"backoff"`
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 type DiscordTrigger struct {
@@ -107,6 +128,9 @@ type DiscordTrigger struct {
 	// However, if needed many channels would be optional
 	// Just need to use a string array over string pointer to send message to all channels
 	Discord_Channel *string `yaml:"discord_channel_id"`
+	Backoff_Period  *string `yaml:"backoff"`
+	backoffDuration time.Duration
+	lastFired       time.Time
 }
 
 // Data for service endponts
