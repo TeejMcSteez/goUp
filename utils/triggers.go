@@ -15,6 +15,30 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+// resolveBackoff parses a trigger-specific backoff period, falling back to the
+// global trigger backoff when the trigger doesn't define its own.
+func resolveBackoff(name string, period *string, fallback time.Duration) time.Duration {
+	if period == nil || *period == "" {
+		return fallback
+	}
+	dur, err := time.ParseDuration(*period)
+	if err != nil {
+		log.Printf("Invalid Backoff_Period '%s' for %s: %v. Falling back to default.", *period, name, err)
+		return fallback
+	}
+	log.Printf("%s backoff period set to %s", name, dur)
+	return dur
+}
+
+// shouldBackoff reports whether a trigger fired within its backoff window.
+func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Duration) bool {
+	if backoffDuration > 0 && !lastFired.IsZero() && time.Since(lastFired) < backoffDuration {
+		log.Printf("Trigger backoff period active for %s, skipping. Last trigger was %s ago.", name, time.Since(lastFired))
+		return true
+	}
+	return false
+}
+
 // SetupTrigger copies Trigger config from cfg and registers configured handlers.
 func SetupTrigger(cfg *Config) *Trigger {
 	t := &cfg.Triggers
