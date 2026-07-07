@@ -44,38 +44,46 @@ Services are defined by their name, URL, and optional fields. Only `db_path`, th
 
 Triggers fire when a service is detected as down. All trigger types are optional; only configure the ones you need.
 
-- `backoff` — minimum time between trigger activations, e.g. `15s`, `5m`, `1h`
+- `backoff` — minimum time between trigger activations, e.g. `15s`, `5m`, `1h`. Set at the top level of `triggers` to apply globally. Each trigger type also accepts its own `backoff` field, which overrides the global value for that trigger only; triggers without their own `backoff` fall back to the global setting.
 - `mqtt` — publishes service state JSON to a broker
   - `mqtt_broker` — broker URL (e.g. `mqtt://broker.example.com`)
   - `mqtt_user` — username (optional)
   - `mqtt_key` — password (optional)
+  - `backoff` — per-trigger override of the global backoff period
 - `webhook` — HTTP POST to any URL
   - `webhook_url` — target URL
   - `webhook_key` — `Authorization` header value (e.g. `Bearer <token>`)
   - `custom_message` — JSON object merged with the service payload
+  - `backoff` — per-trigger override of the global backoff period
 - `smtp` — sends an email via SMTP plain auth
   - `smtp_server` — server and port (e.g. `smtp.gmail.com:587`)
   - `email` — sender and recipient address
   - `app_password` — app password or SMTP credential
+  - `backoff` — per-trigger override of the global backoff period
 - `gotify` — push notification via a Gotify server
   - `gotify_server` — base URL of the Gotify instance
   - `gotify_app_token` — application token
   - `gotify_application` — application name (optional)
   - `gotify_title` — notification title (default: `GoUp Alert`)
   - `gotify_priority` — priority level 0–10 (default: `5`)
+  - `backoff` — per-trigger override of the global backoff period
 - `slack` — posts to a Slack channel via bot token
   - `slack_token` — bot OAuth token (`xoxb-...`)
   - `slack_channel` — channel ID used in the POST request (e.g. `C1234567890`)
   - `username` — display name for the bot (default: `GoUp Bot`)
+  - `backoff` — per-trigger override of the global backoff period
 - `telegram` — sends a message via Telegram Bot API
   - `telegram_token` — bot token from [@BotFather](https://t.me/BotFather)
   - `telegram_channel_id` — chat or channel ID (e.g. `@channelname` or `-100123456789`)
+  - `backoff` — per-trigger override of the global backoff period
 - `home_assistant` — fires a `goup_alert` event on the HA event bus; use an automation with `trigger: event_type: goup_alert` to act on it. Event data contains a `details` field with downed service info.
   - `ha_url` — base URL of your HA instance (e.g. `http://homeassistant.local:8123`)
   - `ha_token` — long-lived access token
+  - `backoff` — per-trigger override of the global backoff period
 - `discord` — posts a message to a Discord channel via the bot API
   - `discord_auth` — authorization header value (`Bot <token>` or `Bearer <token>`)
   - `discord_channel_id` — target channel ID (e.g. `123456789012345678`)
+  - `backoff` — per-trigger override of the global backoff period
 
 ### Example
 
@@ -107,6 +115,7 @@ triggers:
     webhook_url: "https://hooks.example.com/alert"
     webhook_key: "Bearer <token>"
     custom_message: '{ "source": "goUp" }'
+    backoff: "5m" # overrides the global 30m backoff for this trigger only
   smtp:
     smtp_server: "smtp.gmail.com:587"
     email: "you@gmail.com"
@@ -197,6 +206,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 33.7% of statements
-- goUp/utils coverage: 67.2% of statements
-- goUp/workers coverage: 62.7% of statements
+- goUp/server coverage: 32.4% of statements
+- goUp/utils coverage: 64.5% of statements
+- goUp/workers coverage: 59.7% of statements
