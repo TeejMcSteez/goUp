@@ -12,6 +12,7 @@ interface MQTTFormData {
   Mqtt_broker: string;
   Mqtt_username: string;
   Mqtt_key: string;
+  Backoff_Period: string;
 }
 
 export default function MQTTPanel({ mqtt, onRefresh }: MQTTPanelProps) {
@@ -19,6 +20,7 @@ export default function MQTTPanel({ mqtt, onRefresh }: MQTTPanelProps) {
     Mqtt_broker: mqtt?.Mqtt_broker ?? "",
     Mqtt_username: mqtt?.Mqtt_username ?? "",
     Mqtt_key: mqtt?.Mqtt_key ?? "",
+    Backoff_Period: mqtt?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -35,6 +37,7 @@ export default function MQTTPanel({ mqtt, onRefresh }: MQTTPanelProps) {
         Mqtt_broker: form.Mqtt_broker || null,
         Mqtt_username: form.Mqtt_username || null,
         Mqtt_key: form.Mqtt_key || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -49,7 +52,12 @@ export default function MQTTPanel({ mqtt, onRefresh }: MQTTPanelProps) {
     const res = await fetch("/api/config/mqtt", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "MQTT config cleared.", error: false });
-      setForm({ Mqtt_broker: "", Mqtt_username: "", Mqtt_key: "" });
+      setForm({
+        Mqtt_broker: "",
+        Mqtt_username: "",
+        Mqtt_key: "",
+        Backoff_Period: "",
+      });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -90,6 +98,15 @@ export default function MQTTPanel({ mqtt, onRefresh }: MQTTPanelProps) {
               value={form.Mqtt_key}
               onChange={set("Mqtt_key")}
               placeholder="••••••••"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

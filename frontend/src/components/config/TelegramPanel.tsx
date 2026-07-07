@@ -11,12 +11,14 @@ const btnBase =
 interface TelegramFormData {
   Telegram_Token: string;
   Telegram_Channel_Id: string;
+  Backoff_Period: string;
 }
 
 export default function TelegramPanel({ telegram, onRefresh }: TelegramPanelProps) {
   const [form, setForm] = useState<TelegramFormData>({
     Telegram_Token: telegram?.Telegram_Token ?? "",
     Telegram_Channel_Id: telegram?.Telegram_Channel_Id ?? "",
+    Backoff_Period: telegram?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -32,6 +34,7 @@ export default function TelegramPanel({ telegram, onRefresh }: TelegramPanelProp
       body: JSON.stringify({
         Telegram_Token: form.Telegram_Token || null,
         Telegram_Channel_Id: form.Telegram_Channel_Id || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -46,7 +49,11 @@ export default function TelegramPanel({ telegram, onRefresh }: TelegramPanelProp
     const res = await fetch("/api/config/telegram", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "Telegram config cleared.", error: false });
-      setForm({ Telegram_Token: "", Telegram_Channel_Id: "" });
+      setForm({
+        Telegram_Token: "",
+        Telegram_Channel_Id: "",
+        Backoff_Period: "",
+      });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -78,6 +85,15 @@ export default function TelegramPanel({ telegram, onRefresh }: TelegramPanelProp
               value={form.Telegram_Channel_Id}
               onChange={set("Telegram_Channel_Id")}
               placeholder="@channelname or -100123456789"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

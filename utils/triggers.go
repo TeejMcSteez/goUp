@@ -15,6 +15,30 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+// resolveBackoff parses a trigger-specific backoff period, falling back to the
+// global trigger backoff when the trigger doesn't define its own.
+func resolveBackoff(name string, period *string, fallback time.Duration) time.Duration {
+	if period == nil || *period == "" {
+		return fallback
+	}
+	dur, err := time.ParseDuration(*period)
+	if err != nil {
+		log.Printf("Invalid Backoff_Period '%s' for %s: %v. Falling back to default.", *period, name, err)
+		return fallback
+	}
+	log.Printf("%s backoff period set to %s", name, dur)
+	return dur
+}
+
+// shouldBackoff reports whether a trigger fired within its backoff window.
+func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Duration) bool {
+	if backoffDuration > 0 && !lastFired.IsZero() && time.Since(lastFired) < backoffDuration {
+		log.Printf("Trigger backoff period active for %s, skipping. Last trigger was %s ago.", name, time.Since(lastFired))
+		return true
+	}
+	return false
+}
+
 // SetupTrigger copies Trigger config from cfg and registers configured handlers.
 func SetupTrigger(cfg *Config) *Trigger {
 	t := &cfg.Triggers
@@ -32,6 +56,15 @@ func SetupTrigger(cfg *Config) *Trigger {
 	} else {
 		log.Println("No backup period setup!")
 	}
+
+	t.MQTT.backoffDuration = resolveBackoff("MQTT", t.MQTT.Backoff_Period, t.backoffDuration)
+	t.Webhook.backoffDuration = resolveBackoff("Webhook", t.Webhook.Backoff_Period, t.backoffDuration)
+	t.SMTP.backoffDuration = resolveBackoff("SMTP", t.SMTP.Backoff_Period, t.backoffDuration)
+	t.Gotify.backoffDuration = resolveBackoff("Gotify", t.Gotify.Backoff_Period, t.backoffDuration)
+	t.Slack.backoffDuration = resolveBackoff("Slack", t.Slack.Backoff_Period, t.backoffDuration)
+	t.Telegram.backoffDuration = resolveBackoff("Telegram", t.Telegram.Backoff_Period, t.backoffDuration)
+	t.HA.backoffDuration = resolveBackoff("Home Assistant", t.HA.Backoff_Period, t.backoffDuration)
+	t.Discord.backoffDuration = resolveBackoff("Discord", t.Discord.Backoff_Period, t.backoffDuration)
 
 	if t.MQTT.IsConfigured() {
 		t.handlers = append(t.handlers, &t.MQTT)
@@ -72,8 +105,7 @@ func (t *Trigger) Fire(data []ServiceData) {
 		return
 	}
 
-	if t.backoffDuration > 0 && !t.lastFired.IsZero() && time.Since(t.lastFired) < t.backoffDuration {
-		log.Printf("Trigger backoff period active, skipping. Last trigger was %s ago.", time.Since(t.lastFired))
+	if shouldBackoff("Trigger", t.lastFired, t.backoffDuration) {
 		return
 	}
 
@@ -89,6 +121,11 @@ func (m *MQTTTrigger) IsConfigured() bool {
 }
 
 func (m *MQTTTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("MQTT", m.lastFired, m.backoffDuration) {
+		return
+	}
+	m.lastFired = time.Now()
+
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 		log.Println("Connected to MQTT Broker")
 	}
@@ -136,6 +173,11 @@ func (w *WebhookTrigger) IsConfigured() bool {
 
 // Fire sends service data to the configured webhook URL.
 func (w *WebhookTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Webhook", w.lastFired, w.backoffDuration) {
+		return
+	}
+	w.lastFired = time.Now()
+
 	jsonMessage, err := w.buildMessage(data)
 	if err != nil {
 		log.Printf("Failed parsing json service data message: %v\n", err)
@@ -190,6 +232,11 @@ func (w *WebhookTrigger) buildMessage(data []ServiceData) (io.Reader, error) {
 
 // Fire sends all downed service data as an email
 func (e *SMTPTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
+		return
+	}
+	e.lastFired = time.Now()
+
 	host, _, err := net.SplitHostPort(*e.SMTPServer)
 	if err != nil {
 		host = *e.SMTPServer
@@ -217,6 +264,11 @@ func (e *SMTPTrigger) IsConfigured() bool {
 
 // Fire sends a Gotify push notification for all downed services.
 func (g *GotifyTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Gotify", g.lastFired, g.backoffDuration) {
+		return
+	}
+	g.lastFired = time.Now()
+
 	title := "GoUp Alert"
 	if g.Gotify_Title != nil {
 		title = *g.Gotify_Title
@@ -270,6 +322,11 @@ func (g *GotifyTrigger) IsConfigured() bool {
 }
 
 func (s *SlackTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Slack", s.lastFired, s.backoffDuration) {
+		return
+	}
+	s.lastFired = time.Now()
+
 	var text strings.Builder
 	for _, entry := range data {
 		fmt.Fprintf(&text, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
@@ -326,6 +383,11 @@ func (s *SlackTrigger) IsConfigured() bool {
 }
 
 func (t *TelegramTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Telegram", t.lastFired, t.backoffDuration) {
+		return
+	}
+	t.lastFired = time.Now()
+
 	var text strings.Builder
 	for _, entry := range data {
 		fmt.Fprintf(&text, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
@@ -375,6 +437,11 @@ func (t *TelegramTrigger) IsConfigured() bool {
 }
 
 func (h *HATrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Home Assistant", h.lastFired, h.backoffDuration) {
+		return
+	}
+	h.lastFired = time.Now()
+
 	var extraStateAttribs strings.Builder
 	for _, entry := range data {
 		fmt.Fprintf(&extraStateAttribs, "Service: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
@@ -418,6 +485,11 @@ func (h *HATrigger) IsConfigured() bool {
 
 // TODO: Handle chunked messages for discord 2000 char limit on API content
 func (d *DiscordTrigger) Fire(data []ServiceData) {
+	if shouldBackoff("Discord", d.lastFired, d.backoffDuration) {
+		return
+	}
+	d.lastFired = time.Now()
+
 	var text strings.Builder
 
 	for _, entry := range data {

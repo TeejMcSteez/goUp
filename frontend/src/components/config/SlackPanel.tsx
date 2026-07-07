@@ -12,6 +12,7 @@ interface SlackFormData {
   Slack_Token: string;
   Slack_Channel: string;
   Bot_Username: string;
+  Backoff_Period: string;
 }
 
 export default function SlackPanel({ slack, onRefresh }: SlackPanelProps) {
@@ -19,6 +20,7 @@ export default function SlackPanel({ slack, onRefresh }: SlackPanelProps) {
     Slack_Token: slack?.Slack_Token ?? "",
     Slack_Channel: slack?.Slack_Channel ?? "",
     Bot_Username: slack?.Bot_Username ?? "",
+    Backoff_Period: slack?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -35,6 +37,7 @@ export default function SlackPanel({ slack, onRefresh }: SlackPanelProps) {
         Slack_Token: form.Slack_Token || null,
         Slack_Channel: form.Slack_Channel || null,
         Bot_Username: form.Bot_Username || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -49,7 +52,12 @@ export default function SlackPanel({ slack, onRefresh }: SlackPanelProps) {
     const res = await fetch("/api/config/slack", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "Slack config cleared.", error: false });
-      setForm({ Slack_Token: "", Slack_Channel: "", Bot_Username: "" });
+      setForm({
+        Slack_Token: "",
+        Slack_Channel: "",
+        Bot_Username: "",
+        Backoff_Period: "",
+      });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -90,6 +98,15 @@ export default function SlackPanel({ slack, onRefresh }: SlackPanelProps) {
               value={form.Bot_Username}
               onChange={set("Bot_Username")}
               placeholder="GoUp Bot"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>
