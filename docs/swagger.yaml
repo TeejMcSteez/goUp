@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  server.BackoffPayload:
+    properties:
+      backoff_period:
+        type: string
+    type: object
   server.DatabaseSizePayload:
     properties:
       db_max_size:
@@ -21,6 +26,8 @@ definitions:
     type: object
   utils.ConfigData:
     properties:
+      backoff_period:
+        type: string
       discord:
         $ref: '#/definitions/utils.DiscordTrigger'
       gotify:
@@ -49,6 +56,8 @@ definitions:
     type: object
   utils.DiscordTrigger:
     properties:
+      backoff_Period:
+        type: string
       discord_Auth:
         description: Can be Bot <token> or Bearer <token>
         type: string
@@ -61,6 +70,8 @@ definitions:
     type: object
   utils.GotifyTrigger:
     properties:
+      backoff_Period:
+        type: string
       gotify_Application:
         type: string
       gotify_Priority:
@@ -74,6 +85,8 @@ definitions:
     type: object
   utils.HATrigger:
     properties:
+      backoff_Period:
+        type: string
       ha_Token:
         type: string
       ha_URL:
@@ -81,6 +94,8 @@ definitions:
     type: object
   utils.MQTTTrigger:
     properties:
+      backoff_Period:
+        type: string
       mqtt_broker:
         type: string
       mqtt_key:
@@ -91,6 +106,8 @@ definitions:
   utils.SMTPTrigger:
     properties:
       app_Password:
+        type: string
+      backoff_Period:
         type: string
       email:
         type: string
@@ -162,6 +179,8 @@ definitions:
     type: object
   utils.SlackTrigger:
     properties:
+      backoff_Period:
+        type: string
       bot_Username:
         type: string
       slack_Channel:
@@ -171,6 +190,8 @@ definitions:
     type: object
   utils.TelegramTrigger:
     properties:
+      backoff_Period:
+        type: string
       telegram_Channel_Id:
         type: string
       telegram_Token:
@@ -178,6 +199,8 @@ definitions:
     type: object
   utils.WebhookTrigger:
     properties:
+      backoff_Period:
+        type: string
       custom_message:
         type: string
       webhook_key_string:
@@ -228,6 +251,63 @@ paths:
           schema:
             type: string
       summary: Get full configuration
+      tags:
+      - config
+  /api/config/backoff:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Backoff duration, e.g. 5m; blank disables the global backoff
+          (POST only)
+        in: body
+        name: backoff
+        schema:
+          $ref: '#/definitions/server.BackoffPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.BackoffPayload'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or set the global trigger backoff period
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Backoff duration, e.g. 5m; blank disables the global backoff
+          (POST only)
+        in: body
+        name: backoff
+        schema:
+          $ref: '#/definitions/server.BackoffPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.BackoffPayload'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get or set the global trigger backoff period
       tags:
       - config
   /api/config/discord:

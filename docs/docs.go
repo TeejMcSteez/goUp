@@ -68,6 +68,92 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/backoff": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Get or set the global trigger backoff period",
+                "parameters": [
+                    {
+                        "description": "Backoff duration, e.g. 5m; blank disables the global backoff (POST only)",
+                        "name": "backoff",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/server.BackoffPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.BackoffPayload"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Get or set the global trigger backoff period",
+                "parameters": [
+                    {
+                        "description": "Backoff duration, e.g. 5m; blank disables the global backoff (POST only)",
+                        "name": "backoff",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/server.BackoffPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.BackoffPayload"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/discord": {
             "post": {
                 "consumes": [
@@ -1379,6 +1465,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "server.BackoffPayload": {
+            "type": "object",
+            "properties": {
+                "backoff_period": {
+                    "type": "string"
+                }
+            }
+        },
         "server.DatabaseSizePayload": {
             "type": "object",
             "properties": {
@@ -1412,6 +1506,9 @@ const docTemplate = `{
         "utils.ConfigData": {
             "type": "object",
             "properties": {
+                "backoff_period": {
+                    "type": "string"
+                },
                 "discord": {
                     "$ref": "#/definitions/utils.DiscordTrigger"
                 },
@@ -1455,6 +1552,9 @@ const docTemplate = `{
         "utils.DiscordTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "discord_Auth": {
                     "description": "Can be Bot \u003ctoken\u003e or Bearer \u003ctoken\u003e",
                     "type": "string"
@@ -1468,6 +1568,9 @@ const docTemplate = `{
         "utils.GotifyTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "gotify_Application": {
                     "type": "string"
                 },
@@ -1488,6 +1591,9 @@ const docTemplate = `{
         "utils.HATrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "ha_Token": {
                     "type": "string"
                 },
@@ -1499,6 +1605,9 @@ const docTemplate = `{
         "utils.MQTTTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "mqtt_broker": {
                     "type": "string"
                 },
@@ -1514,6 +1623,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "app_Password": {
+                    "type": "string"
+                },
+                "backoff_Period": {
                     "type": "string"
                 },
                 "email": {
@@ -1624,6 +1736,9 @@ const docTemplate = `{
         "utils.SlackTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "bot_Username": {
                     "type": "string"
                 },
@@ -1638,6 +1753,9 @@ const docTemplate = `{
         "utils.TelegramTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "telegram_Channel_Id": {
                     "type": "string"
                 },
@@ -1649,6 +1767,9 @@ const docTemplate = `{
         "utils.WebhookTrigger": {
             "type": "object",
             "properties": {
+                "backoff_Period": {
+                    "type": "string"
+                },
                 "custom_message": {
                     "type": "string"
                 },
