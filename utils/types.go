@@ -23,15 +23,16 @@ type Config struct {
 }
 
 type ConfigData struct {
-	Services map[string]Service `json:"services"`
-	MQTT     MQTTTrigger        `json:"mqtt"`
-	Webhook  WebhookTrigger     `json:"webhook"`
-	SMTP     SMTPTrigger        `json:"smtp"`
-	Gotify   GotifyTrigger      `json:"gotify"`
-	Slack    SlackTrigger       `json:"slack"`
-	Telegram TelegramTrigger    `json:"telegram"`
-	HA       HATrigger          `json:"ha"`
-	Discord  DiscordTrigger     `json:"discord"`
+	Services       map[string]Service `json:"services"`
+	MQTT           MQTTTrigger        `json:"mqtt"`
+	Webhook        WebhookTrigger     `json:"webhook"`
+	SMTP           SMTPTrigger        `json:"smtp"`
+	Gotify         GotifyTrigger      `json:"gotify"`
+	Slack          SlackTrigger       `json:"slack"`
+	Telegram       TelegramTrigger    `json:"telegram"`
+	HA             HATrigger          `json:"ha"`
+	Discord        DiscordTrigger     `json:"discord"`
+	Backoff_Period string             `json:"backoff_period"`
 }
 
 // Endpoints and data for triggers
