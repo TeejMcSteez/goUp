@@ -55,11 +55,43 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 	return s
 }
 
+// runFetchCycle fetches current service data, persists it, and fires any
+// triggers for newly-down services. Split out of StartScheduler's select loop
+// so it can run on its own goroutine — service checks can block for a while
+// (slow endpoints, retries), and the select loop must stay free to service
+// s.get/s.state/s.stop the whole time, or callers like GET/POST /api/schedule
+// would hang until the fetch finishes.
+func runFetchCycle(db *sql.DB) {
+	data, err := utils.GetServiceData()
+	if err != nil {
+		log.Printf("Failed fetching service data in scheduler: %v\n", err)
+		return
+	}
+	for i := range data.AllServices {
+		if err := utils.InsertData(db, data.AllServices[i]); err != nil {
+			log.Printf("Failed to insert data: %v", err)
+		}
+	}
+	checkedData, err := utils.Check(data.AllServices)
+	if err != nil {
+		log.Printf("Received error from checking data in scheduler: %v", err)
+		return
+	}
+	if len(checkedData) > 0 {
+		utils.Current_Config.Triggers.Fire(checkedData)
+	}
+	log.Println("Scheduler fetched service data successfully")
+}
+
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	log.Println("Starting service data scheduler")
 
 	dur := computeDuration(Span, Interval)
 	timer := time.NewTimer(dur)
+	fetching := false
+	// Buffered so runFetchCycle's completion signal never blocks, even if
+	// the scheduler has already returned (e.g. stopped mid-fetch).
+	fetchDone := make(chan struct{}, 1)
 
 	for {
 		select {
@@ -91,27 +123,19 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			log.Println("Schedule updated to:", Span, Interval)
 		case req := <-s.get:
 			req.res <- utils.ScheduleState{Span: Span, Interval: Interval}
+		case <-fetchDone:
+			fetching = false
 		case <-timer.C:
 			// time to fetch data
-			data, err := utils.GetServiceData()
-			if err != nil {
-				log.Printf("Failed fetching service data in scheduler: %v\n", err)
-				continue
+			if fetching {
+				log.Println("Previous service data fetch still running, skipping this tick")
+			} else {
+				fetching = true
+				go func() {
+					runFetchCycle(db)
+					fetchDone <- struct{}{}
+				}()
 			}
-			for i := range data.AllServices {
-				if err := utils.InsertData(db, data.AllServices[i]); err != nil {
-					log.Printf("Failed to insert data: %v", err)
-				}
-			}
-			checkedData, err := utils.Check(data.AllServices)
-			if err != nil {
-				log.Printf("Received error from checking data in scheduler: %v", err)
-				continue
-			}
-			if len(checkedData) > 0 {
-				utils.Current_Config.Triggers.Fire(checkedData)
-			}
-			log.Println("Scheduler fetched service data successfully")
 
 			// schedule next run based on the *current* Span/Interval
 			dur = computeDuration(Span, Interval)

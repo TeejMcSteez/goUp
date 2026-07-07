@@ -231,7 +231,7 @@ func ErrorRetry(sd *ServiceData, endpoint Service, initialErr error) (*http.Resp
 	if endpoint.Retry_Requests != nil {
 		for range *endpoint.Retry_Requests {
 			log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, currentErr, "❌")
-			retry_res, retry_err := http.Get(endpoint.URL)
+			retry_res, retry_err := httpClient.Get(endpoint.URL)
 			if retry_err == nil {
 				return retry_res, nil
 			}
