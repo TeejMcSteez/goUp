@@ -50,6 +50,7 @@ export interface MQTTConfig {
   Mqtt_broker?: string;
   Mqtt_username?: string;
   Mqtt_key?: string;
+  Backoff_Period?: string;
 }
 
 export interface MQTTPanelProps {
@@ -61,6 +62,7 @@ export interface WebhookConfig {
   Webhook_url?: string;
   Webhook_key_string?: string;
   Custom_message?: string;
+  Backoff_Period?: string;
 }
 
 export interface WebhookPanelProps {
@@ -72,6 +74,7 @@ export interface SMTPConfig {
   Email?: string;
   App_Password?: string;
   SMTPServer?: string;
+  Backoff_Period?: string;
 }
 
 export interface SMTPPanelProps {
@@ -85,6 +88,7 @@ export interface GotifyConfig {
   Gotify_Application?: string;
   Gotify_Title?: string;
   Gotify_Priority?: number;
+  Backoff_Period?: string;
 }
 
 export interface GotifyPanelProps {
@@ -96,6 +100,7 @@ export interface SlackConfig {
   Slack_Token?: string;
   Slack_Channel?: string;
   Bot_Username?: string;
+  Backoff_Period?: string;
 }
 
 export interface SlackPanelProps {
@@ -106,6 +111,7 @@ export interface SlackPanelProps {
 export interface TelegramConfig {
   Telegram_Token?: string;
   Telegram_Channel_Id?: string;
+  Backoff_Period?: string;
 }
 
 export interface TelegramPanelProps {
@@ -116,6 +122,7 @@ export interface TelegramPanelProps {
 export interface HAConfig {
   HA_URL?: string;
   HA_Token?: string;
+  Backoff_Period?: string;
 }
 
 export interface HAPanelProps {
@@ -126,10 +133,16 @@ export interface HAPanelProps {
 export interface DiscordConfig {
   Discord_Auth?: string;
   Discord_Channel?: string;
+  Backoff_Period?: string;
 }
 
 export interface DiscordPanelProps {
   discord?: DiscordConfig;
+  onRefresh: () => void;
+}
+
+export interface GlobalBackoffPanelProps {
+  backoffPeriod?: string;
   onRefresh: () => void;
 }
 
@@ -144,6 +157,7 @@ export interface AppConfig {
   ha?: HAConfig;
   discord?: DiscordConfig;
   database?: boolean;
+  backoff_period?: string;
 }
 
 export interface Schedule {

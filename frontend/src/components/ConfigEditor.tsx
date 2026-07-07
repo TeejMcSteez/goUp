@@ -59,6 +59,7 @@ export default function ConfigEditor() {
             telegramProps={config?.telegram ? { telegram: config.telegram, onRefresh: refresh } : undefined}
             haProps={config?.ha ? { ha: config.ha, onRefresh: refresh } : undefined}
             discordProps={config?.discord ? { discord: config.discord, onRefresh: refresh } : undefined}
+            globalBackoffProps={{ backoffPeriod: config?.backoff_period, onRefresh: refresh }}
           />
         )}
         {activeSection === "database" && <DatabasePanel />}

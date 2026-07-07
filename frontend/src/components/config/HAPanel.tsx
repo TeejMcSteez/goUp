@@ -11,12 +11,14 @@ const btnBase =
 interface HAFormData {
   HA_URL: string;
   HA_Token: string;
+  Backoff_Period: string;
 }
 
 export default function HAPanel({ ha, onRefresh }: HAPanelProps) {
   const [form, setForm] = useState<HAFormData>({
     HA_URL: ha?.HA_URL ?? "",
     HA_Token: ha?.HA_Token ?? "",
+    Backoff_Period: ha?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -32,6 +34,7 @@ export default function HAPanel({ ha, onRefresh }: HAPanelProps) {
       body: JSON.stringify({
         HA_URL: form.HA_URL || null,
         HA_Token: form.HA_Token || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -46,7 +49,7 @@ export default function HAPanel({ ha, onRefresh }: HAPanelProps) {
     const res = await fetch("/api/config/ha", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "Home Assistant config cleared.", error: false });
-      setForm({ HA_URL: "", HA_Token: "" });
+      setForm({ HA_URL: "", HA_Token: "", Backoff_Period: "" });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -84,6 +87,15 @@ export default function HAPanel({ ha, onRefresh }: HAPanelProps) {
               value={form.HA_Token}
               onChange={set("HA_Token")}
               placeholder="••••••••"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

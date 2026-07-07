@@ -15,6 +15,7 @@ interface WebhookFormData {
   Webhook_url: string;
   Webhook_key_string: string;
   Custom_message: string;
+  Backoff_Period: string;
 }
 
 export default function WebhookPanel({
@@ -25,6 +26,7 @@ export default function WebhookPanel({
     Webhook_url: webhook?.Webhook_url ?? "",
     Webhook_key_string: webhook?.Webhook_key_string ?? "",
     Custom_message: webhook?.Custom_message ?? "",
+    Backoff_Period: webhook?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -42,6 +44,7 @@ export default function WebhookPanel({
         Webhook_url: form.Webhook_url || null,
         Webhook_key_string: form.Webhook_key_string || null,
         Custom_message: form.Custom_message || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -56,7 +59,12 @@ export default function WebhookPanel({
     const res = await fetch("/api/config/webhook", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "Webhook config cleared.", error: false });
-      setForm({ Webhook_url: "", Webhook_key_string: "", Custom_message: "" });
+      setForm({
+        Webhook_url: "",
+        Webhook_key_string: "",
+        Custom_message: "",
+        Backoff_Period: "",
+      });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -96,6 +104,15 @@ export default function WebhookPanel({
               value={form.Custom_message}
               onChange={set("Custom_message")}
               placeholder="A service is down!"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

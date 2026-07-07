@@ -14,6 +14,7 @@ interface GotifyFormData {
   Gotify_Application: string;
   Gotify_Title: string;
   Gotify_Priority: string;
+  Backoff_Period: string;
 }
 
 export default function GotifyPanel({ gotify, onRefresh }: GotifyPanelProps) {
@@ -23,6 +24,7 @@ export default function GotifyPanel({ gotify, onRefresh }: GotifyPanelProps) {
     Gotify_Application: gotify?.Gotify_Application ?? "",
     Gotify_Title: gotify?.Gotify_Title ?? "",
     Gotify_Priority: gotify?.Gotify_Priority?.toString() ?? "",
+    Backoff_Period: gotify?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -44,6 +46,7 @@ export default function GotifyPanel({ gotify, onRefresh }: GotifyPanelProps) {
         Gotify_Application: form.Gotify_Application || null,
         Gotify_Title: form.Gotify_Title || null,
         Gotify_Priority: priority,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -64,6 +67,7 @@ export default function GotifyPanel({ gotify, onRefresh }: GotifyPanelProps) {
         Gotify_Application: "",
         Gotify_Title: "",
         Gotify_Priority: "",
+        Backoff_Period: "",
       });
       onRefresh();
     } else {
@@ -126,6 +130,15 @@ export default function GotifyPanel({ gotify, onRefresh }: GotifyPanelProps) {
               value={form.Gotify_Priority}
               onChange={set("Gotify_Priority")}
               placeholder="5"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

@@ -12,6 +12,7 @@ interface SMTPFormData {
   Email: string;
   App_Password: string;
   SMTPServer: string;
+  Backoff_Period: string;
 }
 
 export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
@@ -19,6 +20,7 @@ export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
     Email: smtp?.Email ?? "",
     App_Password: smtp?.App_Password ?? "",
     SMTPServer: smtp?.SMTPServer ?? "",
+    Backoff_Period: smtp?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -35,6 +37,7 @@ export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
         Email: form.Email || null,
         App_Password: form.App_Password || null,
         SMTPServer: form.SMTPServer || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -49,7 +52,12 @@ export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
     const res = await fetch("/api/config/smtp", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "SMTP config cleared.", error: false });
-      setForm({ Email: "", App_Password: "", SMTPServer: "" });
+      setForm({
+        Email: "",
+        App_Password: "",
+        SMTPServer: "",
+        Backoff_Period: "",
+      });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -91,6 +99,15 @@ export default function SMTPPanel({ smtp, onRefresh }: SMTPPanelProps) {
               value={form.App_Password}
               onChange={set("App_Password")}
               placeholder="••••••••"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

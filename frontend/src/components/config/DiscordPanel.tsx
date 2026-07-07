@@ -14,6 +14,7 @@ const btnBase =
 interface DiscordFormData {
   Discord_Auth: string;
   Discord_Channel: string;
+  Backoff_Period: string;
 }
 
 export default function DiscordPanel({
@@ -23,6 +24,7 @@ export default function DiscordPanel({
   const [form, setForm] = useState<DiscordFormData>({
     Discord_Auth: discord?.Discord_Auth ?? "",
     Discord_Channel: discord?.Discord_Channel ?? "",
+    Backoff_Period: discord?.Backoff_Period ?? "",
   });
   const [status, setStatus] = useState<StatusMsg | null>(null);
 
@@ -39,6 +41,7 @@ export default function DiscordPanel({
       body: JSON.stringify({
         Discord_Auth: form.Discord_Auth || null,
         Discord_Channel: form.Discord_Channel || null,
+        Backoff_Period: form.Backoff_Period || null,
       }),
     });
     if (res.ok) {
@@ -53,7 +56,7 @@ export default function DiscordPanel({
     const res = await fetch("/api/config/discord", { method: "DELETE" });
     if (res.ok) {
       setStatus({ text: "Discord config cleared.", error: false });
-      setForm({ Discord_Auth: "", Discord_Channel: "" });
+      setForm({ Discord_Auth: "", Discord_Channel: "", Backoff_Period: "" });
       onRefresh();
     } else {
       setStatus({ text: await res.text(), error: true });
@@ -91,6 +94,15 @@ export default function DiscordPanel({
               value={form.Discord_Channel}
               onChange={set("Discord_Channel")}
               placeholder="123456789012345678"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            Backoff Period
+            <input
+              className={inputClass}
+              value={form.Backoff_Period}
+              onChange={set("Backoff_Period")}
+              placeholder="5m"
             />
           </label>
         </div>

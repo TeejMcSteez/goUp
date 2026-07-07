@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MQTTPanelProps, WebhookPanelProps, SMTPPanelProps, GotifyPanelProps, SlackPanelProps, TelegramPanelProps, HAPanelProps, DiscordPanelProps } from "../../types";
+import { MQTTPanelProps, WebhookPanelProps, SMTPPanelProps, GotifyPanelProps, SlackPanelProps, TelegramPanelProps, HAPanelProps, DiscordPanelProps, GlobalBackoffPanelProps } from "../../types";
 import MQTTPanel from "./MQTTPanel";
 import WebhookPanel from "./WebhookPanel";
 import SMTPPanel from "./SMTPPanel";
@@ -8,6 +8,7 @@ import SlackPanel from "./SlackPanel";
 import TelegramPanel from "./TelegramPanel";
 import HAPanel from "./HAPanel";
 import DiscordPanel from "./DiscordPanel";
+import GlobalBackoffPanel from "./GlobalBackoffPanel";
 
 interface TriggerProps {
   mqttProps: MQTTPanelProps | undefined;
@@ -18,21 +19,25 @@ interface TriggerProps {
   telegramProps: TelegramPanelProps | undefined;
   haProps: HAPanelProps | undefined;
   discordProps: DiscordPanelProps | undefined;
+  globalBackoffProps: GlobalBackoffPanelProps | undefined;
 }
 
-type Tab = "mqtt" | "webhook" | "smtp" | "gotify" | "slack" | "telegram" | "ha" | "discord";
+type Tab = "global" | "mqtt" | "webhook" | "smtp" | "gotify" | "slack" | "telegram" | "ha" | "discord";
 
 const tabBtn = (active: boolean) =>
   `px-4 py-1.5 text-[0.85rem] font-medium rounded-md border-none cursor-pointer transition-all duration-200 ${
     active ? "bg-surface text-primary" : "bg-transparent text-muted hover:text-fg"
   }`;
 
-export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyProps, slackProps, telegramProps, haProps, discordProps }: TriggerProps) {
-  const [tab, setTab] = useState<Tab>("mqtt");
+export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyProps, slackProps, telegramProps, haProps, discordProps, globalBackoffProps }: TriggerProps) {
+  const [tab, setTab] = useState<Tab>("global");
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-1 p-1 bg-elevated rounded-lg w-fit">
+        <button className={tabBtn(tab === "global")} onClick={() => setTab("global")}>
+          Global
+        </button>
         <button className={tabBtn(tab === "mqtt")} onClick={() => setTab("mqtt")}>
           MQTT
         </button>
@@ -58,6 +63,12 @@ export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyPro
           Discord
         </button>
       </div>
+      {tab === "global" && (
+        <GlobalBackoffPanel
+          onRefresh={globalBackoffProps?.onRefresh ?? function () {}}
+          backoffPeriod={globalBackoffProps?.backoffPeriod}
+        />
+      )}
       {tab === "mqtt" && (
         <MQTTPanel
           onRefresh={mqttProps?.onRefresh ?? function () {}}
