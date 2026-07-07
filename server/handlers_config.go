@@ -19,6 +19,11 @@ type DatabaseSizePayload struct {
 	Size string `json:"db_max_size"`
 }
 
+// BackoffPayload is the request/response body for GET/POST /api/config/backoff.
+type BackoffPayload struct {
+	Backoff_Period string `json:"backoff_period"`
+}
+
 // @Summary Get full configuration
 // @Tags config
 // @Produce json
@@ -36,8 +41,9 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	tgData := utils.ReadConfigTelegram(utils.Current_Config)
 	haData := utils.ReadConfigHA(utils.Current_Config)
 	dData := utils.ReadConfigDiscord(utils.Current_Config)
+	backoffData := utils.ReadConfigBackoff(utils.Current_Config)
 
-	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData, HA: haData, Discord: dData}
+	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData, HA: haData, Discord: dData, Backoff_Period: backoffData}
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding configuration data to json: %v", err)
@@ -509,5 +515,42 @@ func (s *Server) ConfigDiscordApi(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 
+	}
+}
+
+// @Summary Get or set the global trigger backoff period
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param backoff body BackoffPayload false "Backoff duration, e.g. 5m; blank disables the global backoff (POST only)"
+// @Success 200 {object} BackoffPayload
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/backoff [get]
+// @Router /api/config/backoff [post]
+func (s *Server) ConfigBackoffApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	switch req.Method {
+	case "GET":
+		payload := BackoffPayload{Backoff_Period: utils.ReadConfigBackoff(utils.Current_Config)}
+		if err := json.NewEncoder(w).Encode(payload); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	case "POST":
+		var payload BackoffPayload
+		if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.UpdateBackoff(utils.Current_Config, payload.Backoff_Period, "global"); err != nil {
+			log.Printf("Error updating global backoff: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
 }
