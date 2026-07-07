@@ -455,43 +455,54 @@ func UpdateConfigDatabasePersistence(conf *Config) error {
 	return writeConfig(conf)
 }
 
+// UpdateBackoff sets the backoff period for a single trigger, or the global
+// fallback when trigger is "" or "global". A blank newTime clears the period
+// so the trigger falls back to the global default (or disables backoff, for
+// the global period itself).
 func UpdateBackoff(conf *Config, newTime string, trigger string) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
-	parsedT, err := time.ParseDuration(newTime)
-	if err != nil {
-		return err
+
+	var period *string
+	var dur time.Duration
+	if newTime != "" {
+		parsed, err := time.ParseDuration(newTime)
+		if err != nil {
+			return err
+		}
+		period = &newTime
+		dur = parsed
 	}
 
 	switch trigger {
 	case "mqtt":
-		conf.Triggers.MQTT.Backoff_Period = &newTime
-		conf.Triggers.MQTT.backoffDuration = parsedT
+		conf.Triggers.MQTT.Backoff_Period = period
+		conf.Triggers.MQTT.backoffDuration = dur
 	case "webhook":
-		conf.Triggers.Webhook.Backoff_Period = &newTime
-		conf.Triggers.Webhook.backoffDuration = parsedT
+		conf.Triggers.Webhook.Backoff_Period = period
+		conf.Triggers.Webhook.backoffDuration = dur
 	case "smtp":
-		conf.Triggers.SMTP.Backoff_Period = &newTime
-		conf.Triggers.SMTP.backoffDuration = parsedT
+		conf.Triggers.SMTP.Backoff_Period = period
+		conf.Triggers.SMTP.backoffDuration = dur
 	case "gotify":
-		conf.Triggers.Gotify.Backoff_Period = &newTime
-		conf.Triggers.Gotify.backoffDuration = parsedT
+		conf.Triggers.Gotify.Backoff_Period = period
+		conf.Triggers.Gotify.backoffDuration = dur
 	case "slack":
-		conf.Triggers.Slack.Backoff_Period = &newTime
-		conf.Triggers.SMTP.backoffDuration = parsedT
+		conf.Triggers.Slack.Backoff_Period = period
+		conf.Triggers.Slack.backoffDuration = dur
 	case "telegram":
-		conf.Triggers.Telegram.Backoff_Period = &newTime
-		conf.Triggers.Telegram.backoffDuration = parsedT
+		conf.Triggers.Telegram.Backoff_Period = period
+		conf.Triggers.Telegram.backoffDuration = dur
 	case "ha":
-		conf.Triggers.HA.Backoff_Period = &newTime
-		conf.Triggers.HA.backoffDuration = parsedT
+		conf.Triggers.HA.Backoff_Period = period
+		conf.Triggers.HA.backoffDuration = dur
 	case "discord":
-		conf.Triggers.Discord.Backoff_Period = &newTime
-		conf.Triggers.Discord.backoffDuration = parsedT
+		conf.Triggers.Discord.Backoff_Period = period
+		conf.Triggers.Discord.backoffDuration = dur
 	case "", "global":
-		conf.Triggers.Backoff_Period = &newTime
-		conf.Triggers.backoffDuration = parsedT
+		conf.Triggers.Backoff_Period = period
+		conf.Triggers.backoffDuration = dur
 	default:
 		return fmt.Errorf("unknown trigger %q", trigger)
 	}
