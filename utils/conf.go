@@ -498,3 +498,11 @@ func UpdateBackoff(conf *Config, newTime string, trigger string) error {
 
 	return writeConfig(conf)
 }
+
+// ReadConfigBackoff returns the global trigger backoff period, or "" if unset.
+func ReadConfigBackoff(conf *Config) string {
+	if conf.Triggers.Backoff_Period == nil {
+		return ""
+	}
+	return *conf.Triggers.Backoff_Period
+}
