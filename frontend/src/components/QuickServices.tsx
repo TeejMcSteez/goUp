@@ -19,7 +19,7 @@ export default function QuickServices() {
           setQs([]);
         } else {
           console.error(
-            `Expected array from /api/status, got: ${String(data)}`,
+            `Expected array from /api/status, got: ${JSON.stringify(data)}`,
           );
         }
         setError(null);
@@ -29,8 +29,8 @@ export default function QuickServices() {
       }
     };
 
-    getDownServices();
-    const intervalId = setInterval(getDownServices, 5000);
+    void getDownServices();
+    const intervalId = setInterval(() => void getDownServices(), 5000);
     return () => clearInterval(intervalId);
   }, []);
 

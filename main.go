@@ -39,8 +39,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	if err := utils.Setup(cfg); err != nil {
-		log.Fatalf("Failed to setup services: %v", err)
+	if setupErr := utils.Setup(cfg); err != nil {
+		log.Fatalf("Failed to setup services: %v", setupErr)
 	}
 
 	db, err := utils.InitDB()
@@ -54,15 +54,15 @@ func main() {
 	// Starts all background workers
 	sch := workers.NewScheduler(db, cfg)
 	defer sch.Stop()
-	if err := utils.DbGarbageCollect(db, cfg); err != nil {
-		log.Printf("Startup GC failed: %v", err)
+	if garabgeCollectErr := utils.DbGarbageCollect(db, cfg); err != nil {
+		log.Printf("Startup GC failed: %v", garabgeCollectErr)
 	}
 	go workers.StartHotReloader(*configPath, ctx, db)
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
 		log.Println("Starting server on port 8080")
-		if err := server.NewServer(db, sch, &serve).Start(); err != nil {
-			log.Fatalf("Server failed to start: %v", err)
+		if serverCreateErr := server.NewServer(db, sch, &serve).Start(); err != nil {
+			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
 	}()

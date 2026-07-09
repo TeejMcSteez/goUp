@@ -50,17 +50,7 @@ export default function ConfigEditor() {
           <ServicesPanel services={config?.services} onRefresh={refresh} />
         )}
         {activeSection === "triggers" && (
-          <Triggers
-            mqttProps={config?.mqtt ? { mqtt: config.mqtt, onRefresh: refresh } : undefined}
-            webhookProps={config?.webhook ? { webhook: config.webhook, onRefresh: refresh } : undefined}
-            smtpProps={config?.smtp ? { smtp: config.smtp, onRefresh: refresh } : undefined}
-            gotifyProps={config?.gotify ? { gotify: config.gotify, onRefresh: refresh } : undefined}
-            slackProps={config?.slack ? { slack: config.slack, onRefresh: refresh } : undefined}
-            telegramProps={config?.telegram ? { telegram: config.telegram, onRefresh: refresh } : undefined}
-            haProps={config?.ha ? { ha: config.ha, onRefresh: refresh } : undefined}
-            discordProps={config?.discord ? { discord: config.discord, onRefresh: refresh } : undefined}
-            globalBackoffProps={{ backoffPeriod: config?.backoff_period, onRefresh: refresh }}
-          />
+          <Triggers config={config} onRefresh={refresh} />
         )}
         {activeSection === "database" && <DatabasePanel />}
       </div>

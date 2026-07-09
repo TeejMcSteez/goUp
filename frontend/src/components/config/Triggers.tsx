@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MQTTPanelProps, WebhookPanelProps, SMTPPanelProps, GotifyPanelProps, SlackPanelProps, TelegramPanelProps, HAPanelProps, DiscordPanelProps, GlobalBackoffPanelProps } from "../../types";
+import type { AppConfig } from "../../types";
 import MQTTPanel from "./MQTTPanel";
 import WebhookPanel from "./WebhookPanel";
 import SMTPPanel from "./SMTPPanel";
@@ -10,113 +10,53 @@ import HAPanel from "./HAPanel";
 import DiscordPanel from "./DiscordPanel";
 import GlobalBackoffPanel from "./GlobalBackoffPanel";
 
-interface TriggerProps {
-  mqttProps: MQTTPanelProps | undefined;
-  webhookProps: WebhookPanelProps | undefined;
-  smtpProps: SMTPPanelProps | undefined;
-  gotifyProps: GotifyPanelProps | undefined;
-  slackProps: SlackPanelProps | undefined;
-  telegramProps: TelegramPanelProps | undefined;
-  haProps: HAPanelProps | undefined;
-  discordProps: DiscordPanelProps | undefined;
-  globalBackoffProps: GlobalBackoffPanelProps | undefined;
+interface TriggersProps {
+  config: AppConfig | null;
+  onRefresh: () => void;
 }
 
-type Tab = "global" | "mqtt" | "webhook" | "smtp" | "gotify" | "slack" | "telegram" | "ha" | "discord";
+const TABS = [
+  { id: "global", label: "Global" },
+  { id: "mqtt", label: "MQTT" },
+  { id: "webhook", label: "Webhook" },
+  { id: "smtp", label: "SMTP" },
+  { id: "gotify", label: "Gotify" },
+  { id: "slack", label: "Slack" },
+  { id: "telegram", label: "Telegram" },
+  { id: "ha", label: "Home Assistant" },
+  { id: "discord", label: "Discord" },
+] as const;
+
+type Tab = (typeof TABS)[number]["id"];
 
 const tabBtn = (active: boolean) =>
   `px-4 py-1.5 text-[0.85rem] font-medium rounded-md border-none cursor-pointer transition-all duration-200 ${
     active ? "bg-surface text-primary" : "bg-transparent text-muted hover:text-fg"
   }`;
 
-export default function Triggers({ mqttProps, webhookProps, smtpProps, gotifyProps, slackProps, telegramProps, haProps, discordProps, globalBackoffProps }: TriggerProps) {
+export default function Triggers({ config, onRefresh }: TriggersProps) {
   const [tab, setTab] = useState<Tab>("global");
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-1 p-1 bg-elevated rounded-lg w-fit">
-        <button className={tabBtn(tab === "global")} onClick={() => setTab("global")}>
-          Global
-        </button>
-        <button className={tabBtn(tab === "mqtt")} onClick={() => setTab("mqtt")}>
-          MQTT
-        </button>
-        <button className={tabBtn(tab === "webhook")} onClick={() => setTab("webhook")}>
-          Webhook
-        </button>
-        <button className={tabBtn(tab === "smtp")} onClick={() => setTab("smtp")}>
-          SMTP
-        </button>
-        <button className={tabBtn(tab === "gotify")} onClick={() => setTab("gotify")}>
-          Gotify
-        </button>
-        <button className={tabBtn(tab === "slack")} onClick={() => setTab("slack")}>
-          Slack
-        </button>
-        <button className={tabBtn(tab === "telegram")} onClick={() => setTab("telegram")}>
-          Telegram
-        </button>
-        <button className={tabBtn(tab === "ha")} onClick={() => setTab("ha")}>
-          Home Assistant
-        </button>
-        <button className={tabBtn(tab === "discord")} onClick={() => setTab("discord")}>
-          Discord
-        </button>
+        {TABS.map((t) => (
+          <button key={t.id} className={tabBtn(tab === t.id)} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
       </div>
       {tab === "global" && (
-        <GlobalBackoffPanel
-          onRefresh={globalBackoffProps?.onRefresh ?? function () {}}
-          backoffPeriod={globalBackoffProps?.backoffPeriod}
-        />
+        <GlobalBackoffPanel backoffPeriod={config?.backoff_period} onRefresh={onRefresh} />
       )}
-      {tab === "mqtt" && (
-        <MQTTPanel
-          onRefresh={mqttProps?.onRefresh ?? function () {}}
-          mqtt={mqttProps?.mqtt}
-        />
-      )}
-      {tab === "webhook" && (
-        <WebhookPanel
-          onRefresh={webhookProps?.onRefresh ?? function () {}}
-          webhook={webhookProps?.webhook}
-        />
-      )}
-      {tab === "smtp" && (
-        <SMTPPanel
-          onRefresh={smtpProps?.onRefresh ?? function () {}}
-          smtp={smtpProps?.smtp}
-        />
-      )}
-      {tab === "gotify" && (
-        <GotifyPanel
-          onRefresh={gotifyProps?.onRefresh ?? function () {}}
-          gotify={gotifyProps?.gotify}
-        />
-      )}
-      {tab === "slack" && (
-        <SlackPanel
-          onRefresh={slackProps?.onRefresh ?? function () {}}
-          slack={slackProps?.slack}
-        />
-      )}
-      {tab === "telegram" && (
-        <TelegramPanel
-          onRefresh={telegramProps?.onRefresh ?? function () {}}
-          telegram={telegramProps?.telegram}
-        />
-      )}
-      {tab === "ha" && (
-        <HAPanel
-          onRefresh={haProps?.onRefresh ?? function () {}}
-          ha={haProps?.ha}
-        />
-      )}
-      {tab === "discord" && (
-        <DiscordPanel
-          onRefresh={discordProps?.onRefresh ?? function () {}}
-          discord={discordProps?.discord}
-        />
-      )}
+      {tab === "mqtt" && <MQTTPanel mqtt={config?.mqtt} onRefresh={onRefresh} />}
+      {tab === "webhook" && <WebhookPanel webhook={config?.webhook} onRefresh={onRefresh} />}
+      {tab === "smtp" && <SMTPPanel smtp={config?.smtp} onRefresh={onRefresh} />}
+      {tab === "gotify" && <GotifyPanel gotify={config?.gotify} onRefresh={onRefresh} />}
+      {tab === "slack" && <SlackPanel slack={config?.slack} onRefresh={onRefresh} />}
+      {tab === "telegram" && <TelegramPanel telegram={config?.telegram} onRefresh={onRefresh} />}
+      {tab === "ha" && <HAPanel ha={config?.ha} onRefresh={onRefresh} />}
+      {tab === "discord" && <DiscordPanel discord={config?.discord} onRefresh={onRefresh} />}
     </div>
   );
 }

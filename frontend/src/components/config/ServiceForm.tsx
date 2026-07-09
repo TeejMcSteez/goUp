@@ -23,7 +23,7 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
   const set = (field: keyof ServiceFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     const validResponses = form.Valid_Responses
       ? form.Valid_Responses.split(",").map((s) => s.trim()).filter(Boolean)
