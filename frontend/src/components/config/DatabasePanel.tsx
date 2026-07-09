@@ -68,7 +68,7 @@ export default function DatabasePanel() {
           });
       }
     }
-    loadDbSize();
+    void loadDbSize();
 
     return () => controller.abort();
   }, []);
@@ -154,7 +154,7 @@ export default function DatabasePanel() {
             <ConfirmModal
               message="Clear all database memory? This action is irreversible."
               onConfirm={() => {
-                handleClearDatabase();
+                void handleClearDatabase();
                 setConfirmClear(false);
               }}
               onCancel={() => setConfirmClear(false)}

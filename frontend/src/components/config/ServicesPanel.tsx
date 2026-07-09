@@ -240,7 +240,7 @@ export default function ServicesPanel({
         <ConfirmModal
           message={`Remove "${confirmDelete.Name}"?`}
           onConfirm={() => {
-            handleDelete(confirmDelete);
+            void handleDelete(confirmDelete);
             setConfirmDelete(null);
           }}
           onCancel={() => setConfirmDelete(null)}

@@ -20,8 +20,8 @@ export function useServerHealth(intervalMs = 10000): ServerHealth {
       }
     };
 
-    check();
-    const id = setInterval(check, intervalMs);
+    void check();
+    const id = setInterval(() => void check(), intervalMs);
     return () => clearInterval(id);
   }, [intervalMs]);
 

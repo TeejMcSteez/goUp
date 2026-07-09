@@ -7,6 +7,7 @@ interface ChunkErrorBoundaryProps {
 
 interface ChunkErrorBoundaryState {
   crashed: boolean;
+  resetKey: boolean;
 }
 
 export default class ChunkErrorBoundary extends Component<
@@ -15,17 +16,21 @@ export default class ChunkErrorBoundary extends Component<
 > {
   constructor(props: ChunkErrorBoundaryProps) {
     super(props);
-    this.state = { crashed: false };
+    this.state = { crashed: false, resetKey: props.resetKey };
   }
 
-  static getDerivedStateFromError(): ChunkErrorBoundaryState {
+  static getDerivedStateFromError(): Partial<ChunkErrorBoundaryState> {
     return { crashed: true };
   }
 
-  componentDidUpdate(prevProps: ChunkErrorBoundaryProps) {
-    if (prevProps.resetKey !== this.props.resetKey && this.state.crashed) {
-      this.setState({ crashed: false });
+  static getDerivedStateFromProps(
+    props: ChunkErrorBoundaryProps,
+    state: ChunkErrorBoundaryState,
+  ): Partial<ChunkErrorBoundaryState> | null {
+    if (props.resetKey !== state.resetKey) {
+      return { crashed: false, resetKey: props.resetKey };
     }
+    return null;
   }
 
   render() {
