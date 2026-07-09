@@ -26,10 +26,10 @@ func InitDB() (*sql.DB, error) {
 		return nil, &NoConfigError{"db_path", "Not found"}
 	}
 	db, err := sql.Open("sqlite", conn_string)
-	db.SetMaxOpenConns(1)
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(1)
 
 	createTableSQL := `CREATE TABLE IF NOT EXISTS service_data (
 		"id" INTEGER PRIMARY KEY AUTOINCREMENT,
