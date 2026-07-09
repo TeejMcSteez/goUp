@@ -154,7 +154,10 @@ These are **subject to change**
 
 ## Building
 
-Requires a Node package manager (npm, pnpm, yarn, or bun) and the [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`).
+Requires:
+- Node package manager (npm, pnpm, yarn, or bun) 
+- [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
+- [sqlc](https://sqlc.dev/) 
 
 The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
 
@@ -162,7 +165,7 @@ The Makefile auto-detects the package manager by matching the existing lock file
 |--------|-------------|
 | `make` / `make all` | Generate API docs, build frontend, then compile the Go binary |
 | `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
-| `make build` | Build the frontend then compile the Go binary (`./goUp`) |
+| `make build` | Build the frontend, SQL codegen, then compile the Go binary (`./goUp`) |
 | `make fmt` | Format Go source files via `golangci-lint fmt` |
 | `make lint` | Lint Go source files via `golangci-lint run` |
 | `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
