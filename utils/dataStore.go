@@ -347,7 +347,7 @@ func ClearDatabase(db *sql.DB) (retErr error) {
 		return err
 	}
 	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=DELETE;`); err != nil {
-		return fmt.Errorf("clear completed but could not swtich journal mode: %w", err)
+		return fmt.Errorf("clear completed but could not switch journal mode: %w", err)
 	}
 	if _, err := conn.ExecContext(context.Background(), `VACUUM;`); err != nil {
 		return fmt.Errorf("clear completed but VACUUM failed: %w", err)
