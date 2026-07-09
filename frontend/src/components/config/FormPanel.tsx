@@ -52,7 +52,7 @@ export default function FormPanel<T extends Record<string, string>>({
       ? serialize(f)
       : Object.fromEntries(fields.map((fd) => [fd.key, f[fd.key] || null]));
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.SubmitEvent) => {
     e.preventDefault();
     const res = await fetch(endpoint, {
       method: "POST",
