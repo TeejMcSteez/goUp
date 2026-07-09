@@ -131,10 +131,10 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				log.Println("Previous service data fetch still running, skipping this tick")
 			} else {
 				fetching = true
-				go func() {
+				go func(db *sql.DB) {
 					runFetchCycle(db)
 					fetchDone <- struct{}{}
-				}()
+				}(db)
 			}
 
 			// schedule next run based on the *current* Span/Interval

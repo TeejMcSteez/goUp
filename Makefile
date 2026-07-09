@@ -19,6 +19,7 @@ all: docs lint fmt test build
 
 dev:
 	cd frontend && $(PM) run build
+	cd db && sqlc generate
 	go run .
 
 docs:
@@ -26,6 +27,7 @@ docs:
 
 build:
 	cd frontend && $(PM) run build
+	cd db && sqlc generate
 	go build -ldflags "-s -w -X goUp/utils.Version=$(VERSION)" -o $(BINARY) .
 
 fmt:

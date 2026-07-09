@@ -53,8 +53,12 @@ func startHotReloader(path string, ctx context.Context, db *sql.DB, interval tim
 						log.Printf("Hot reload failed: %v", err)
 						return
 					}
-					if err := utils.DbGarbageCollect(db, cfg); err != nil {
-						log.Printf("Hot reload GC failed: %v", err)
+					if db != nil {
+						if err := utils.DbGarbageCollect(db, cfg); err != nil {
+							log.Printf("Hot reload GC failed: %v", err)
+						}
+					} else {
+						log.Print("Hot reload GC failed: database is nil")
 					}
 					initialModTime = t
 				}

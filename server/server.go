@@ -39,6 +39,7 @@ func (s *Server) Start() error {
 	} else {
 		http.HandleFunc("/", s.HandleNoUi)
 	}
+	http.HandleFunc("/health", s.Health)
 	http.HandleFunc("/api", s.Api)
 	http.HandleFunc("/api/schedule", s.ScheduleApi)
 	http.HandleFunc("/api/status", s.StatusApi)

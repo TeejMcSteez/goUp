@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	database "goUp/internal/db"
 	"log"
 	"os"
 	"strconv"
@@ -26,10 +27,10 @@ func InitDB() (*sql.DB, error) {
 		return nil, &NoConfigError{"db_path", "Not found"}
 	}
 	db, err := sql.Open("sqlite", conn_string)
-	db.SetMaxOpenConns(1)
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(1)
 
 	createTableSQL := `CREATE TABLE IF NOT EXISTS service_data (
 		"id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,11 +81,22 @@ func InitDB() (*sql.DB, error) {
 
 // migrateResponseTimes converts legacy TEXT response time values (e.g. "1.234ms")
 // to INTEGER nanoseconds for existing rows written before the schema change.
+//
+// This must run before any sqlc-generated query scans service_response_time,
+// since those queries scan it into sql.NullInt64 and a legacy TEXT value like
+// "1.234ms" is not a valid int64.
 func migrateResponseTimes(db *sql.DB) (err error) {
 	rows, err := db.Query("SELECT id, service_response_time FROM service_data")
 	if err != nil {
 		return err
 	}
+	// Close should emit err but to be idiomatic and fix IDE warning
+	// Check for row errors before closing rows
+	defer func() {
+		if e := rows.Err(); e != nil {
+			err = e
+		}
+	}()
 	defer func() {
 		if e := rows.Close(); e != nil {
 			err = e
@@ -96,7 +108,6 @@ func migrateResponseTimes(db *sql.DB) (err error) {
 		ns int64
 	}
 	var updates []pending
-
 	for rows.Next() {
 		var id int
 		var raw string
@@ -113,11 +124,6 @@ func migrateResponseTimes(db *sql.DB) (err error) {
 		}
 		updates = append(updates, pending{id, d.Nanoseconds()})
 	}
-	defer func() {
-		if e := rows.Close(); e != nil {
-			err = e
-		}
-	}()
 
 	for _, u := range updates {
 		if _, err := db.Exec("UPDATE service_data SET service_response_time = ? WHERE id = ?", u.ns, u.id); err != nil {
@@ -152,114 +158,81 @@ func formatResponseTime(ns int64) string {
 	}
 }
 
-// scanServiceDataRow scans a single row from *sql.Rows into an int (id) and a ServiceData struct.
-func scanServiceDataRow(row *sql.Rows) (int, ServiceData, error) {
-	var id int
-	var s ServiceData
-	var tBuff string
-	// Scan response time as []byte so the driver converts any stored type (INTEGER or TEXT)
-	// to its string representation, avoiding interface{} type-assertion fragility.
-	var rtBytes []byte
-	err := row.Scan(
-		&id,
-		&s.ServiceURL,
-		&s.ServiceName,
-		&s.ServiceDescription,
-		&s.ServiceHTTPResponse,
-		&s.ServiceAPIResponse,
-		&rtBytes,
-		// timestamp is stored as RFC3339Nano string and parsed after scan
-		&tBuff,
-		&s.Error,
-	)
-	if err != nil {
-		log.Printf("Failed scanning database row: %v", err)
+// rowToServiceData converts a sqlc-generated row into the ServiceData shape
+// used throughout the rest of the app.
+func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
+	s := ServiceData{
+		ServiceURL:          d.ServiceUrl.String,
+		ServiceName:         d.ServiceName.String,
+		ServiceDescription:  d.ServiceDescription.String,
+		ServiceHTTPResponse: d.ServiceHttpResponse.String,
+		ServiceAPIResponse:  d.ServiceApiResponse.String,
+		Error:               d.Error != 0,
 	}
-	if len(rtBytes) > 0 {
-		raw := string(rtBytes)
-		if ns, err := strconv.ParseInt(raw, 10, 64); err == nil {
-			// INTEGER nanoseconds (current format)
-			s.ServiceResponseTime = formatResponseTime(ns)
-		} else {
-			// Legacy TEXT value (e.g. "1.234ms") — pass through unchanged
-			s.ServiceResponseTime = raw
-		}
+	if d.ServiceResponseTime.Valid {
+		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
 	}
-	s.Timestamp, err = time.Parse(time.RFC3339Nano, tBuff)
+	var err error
+	s.Timestamp, err = time.Parse(time.RFC3339Nano, d.Timestamp.String)
 	if err != nil {
 		log.Printf("Error parsing timestamp in scan: %v", err)
 	}
-	return id, s, err
+	return s, err
 }
 
-func InsertData(db *sql.DB, sd ServiceData) (retErr error) {
-	insertSQL := `INSERT INTO service_data (service_url, service_name, service_description, service_HTTP_response, service_API_response, service_response_time, timestamp, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	statement, err := db.Prepare(insertSQL)
-	if err != nil {
-		return err
+func boolToInt(b bool) int64 {
+	if b {
+		return 1
 	}
+	return 0
+}
 
-	defer func() {
-		if err := statement.Close(); err != nil {
-			retErr = err
-		}
-	}()
-
+func InsertData(db *sql.DB, sd ServiceData) error {
 	var rtNs int64
 	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
 		rtNs = d.Nanoseconds()
 	}
 
-	_, err = statement.Exec(sd.ServiceURL, sd.ServiceName, sd.ServiceDescription, sd.ServiceHTTPResponse, sd.ServiceAPIResponse, rtNs, sd.Timestamp.Format(time.RFC3339Nano), sd.Error)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	q := database.New(db)
+	return q.InsertData(context.Background(), database.InsertDataParams{
+		ServiceUrl:          sql.NullString{String: sd.ServiceURL, Valid: true},
+		ServiceName:         sql.NullString{String: sd.ServiceName, Valid: true},
+		ServiceDescription:  sql.NullString{String: sd.ServiceDescription, Valid: true},
+		ServiceHttpResponse: sql.NullString{String: sd.ServiceHTTPResponse, Valid: true},
+		ServiceApiResponse:  sql.NullString{String: sd.ServiceAPIResponse, Valid: true},
+		ServiceResponseTime: sql.NullInt64{Int64: rtNs, Valid: true},
+		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
+		Error:               boolToInt(sd.Error),
+	})
 }
 
 // Gets all service data
-func GetData(db *sql.DB) (retSd []ServiceData, retErr error) {
-	sd := []ServiceData{}
-
-	row, err := db.Query("SELECT * FROM service_data;")
+func GetData(db *sql.DB) ([]ServiceData, error) {
+	rows, err := database.New(db).GetAllData(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
-		}
-	}()
 
-	for row.Next() {
-		_, s, err := scanServiceDataRow(row)
+	sd := []ServiceData{}
+	// Behavior change with sqlc refactor
+	// If a timestamp error occurs will return nill and err out without continuing struct creation
+	// Could log the error and continue but still deciding on wanted outcome
+	for _, r := range rows {
+		s, err := rowToServiceData(r)
 		if err != nil {
 			return nil, err
 		}
 		sd = append(sd, s)
 	}
-
-	return sd, retErr
+	return sd, nil
 }
 
 // Gets recent data defined by total number of service endpoints
-func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
-	sd := []ServiceData{}
-
-	statement := `SELECT * FROM service_data WHERE id IN (
-		SELECT MAX(id) FROM service_data GROUP BY service_name
-	) ORDER BY id DESC;`
-
-	row, err := db.Query(statement)
+func GetRecentData(db *sql.DB) ([]ServiceData, error) {
+	rows, err := database.New(db).GetRecentData(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
-		}
-	}()
 
 	// Snapshot current live service names to filter out stale DB rows
 	// that may exist due to renames or deletes not yet garbage-collected.
@@ -270,8 +243,9 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 		}
 	}
 
-	for row.Next() {
-		_, s, err := scanServiceDataRow(row)
+	sd := []ServiceData{}
+	for _, r := range rows {
+		s, err := rowToServiceData(r)
 		if err != nil {
 			return nil, err
 		}
@@ -283,89 +257,77 @@ func GetRecentData(db *sql.DB) (retSd []ServiceData, retErr error) {
 			sd = append(sd, s)
 		}
 	}
-	return sd, retErr
+	return sd, nil
 }
 
 // Gets data for a specific service
-func GetDataForService(db *sql.DB, name string) (retSd []ServiceData, retErr error) {
-	sd := []ServiceData{}
-
-	statement := "SELECT * FROM service_data WHERE service_name = ? ORDER BY id DESC"
-
-	row, err := db.Query(statement, name)
+func GetDataForService(db *sql.DB, name string) ([]ServiceData, error) {
+	rows, err := database.New(db).GetDataForService(context.Background(), sql.NullString{String: name, Valid: true})
 	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
-		}
-	}()
-	for row.Next() {
-		_, s, err := scanServiceDataRow(row)
+	sd := []ServiceData{}
+	for _, r := range rows {
+		s, err := rowToServiceData(r)
 		if err != nil {
 			return nil, err
 		}
 		sd = append(sd, s)
 	}
-	return sd, retErr
+	return sd, nil
 }
 
 // Gets all data from table where errors did occur.
 // sortOrder controls timestamp sort direction: "asc" or "desc" (default).
-func GetErrorData(db *sql.DB, limit int, sortOrder string) (retSd []ServiceData, retErr error) {
-	sd := []ServiceData{}
+func GetErrorData(db *sql.DB, limit int, sortOrder string) ([]ServiceData, error) {
+	q := database.New(db)
 
-	order := "DESC"
-	if sortOrder == "asc" {
-		order = "ASC"
-	}
-
-	statement := fmt.Sprintf("SELECT * FROM service_data WHERE error = 1 ORDER BY timestamp %s", order)
+	// SQLite treats a negative LIMIT as "no limit".
+	l := int64(-1)
 	if limit > 0 {
-		statement = fmt.Sprintf("%s LIMIT %d", statement, limit)
+		l = int64(limit)
 	}
-	row, err := db.Query(statement)
+
+	var rows []database.ServiceDatum
+	var err error
+	if sortOrder == "asc" {
+		rows, err = q.GetErrorDataAsc(context.Background(), l)
+	} else {
+		rows, err = q.GetErrorDataDesc(context.Background(), l)
+	}
 	if err != nil {
-		return sd, err
+		return []ServiceData{}, err
 	}
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
-		}
-	}()
-	for row.Next() {
-		_, s, err := scanServiceDataRow(row)
+
+	sd := []ServiceData{}
+	for _, r := range rows {
+		s, err := rowToServiceData(r)
 		if err != nil {
 			return nil, err
 		}
 		sd = append(sd, s)
 	}
-	return sd, retErr
+	return sd, nil
 }
 
 // Gets response time for each service
 // Returns { service: response_time }
-func GetResponseTimes(db *sql.DB) (svcRespTimes []ServiceResponseTime, retErr error) {
-	statement := "SELECT * FROM service_data;"
-	row, err := db.Query(statement)
+func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
+	rows, err := database.New(db).GetAllData(context.Background())
 	if err != nil {
-		return svcRespTimes, err
+		return nil, err
 	}
-	defer func() {
-		if err := row.Close(); err != nil {
-			retErr = err
-		}
-	}()
-	for row.Next() {
-		_, s, err := scanServiceDataRow(row)
+
+	var svcRespTimes []ServiceResponseTime
+	for _, r := range rows {
+		s, err := rowToServiceData(r)
 		if err != nil {
 			return nil, err
 		}
 		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
 	}
-	return svcRespTimes, retErr
+	return svcRespTimes, nil
 }
 
 // Clears all table information from service_data and reclaims unused pages
@@ -380,9 +342,8 @@ func ClearDatabase(db *sql.DB) (retErr error) {
 			retErr = err
 		}
 	}()
-	statement := `DELETE FROM service_data;`
 
-	if _, err := conn.ExecContext(context.Background(), statement); err != nil {
+	if err := database.New(conn).ClearServiceData(context.Background()); err != nil {
 		return err
 	}
 	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=DELETE;`); err != nil {
@@ -411,44 +372,35 @@ func CleanupDbFiles() error {
 }
 
 func DbServiceDelete(db *sql.DB, service Service) error {
-	res, err := db.Exec(`DELETE FROM service_data WHERE service_name = ?`, service.Name)
-	if err != nil {
+	if err := database.New(db).DeleteService(context.Background(), sql.NullString{String: service.Name, Valid: true}); err != nil {
 		return err
 	}
 
-	rows_affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Removed all instances of %s, rows affected: %d", service.Name, rows_affected)
+	log.Printf("Removed all instances of %s", service.Name)
 
 	return nil
 }
 
 func DbServiceRename(db *sql.DB, oldName string, newName string) error {
-	res, err := db.Exec(`UPDATE service_data SET service_name = ? WHERE service_name = ?`, newName, oldName)
-	if err != nil {
+	q := database.New(db)
+	ctx := context.Background()
+
+	if err := q.ServiceRename(ctx, database.ServiceRenameParams{
+		ServiceName:   sql.NullString{String: newName, Valid: true},
+		ServiceName_2: sql.NullString{String: oldName, Valid: true},
+	}); err != nil {
 		return err
 	}
 
-	rows_affected, err := res.RowsAffected()
-	if err != nil {
+	log.Printf("Renamed %s to %s in database", oldName, newName)
+
+	// Removes any orphan rows written under the old name by a concurrent
+	// insert that raced with the rename above.
+	if err := q.DeleteService(ctx, sql.NullString{String: oldName, Valid: true}); err != nil {
 		return err
 	}
 
-	log.Printf("Renamed %s to %s in database, rows affected: %d", oldName, newName, rows_affected)
-
-	res, err = db.Exec(`DELETE FROM service_data WHERE service_name = ?`, oldName)
-	if err != nil {
-		return err
-	}
-	rows_affected, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Removed all orphan rows in database with old name %s, rows affected: %d", oldName, rows_affected)
+	log.Printf("Removed all orphan rows in database with old name %s", oldName)
 
 	return nil
 }
@@ -458,39 +410,26 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 		return fmt.Errorf("no config loaded")
 	}
 
-	names := make([]any, 0, len(conf.Services))
-	for name := range conf.Services {
-		names = append(names, name)
-	}
+	q := database.New(db)
+	ctx := context.Background()
 
-	if len(names) == 0 {
-		res, err := db.Exec(`DELETE FROM service_data`)
-		if err != nil {
+	if len(conf.Services) == 0 {
+		if err := q.ClearServiceData(ctx); err != nil {
 			return err
 		}
-		rows, _ := res.RowsAffected()
-		log.Printf("GC: removed %d orphaned rows (no services in config)", rows)
+		log.Printf("GC: removed all rows (no services in config)")
 		return nil
 	}
 
-	placeholders := make([]byte, 0, len(names)*2)
-	for i := range names {
-		if i > 0 {
-			placeholders = append(placeholders, ',', '?')
-		} else {
-			placeholders = append(placeholders, '?')
-		}
+	names := make([]sql.NullString, 0, len(conf.Services))
+	for name := range conf.Services {
+		names = append(names, sql.NullString{String: name, Valid: true})
 	}
 
-	stmt := fmt.Sprintf(`DELETE FROM service_data WHERE service_name NOT IN (%s)`, placeholders)
-	res, err := db.Exec(stmt, names...)
-	if err != nil {
+	if err := q.Cleanup(ctx, names); err != nil {
 		return err
 	}
 
-	rows, _ := res.RowsAffected()
-	if rows > 0 {
-		log.Printf("GC: removed %d orphaned rows not matching current config", rows)
-	}
+	log.Printf("GC: removed orphaned rows not matching current config")
 	return nil
 }
