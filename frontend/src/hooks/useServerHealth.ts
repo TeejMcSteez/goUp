@@ -13,7 +13,7 @@ export function useServerHealth(intervalMs = 10000): ServerHealth {
     const check = async () => {
       setNetworkOnline(navigator.onLine);
       try {
-        const res = await fetch("/api", { signal: AbortSignal.timeout(4000) });
+        const res = await fetch("/health", { signal: AbortSignal.timeout(4000) });
         setServerDown(!res.ok);
       } catch {
         setServerDown(true);
