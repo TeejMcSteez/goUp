@@ -11,8 +11,13 @@ import (
 
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
+var transport = &http.Transport{
+	IdleConnTimeout: 30 * time.Second,
+	MaxIdleConns:    10,
+}
 var httpClient = &http.Client{
-	Timeout: 30 * time.Second,
+	Timeout:   30 * time.Second,
+	Transport: transport,
 }
 
 type NoServiceEndpointsError struct {
