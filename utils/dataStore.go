@@ -332,8 +332,14 @@ func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
 
 // Clears all table information from service_data and reclaims unused pages
 func ClearDatabase(db *sql.DB) (retErr error) {
+	// Pass context with timeout
+	// Otherwise insert can run before or after ClearDatabase
+	// This can cause undeterminant outcomes
+	// Passing new context will either clear to 0 rows or error
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	conn, err := db.Conn(context.Background())
+	conn, err := db.Conn(ctx)
 	if err != nil {
 		return err
 	}
@@ -347,7 +353,7 @@ func ClearDatabase(db *sql.DB) (retErr error) {
 		return err
 	}
 	if _, err := conn.ExecContext(context.Background(), `PRAGMA journal_mode=DELETE;`); err != nil {
-		return fmt.Errorf("clear completed but could not swtich journal mode: %w", err)
+		return fmt.Errorf("clear completed but could not switch journal mode: %w", err)
 	}
 	if _, err := conn.ExecContext(context.Background(), `VACUUM;`); err != nil {
 		return fmt.Errorf("clear completed but VACUUM failed: %w", err)
