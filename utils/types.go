@@ -143,6 +143,15 @@ type Service struct {
 	API_KEY         *string   `yaml:"api_key"`
 	Valid_Responses *[]string `yaml:"valid_responses"`
 	Retry_Requests  *int      `yaml:"retry"`
+	// Active is a *bool so an unset value (nil) can default to true,
+	// distinct from an explicit `active: false`.
+	Active *bool `yaml:"active"`
+}
+
+// IsActive reports whether the service should be actively monitored.
+// A service defaults to active unless explicitly disabled in config.
+func (s Service) IsActive() bool {
+	return s.Active == nil || *s.Active
 }
 
 // Shared service endpoint struct
@@ -161,6 +170,7 @@ type ServiceData struct {
 	ServiceResponseTime string    `json:"response_time"`
 	Timestamp           time.Time `json:"timestamp"`
 	Error               bool      `json:"error"`
+	Active              bool      `json:"active"`
 }
 
 type ServiceResponse struct {
