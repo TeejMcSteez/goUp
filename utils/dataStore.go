@@ -41,7 +41,8 @@ func InitDB() (*sql.DB, error) {
 		"service_API_response" TEXT,
 		"service_response_time" INTEGER,
 		"timestamp" TEXT,
-		"error" INTEGER NOT NULL DEFAULT 0
+		"error" INTEGER NOT NULL DEFAULT 0,
+		"active" INTEGER NOT NULL DEFAULT 1
 	);`
 
 	_, err = db.Exec(createTableSQL)
@@ -168,6 +169,7 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 		ServiceHTTPResponse: d.ServiceHttpResponse.String,
 		ServiceAPIResponse:  d.ServiceApiResponse.String,
 		Error:               d.Error != 0,
+		Active:              d.Active != 0,
 	}
 	if d.ServiceResponseTime.Valid {
 		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
@@ -203,6 +205,7 @@ func InsertData(db *sql.DB, sd ServiceData) error {
 		ServiceResponseTime: sql.NullInt64{Int64: rtNs, Valid: true},
 		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
 		Error:               boolToInt(sd.Error),
+		Active:              boolToInt(sd.Active),
 	})
 }
 
