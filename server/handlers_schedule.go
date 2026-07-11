@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"goUp/utils"
+	"log"
 	"net/http"
 )
 
@@ -16,7 +17,7 @@ func (s *Server) scheduleApiGet(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	state := s.scd.Get()
 	if err := json.NewEncoder(w).Encode(state); err != nil {
-		panic(err)
+		log.Printf("failed to encode polling schedule: %v", err)
 	}
 }
 
@@ -43,7 +44,7 @@ func (s *Server) scheduleApiPost(w http.ResponseWriter, req *http.Request) {
 	if updated {
 		w.Header().Add("Content-Type", "application/json")
 		if _, err := w.Write([]byte("{ \"updated\": true }")); err != nil {
-			panic(err)
+			log.Printf("error writing polling update response: %v", err)
 		}
 	} else {
 		w.Header().Add("Content-Type", "application/json")
