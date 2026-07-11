@@ -559,8 +559,8 @@ func (s *Server) ConfigBackoffApi(w http.ResponseWriter, req *http.Request) {
 // @Tags config
 // @Accept json
 // @Produce json
-// @Param service body Service false "Service to toggle active state (POST only)"
-// @Success 200 {object} Service
+// @Param service body utils.Service false "Service to toggle active state (POST only)"
+// @Success 200 {object} utils.Service
 // @Failure 400 {string} string "bad request"
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/service/active [get]
