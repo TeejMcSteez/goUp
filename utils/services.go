@@ -53,17 +53,18 @@ func Setup(cfg *Config) error {
 }
 
 func scanDeadEndpoints(cfg *Config) []Service {
-	configServices := make(map[string]struct{})
-	// Sets each value in the map to the URL of the service
+	configServices := make(map[string]Service)
+	// Sets each value in the map to the service currently in config, keyed by URL
 	for _, svc := range cfg.Services {
-		configServices[svc.URL] = struct{}{}
+		configServices[svc.URL] = svc
 	}
 
-	// Remove endpoints that are no longer in the config.
+	// Remove endpoints that are no longer in the config, and refresh the
+	// ones that remain so field changes (e.g. Active) actually take effect.
 	var updatedEndpoints []Service
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
-		if _, found := configServices[endpoint.URL]; found {
-			updatedEndpoints = append(updatedEndpoints, endpoint)
+		if svc, found := configServices[endpoint.URL]; found {
+			updatedEndpoints = append(updatedEndpoints, svc)
 		} else {
 			log.Println("Removing", endpoint.Name, "from service endpoints")
 		}
@@ -97,6 +98,7 @@ func fetchOne(endpoint Service) ServiceData {
 	sd.Timestamp = time.Now()
 	sd.ServiceName = endpoint.Name
 	sd.ServiceURL = endpoint.URL
+	sd.Active = true
 	if endpoint.Description != nil {
 		sd.ServiceDescription = *endpoint.Description
 	}
@@ -156,13 +158,25 @@ func GetServiceData() (*ServiceResponse, error) {
 		wg.Add(1)
 		go func(i int, ep Service) {
 			defer wg.Done()
-			results[i] = fetchOne(ep)
+			if ep.IsActive() {
+				results[i] = fetchOne(ep)
+			} else {
+				log.Printf("%s is disabled continuing", ep.Name)
+			}
 		}(i, ep)
 	}
 	wg.Wait()
 
 	var svcResponse ServiceResponse
-	svcResponse.AllServices = results
+	for _, r := range results {
+		// Disabled endpoints are never fetched, leaving their slot as a
+		// zero-value ServiceData{}; skip them so we don't insert blank
+		// rows into the DB or have Check() flag them as down.
+		if r.ServiceName == "" {
+			continue
+		}
+		svcResponse.AllServices = append(svcResponse.AllServices, r)
+	}
 	var err error
 	if svcResponse.DownServices, err = Check(svcResponse.AllServices); err != nil {
 		return nil, err

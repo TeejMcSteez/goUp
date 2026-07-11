@@ -4,8 +4,17 @@ import { ServiceCardProps } from "../../../types.ts";
 import fallback from "../../../../static/goup.webp";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
-  const { url, name, description, response, response_time, data, error } =
-    service;
+  const {
+    url,
+    name,
+    description,
+    response,
+    response_time,
+    data,
+    error,
+    active,
+    timestamp,
+  } = service;
   const { formatName } = useServiceName();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
@@ -14,6 +23,57 @@ export default function ServiceCard({ service }: ServiceCardProps) {
   const faviconUrl = base + "favicon.ico";
 
   const isLongHttpResponse = error && response && response.length > 3;
+
+  if (!active) {
+    return (
+      <div className="bg-surface rounded-xl p-6 flex flex-col gap-3 border-l-4 border border-border border-l-muted opacity-60">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="m-0 text-fg font-semibold text-lg leading-tight flex items-center gap-2">
+            <img
+              src={faviconUrl}
+              alt=""
+              className="w-4 h-4 rounded-sm shrink-0 grayscale"
+              onError={(e) => {
+                e.currentTarget.src = fallback;
+              }}
+            />
+            <a href={url} target="_blank" rel="noreferrer">
+              {formatName(name)}
+            </a>
+          </h3>
+          <span className="hidden md:flex shrink-0 text-xs font-semibold px-2 py-1 rounded-full bg-muted/15 text-muted">
+            Disabled
+          </span>
+        </div>
+
+        <div className="h-px bg-border" />
+
+        <p className="text-xs text-muted">
+          Monitoring is paused for this service. Data below is from the last
+          check{timestamp && ` on ${new Date(timestamp).toLocaleString()}`}.
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col">
+            <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+              Response Time
+            </span>
+            <span className="text-sm font-semibold text-muted">
+              {response_time ?? "—"}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+              HTTP
+            </span>
+            <span className="text-sm font-semibold text-muted">
+              {response ?? "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

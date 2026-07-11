@@ -6,6 +6,7 @@ import (
 	"fmt"
 	database "goUp/internal/db"
 	"log"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -237,13 +238,14 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 		return nil, err
 	}
 
-	// Snapshot current live service names to filter out stale DB rows
-	// that may exist due to renames or deletes not yet garbage-collected.
-	liveNames := make(map[string]struct{})
+	// Snapshot current live services to filter out stale DB rows that may
+	// exist due to renames or deletes not yet garbage-collected, and to
+	// overlay the current Active state — a row's stored Active value is
+	// only a snapshot from whenever it was last written, which goes stale
+	// the moment a service is toggled and stops being fetched.
+	liveServices := make(map[string]Service)
 	if Current_Config != nil {
-		for name := range Current_Config.Services {
-			liveNames[name] = struct{}{}
-		}
+		maps.Copy(liveServices, Current_Config.Services)
 	}
 
 	sd := []ServiceData{}
@@ -252,11 +254,12 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(liveNames) == 0 {
+		if len(liveServices) == 0 {
 			sd = append(sd, s)
 			continue
 		}
-		if _, ok := liveNames[s.ServiceName]; ok {
+		if svc, ok := liveServices[s.ServiceName]; ok {
+			s.Active = svc.IsActive()
 			sd = append(sd, s)
 		}
 	}
