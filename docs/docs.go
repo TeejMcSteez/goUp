@@ -70,37 +70,18 @@ const docTemplate = `{
         },
         "/api/config/backoff": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Get or set the global trigger backoff period",
-                "parameters": [
-                    {
-                        "description": "Backoff duration, e.g. 5m; blank disables the global backoff (POST only)",
-                        "name": "backoff",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/server.BackoffPayload"
-                        }
-                    }
-                ],
+                "summary": "Get the global trigger backoff period",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.BackoffPayload"
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -121,12 +102,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Get or set the global trigger backoff period",
+                "summary": "Set the global trigger backoff period",
                 "parameters": [
                     {
-                        "description": "Backoff duration, e.g. 5m; blank disables the global backoff (POST only)",
+                        "description": "Backoff duration, e.g. 5m; blank disables the global backoff",
                         "name": "backoff",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/server.BackoffPayload"
                         }
@@ -136,7 +118,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.BackoffPayload"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
                         }
                     },
                     "400": {
@@ -165,12 +150,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Discord trigger configuration",
+                "summary": "Set Discord trigger configuration",
                 "parameters": [
                     {
-                        "description": "Discord  config (POST only)",
+                        "description": "Discord config",
                         "name": "discord",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.DiscordTrigger"
                         }
@@ -201,26 +187,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Discord trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Discord  config (POST only)",
-                        "name": "discord",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.DiscordTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove Discord trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -229,12 +202,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -257,12 +224,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Gotify trigger configuration",
+                "summary": "Set Gotify trigger configuration",
                 "parameters": [
                     {
-                        "description": "Gotify config (POST only)",
+                        "description": "Gotify config",
                         "name": "gotify",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.GotifyTrigger"
                         }
@@ -293,26 +261,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Gotify trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Gotify config (POST only)",
-                        "name": "gotify",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.GotifyTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove Gotify trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -321,12 +276,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -349,12 +298,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Home Assistant trigger configuration",
+                "summary": "Set Home Assistant trigger configuration",
                 "parameters": [
                     {
-                        "description": "Home Assistant config (POST only)",
+                        "description": "Home Assistant config",
                         "name": "ha",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.HATrigger"
                         }
@@ -385,26 +335,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Home Assistant trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Home Assistant config (POST only)",
-                        "name": "ha",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HATrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove Home Assistant trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -413,12 +350,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -441,12 +372,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove MQTT trigger configuration",
+                "summary": "Set MQTT trigger configuration",
                 "parameters": [
                     {
-                        "description": "MQTT config (POST only)",
+                        "description": "MQTT config",
                         "name": "mqtt",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.MQTTTrigger"
                         }
@@ -477,26 +409,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove MQTT trigger configuration",
-                "parameters": [
-                    {
-                        "description": "MQTT config (POST only)",
-                        "name": "mqtt",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.MQTTTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove MQTT trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -505,12 +424,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -533,20 +446,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Add, update, or delete a monitored service",
+                "summary": "Update a monitored service",
                 "parameters": [
                     {
-                        "description": "Service definition (POST and DELETE)",
-                        "name": "service",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Service"
-                        }
-                    },
-                    {
-                        "description": "Old name + new service definition (PUT)",
+                        "description": "Old name + new service definition",
                         "name": "payload",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/server.ServiceUpdatePayload"
                         }
@@ -564,12 +470,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "bad request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "409": {
-                        "description": "conflict",
                         "schema": {
                             "type": "string"
                         }
@@ -592,22 +492,15 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Add, update, or delete a monitored service",
+                "summary": "Add a monitored service",
                 "parameters": [
                     {
-                        "description": "Service definition (POST and DELETE)",
+                        "description": "Service definition",
                         "name": "service",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.Service"
-                        }
-                    },
-                    {
-                        "description": "Old name + new service definition (PUT)",
-                        "name": "payload",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/server.ServiceUpdatePayload"
                         }
                     }
                 ],
@@ -651,22 +544,15 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Add, update, or delete a monitored service",
+                "summary": "Delete a monitored service",
                 "parameters": [
                     {
-                        "description": "Service definition (POST and DELETE)",
+                        "description": "Service definition",
                         "name": "service",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.Service"
-                        }
-                    },
-                    {
-                        "description": "Old name + new service definition (PUT)",
-                        "name": "payload",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/server.ServiceUpdatePayload"
                         }
                     }
                 ],
@@ -686,12 +572,6 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
-                    "409": {
-                        "description": "conflict",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     "500": {
                         "description": "internal server error",
                         "schema": {
@@ -703,24 +583,20 @@ const docTemplate = `{
         },
         "/api/config/service/active": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Enable or disable fetch for a service",
+                "summary": "Get a service's active (fetch enabled) state",
                 "parameters": [
                     {
-                        "description": "Service to toggle active state (POST only)",
-                        "name": "service",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Service"
-                        }
+                        "type": "string",
+                        "description": "Service name to look up",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -757,9 +633,10 @@ const docTemplate = `{
                 "summary": "Enable or disable fetch for a service",
                 "parameters": [
                     {
-                        "description": "Service to toggle active state (POST only)",
+                        "description": "Service to toggle active state",
                         "name": "service",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.Service"
                         }
@@ -769,7 +646,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/utils.Service"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
                         }
                     },
                     "400": {
@@ -869,12 +749,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Slack trigger configuration",
+                "summary": "Set Slack trigger configuration",
                 "parameters": [
                     {
-                        "description": "Slack config (POST only)",
+                        "description": "Slack config",
                         "name": "slack",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.SlackTrigger"
                         }
@@ -905,26 +786,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Slack trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Slack config (POST only)",
-                        "name": "slack",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.SlackTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove Slack trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -933,12 +801,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -961,12 +823,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove SMTP trigger configuration",
+                "summary": "Set SMTP trigger configuration",
                 "parameters": [
                     {
-                        "description": "SMTP config (POST only)",
+                        "description": "SMTP config",
                         "name": "smtp",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.SMTPTrigger"
                         }
@@ -997,26 +860,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove SMTP trigger configuration",
-                "parameters": [
-                    {
-                        "description": "SMTP config (POST only)",
-                        "name": "smtp",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.SMTPTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove SMTP trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1025,12 +875,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -1053,12 +897,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Telegram trigger configuration",
+                "summary": "Set Telegram trigger configuration",
                 "parameters": [
                     {
-                        "description": "Telegram config (POST only)",
+                        "description": "Telegram config",
                         "name": "telegram",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.TelegramTrigger"
                         }
@@ -1089,26 +934,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove Telegram trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Telegram config (POST only)",
-                        "name": "telegram",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.TelegramTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove Telegram trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1117,12 +949,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -1145,12 +971,13 @@ const docTemplate = `{
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove webhook trigger configuration",
+                "summary": "Set webhook trigger configuration",
                 "parameters": [
                     {
-                        "description": "Webhook config (POST only)",
+                        "description": "Webhook config",
                         "name": "webhook",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.WebhookTrigger"
                         }
@@ -1181,26 +1008,13 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "config"
                 ],
-                "summary": "Set or remove webhook trigger configuration",
-                "parameters": [
-                    {
-                        "description": "Webhook config (POST only)",
-                        "name": "webhook",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.WebhookTrigger"
-                        }
-                    }
-                ],
+                "summary": "Remove webhook trigger configuration",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1209,12 +1023,6 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "boolean"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -1262,18 +1070,12 @@ const docTemplate = `{
                 "tags": [
                     "database"
                 ],
-                "summary": "Get or toggle database persistence",
+                "summary": "Get whether database persistence is enabled",
                 "responses": {
                     "200": {
-                        "description": "persistence enabled (GET) or empty body (POST)",
+                        "description": "persistence enabled",
                         "schema": {
                             "type": "boolean"
-                        }
-                    },
-                    "400": {
-                        "description": "invalid method",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -1291,16 +1093,10 @@ const docTemplate = `{
                 "tags": [
                     "database"
                 ],
-                "summary": "Get or toggle database persistence",
+                "summary": "Toggle database persistence",
                 "responses": {
                     "200": {
-                        "description": "persistence enabled (GET) or empty body (POST)",
-                        "schema": {
-                            "type": "boolean"
-                        }
-                    },
-                    "400": {
-                        "description": "invalid method",
+                        "description": "empty body",
                         "schema": {
                             "type": "string"
                         }
@@ -1411,37 +1207,18 @@ const docTemplate = `{
         },
         "/api/schedule": {
             "get": {
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "schedule"
                 ],
-                "summary": "Get or update the polling schedule",
-                "parameters": [
-                    {
-                        "description": "Schedule to set (POST only)",
-                        "name": "schedule",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ScheduleState"
-                        }
-                    }
-                ],
+                "summary": "Get the polling schedule",
                 "responses": {
                     "200": {
-                        "description": "current schedule (GET) or {updated:true} (POST)",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.ScheduleState"
-                        }
-                    },
-                    "400": {
-                        "description": "bad request",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "500": {
@@ -1462,12 +1239,13 @@ const docTemplate = `{
                 "tags": [
                     "schedule"
                 ],
-                "summary": "Get or update the polling schedule",
+                "summary": "Update the polling schedule",
                 "parameters": [
                     {
-                        "description": "Schedule to set (POST only)",
+                        "description": "Schedule to set",
                         "name": "schedule",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/utils.ScheduleState"
                         }
@@ -1475,9 +1253,12 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "current schedule (GET) or {updated:true} (POST)",
+                        "description": "{updated:true}",
                         "schema": {
-                            "$ref": "#/definitions/utils.ScheduleState"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
                         }
                     },
                     "400": {
@@ -1736,29 +1517,29 @@ const docTemplate = `{
         "utils.Service": {
             "type": "object",
             "properties": {
-                "active": {
+                "API_KEY": {
+                    "type": "string"
+                },
+                "API_URL": {
+                    "type": "string"
+                },
+                "Active": {
                     "description": "Active is a *bool so an unset value (nil) can default to true,\ndistinct from an explicit ` + "`" + `active: false` + "`" + `.",
                     "type": "boolean"
                 },
-                "api_key": {
+                "Description": {
                     "type": "string"
                 },
-                "api_url": {
+                "Name": {
                     "type": "string"
                 },
-                "description": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "retry": {
+                "Retry_Requests": {
                     "type": "integer"
                 },
-                "url": {
+                "URL": {
                     "type": "string"
                 },
-                "valid_responses": {
+                "Valid_Responses": {
                     "type": "array",
                     "items": {
                         "type": "string"
