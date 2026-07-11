@@ -707,6 +707,8 @@ func (s *Server) ConfigBackoffApi(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/service/active [get]
 func (s *Server) configActiveGet(w http.ResponseWriter, req *http.Request) {
+	// This is not really used in client as API returns the Service which contains active state passed to component
+	// However, this is mainly for the API to explicitly get active state for a service
 	name := req.URL.Query().Get("name")
 	if name == "" {
 		http.Error(w, "missing required query parameter: name", http.StatusBadRequest)
