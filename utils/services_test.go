@@ -99,6 +99,66 @@ services:
 	}
 }
 
+// TestSetupRefreshesExistingServiceFields ensures that when a service's URL is
+// unchanged but its other fields change (e.g. toggling Active), Setup()
+// refreshes the live endpoint list instead of keeping the stale cached copy.
+func TestSetupRefreshesExistingServiceFields(t *testing.T) {
+	ymlContent1 := `db_path: "./test_data.db"
+services:
+  service1:
+    url: "https://example.com"
+    retry: 2
+`
+	cleanup1 := createTestYML(ymlContent1, t)
+	defer cleanup1()
+	defer func() {
+		if err := os.Remove("./test_data.db"); err != nil && !os.IsNotExist(err) {
+			t.Errorf("Failed to remove test database: %v", err)
+		}
+	}()
+
+	utils.SetServiceEndpoints([]utils.Service{})
+
+	cfg, err := utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	if err := utils.Setup(cfg); err != nil {
+		t.Fatalf("Initial Setup() failed: %v", err)
+	}
+
+	endpoints := utils.GetServiceEndpoints()
+	if len(endpoints) != 1 || !endpoints[0].IsActive() {
+		t.Fatalf("Expected 1 active endpoint after initial setup, got: %+v", endpoints)
+	}
+
+	// Same URL, but now explicitly disabled.
+	ymlContent2 := `db_path: "./test_data.db"
+services:
+  service1:
+    url: "https://example.com"
+    retry: 2
+    active: false
+`
+	createTestYML(ymlContent2, t)
+
+	cfg, err = utils.LoadConfig("services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+	if err := utils.Setup(cfg); err != nil {
+		t.Fatalf("Second Setup() failed: %v", err)
+	}
+
+	endpoints = utils.GetServiceEndpoints()
+	if len(endpoints) != 1 {
+		t.Fatalf("Expected 1 endpoint after update, got %d. Endpoints: %+v", len(endpoints), endpoints)
+	}
+	if endpoints[0].IsActive() {
+		t.Errorf("Expected service1 to be inactive after config update, but Setup() kept the stale cached endpoint. Endpoints: %+v", endpoints)
+	}
+}
+
 func TestGetServiceData(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api" {
