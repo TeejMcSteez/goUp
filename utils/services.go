@@ -53,17 +53,18 @@ func Setup(cfg *Config) error {
 }
 
 func scanDeadEndpoints(cfg *Config) []Service {
-	configServices := make(map[string]struct{})
-	// Sets each value in the map to the URL of the service
+	configServices := make(map[string]Service)
+	// Sets each value in the map to the service currently in config, keyed by URL
 	for _, svc := range cfg.Services {
-		configServices[svc.URL] = struct{}{}
+		configServices[svc.URL] = svc
 	}
 
-	// Remove endpoints that are no longer in the config.
+	// Remove endpoints that are no longer in the config, and refresh the
+	// ones that remain so field changes (e.g. Active) actually take effect.
 	var updatedEndpoints []Service
 	for _, endpoint := range svcEndpoints.ServiceEndpoint {
-		if _, found := configServices[endpoint.URL]; found {
-			updatedEndpoints = append(updatedEndpoints, endpoint)
+		if svc, found := configServices[endpoint.URL]; found {
+			updatedEndpoints = append(updatedEndpoints, svc)
 		} else {
 			log.Println("Removing", endpoint.Name, "from service endpoints")
 		}
