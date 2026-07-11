@@ -123,25 +123,32 @@ definitions:
     type: object
   utils.Service:
     properties:
-      api_KEY:
+      active:
+        description: |-
+          Active is a *bool so an unset value (nil) can default to true,
+          distinct from an explicit `active: false`.
+        type: boolean
+      api_key:
         type: string
-      api_URL:
+      api_url:
         type: string
       description:
         type: string
       name:
         type: string
-      retry_Requests:
+      retry:
         type: integer
       url:
         type: string
-      valid_Responses:
+      valid_responses:
         items:
           type: string
         type: array
     type: object
   utils.ServiceData:
     properties:
+      active:
+        type: boolean
       data:
         type: string
       description:
@@ -659,6 +666,61 @@ paths:
           schema:
             type: string
       summary: Add, update, or delete a monitored service
+      tags:
+      - config
+  /api/config/service/active:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service to toggle active state (POST only)
+        in: body
+        name: service
+        schema:
+          $ref: '#/definitions/utils.Service'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Service'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Enable or disable fetch for a service
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service to toggle active state (POST only)
+        in: body
+        name: service
+        schema:
+          $ref: '#/definitions/utils.Service'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Service'
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Enable or disable fetch for a service
       tags:
       - config
   /api/config/size:

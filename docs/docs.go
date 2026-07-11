@@ -701,6 +701,92 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/config/service/active": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Enable or disable fetch for a service",
+                "parameters": [
+                    {
+                        "description": "Service to toggle active state (POST only)",
+                        "name": "service",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Service"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Service"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Enable or disable fetch for a service",
+                "parameters": [
+                    {
+                        "description": "Service to toggle active state (POST only)",
+                        "name": "service",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Service"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Service"
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/config/size": {
             "get": {
                 "produces": [
@@ -1650,10 +1736,14 @@ const docTemplate = `{
         "utils.Service": {
             "type": "object",
             "properties": {
-                "api_KEY": {
+                "active": {
+                    "description": "Active is a *bool so an unset value (nil) can default to true,\ndistinct from an explicit ` + "`" + `active: false` + "`" + `.",
+                    "type": "boolean"
+                },
+                "api_key": {
                     "type": "string"
                 },
-                "api_URL": {
+                "api_url": {
                     "type": "string"
                 },
                 "description": {
@@ -1662,13 +1752,13 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "retry_Requests": {
+                "retry": {
                     "type": "integer"
                 },
                 "url": {
                     "type": "string"
                 },
-                "valid_Responses": {
+                "valid_responses": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -1679,6 +1769,9 @@ const docTemplate = `{
         "utils.ServiceData": {
             "type": "object",
             "properties": {
+                "active": {
+                    "type": "boolean"
+                },
                 "data": {
                     "type": "string"
                 },
