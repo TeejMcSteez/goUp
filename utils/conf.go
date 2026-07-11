@@ -548,7 +548,9 @@ func UpdateConfigServiceActive(conf *Config, service Service) error {
 		conf.Services[service.Name] = s
 	} else {
 		// defaults to true so on nil create and assigns to false
-		*s.Active = false
+		a := false
+		s.Active = &a
+		conf.Services[service.Name] = s
 	}
 
 	return writeConfig(conf)
