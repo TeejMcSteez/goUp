@@ -168,7 +168,15 @@ func GetServiceData() (*ServiceResponse, error) {
 	wg.Wait()
 
 	var svcResponse ServiceResponse
-	svcResponse.AllServices = results
+	for _, r := range results {
+		// Disabled endpoints are never fetched, leaving their slot as a
+		// zero-value ServiceData{}; skip them so we don't insert blank
+		// rows into the DB or have Check() flag them as down.
+		if r.ServiceName == "" {
+			continue
+		}
+		svcResponse.AllServices = append(svcResponse.AllServices, r)
+	}
 	var err error
 	if svcResponse.DownServices, err = Check(svcResponse.AllServices); err != nil {
 		return nil, err
