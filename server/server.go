@@ -51,6 +51,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/db/clear", s.ClearDatabase)
 	http.HandleFunc("/api/config", s.ReadConfigData)
 	http.HandleFunc("/api/config/service", s.ConfigServiceApi)
+	http.HandleFunc("/api/config/service/active", s.ConfigActiveApi)
 	http.HandleFunc("/api/config/mqtt", s.ConfigMQTTApi)
 	http.HandleFunc("/api/config/webhook", s.ConfigWebhookApi)
 	http.HandleFunc("/api/config/smtp", s.ConfigSMTPApi)
