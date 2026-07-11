@@ -554,3 +554,48 @@ func (s *Server) ConfigBackoffApi(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	}
 }
+
+// @Summary Enable or disable fetch for a service
+// @Tags config
+// @Accept json
+// @Produce json
+// @Param service body Service false "Service to toggle active state (POST only)"
+// @Success 200 {object} Service
+// @Failure 400 {string} string "bad request"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/config/service/active [get]
+// @Router /api/config/service/active [post]
+func (s *Server) ConfigActiveApi(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	switch req.Method {
+	case "GET":
+		var service utils.Service
+		if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		svc, err := utils.ReadConfigService(utils.Current_Config, service)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read service: %v", err), http.StatusInternalServerError)
+			return
+		}
+		if err := json.NewEncoder(w).Encode(svc); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	case "POST":
+		var service utils.Service
+		if err := json.NewDecoder(req.Body).Decode(&service); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := utils.UpdateConfigServiceActive(utils.Current_Config, service); err != nil {
+			http.Error(w, fmt.Sprintf("could not update service: %v", err), http.StatusInternalServerError)
+			return
+		}
+		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+			http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		}
+	default:
+		http.Error(w, "Invalid method", http.StatusBadRequest)
+	}
+}
