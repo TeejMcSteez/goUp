@@ -136,16 +136,16 @@ type DiscordTrigger struct {
 
 // Data for service endponts
 type Service struct {
-	Name            string    `yaml:"-"`
-	URL             string    `yaml:"url"`
-	Description     *string   `yaml:"description"`
-	API_URL         *string   `yaml:"api_url"`
-	API_KEY         *string   `yaml:"api_key"`
-	Valid_Responses *[]string `yaml:"valid_responses"`
-	Retry_Requests  *int      `yaml:"retry"`
+	Name            string    `yaml:"-" json:"name"`
+	URL             string    `yaml:"url" json:"url"`
+	Description     *string   `yaml:"description" json:"description,omitempty"`
+	API_URL         *string   `yaml:"api_url" json:"api_url,omitempty"`
+	API_KEY         *string   `yaml:"api_key" json:"api_key,omitempty"`
+	Valid_Responses *[]string `yaml:"valid_responses" json:"valid_responses,omitempty"`
+	Retry_Requests  *int      `yaml:"retry" json:"retry,omitempty"`
 	// Active is a *bool so an unset value (nil) can default to true,
 	// distinct from an explicit `active: false`.
-	Active *bool `yaml:"active"`
+	Active *bool `yaml:"active" json:"active,omitempty"`
 }
 
 // IsActive reports whether the service should be actively monitored.
