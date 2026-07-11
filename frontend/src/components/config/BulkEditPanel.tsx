@@ -59,6 +59,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
           ...(row.API_URL && { API_URL: row.API_URL }),
           ...(validResponses?.length ? { Valid_Responses: validResponses.map(Number) } : { Valid_Responses: undefined }),
           ...(row.Retry_Requests !== "" ? { Retry_Requests: parseInt(row.Retry_Requests) } : { Retry_Requests: undefined }),
+          Active: services[row.key]?.Active,
         } as Partial<ServiceConfig>,
       };
     });

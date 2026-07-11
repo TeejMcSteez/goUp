@@ -6,6 +6,7 @@ export interface Service {
   response_time?: string;
   data?: string;
   error?: string;
+  active: boolean;
 }
 
 export interface ErrorItem {
@@ -44,6 +45,7 @@ export interface ServiceConfig {
   API_URL?: string;
   Valid_Responses?: number[];
   Retry_Requests?: number;
+  Active?: boolean;
 }
 
 export interface MQTTConfig {

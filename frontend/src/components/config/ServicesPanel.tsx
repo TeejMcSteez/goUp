@@ -119,6 +119,25 @@ export default function ServicesPanel({
     }
   };
 
+  const handleToggleActive = async (svc: ServiceConfig) => {
+    const payload: Partial<ServiceConfig> = { Name: svc.Name };
+    const res = await fetch("/api/config/service/active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const nowActive = !(svc.Active ?? true);
+      setStatus({
+        text: `Logging ${nowActive ? "enabled" : "disabled"} for ${svc.Name}.`,
+        error: false,
+      });
+      onRefresh();
+    } else {
+      setStatus({ text: await res.text(), error: true });
+    }
+  };
+
   const handleDelete = async (svc: ServiceConfig) => {
     const res = await fetch("/api/config/service", {
       method: "DELETE",
@@ -152,7 +171,9 @@ export default function ServicesPanel({
                 <ServiceForm
                   key={key}
                   initial={svcToForm(svc)}
-                  onSubmit={(payload) => handleUpdate(key, payload)}
+                  onSubmit={(payload) =>
+                    handleUpdate(key, { ...payload, Active: svc.Active })
+                  }
                   onCancel={() => setMode({ type: "list" })}
                   submitLabel="Save"
                 />
@@ -180,7 +201,16 @@ export default function ServicesPanel({
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <label className="flex items-center gap-1.5 text-[0.85rem] text-muted cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="cursor-pointer"
+                        checked={svc.Active ?? true}
+                        onChange={() => handleToggleActive(svc)}
+                      />
+                      Logging
+                    </label>
                     <button
                       className={btnBase}
                       onClick={() => setMode({ type: "edit", key })}
