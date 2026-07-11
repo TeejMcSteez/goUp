@@ -156,7 +156,11 @@ func GetServiceData() (*ServiceResponse, error) {
 		wg.Add(1)
 		go func(i int, ep Service) {
 			defer wg.Done()
-			results[i] = fetchOne(ep)
+			if ep.IsActive() {
+				results[i] = fetchOne(ep)
+			} else {
+				log.Printf("%s is disabled continuing", ep.Name)
+			}
 		}(i, ep)
 	}
 	wg.Wait()
