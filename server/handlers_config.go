@@ -592,6 +592,9 @@ func (s *Server) ConfigActiveApi(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, fmt.Sprintf("could not update service: %v", err), http.StatusInternalServerError)
 			return
 		}
+		if err := utils.Setup(utils.Current_Config); err != nil {
+			log.Printf("Warning: failed to refresh endpoints after toggling service active state: %v", err)
+		}
 		if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		}
