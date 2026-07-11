@@ -7,6 +7,7 @@ export interface Service {
   data?: string;
   error?: string;
   active: boolean;
+  timestamp?: string;
 }
 
 export interface ErrorItem {

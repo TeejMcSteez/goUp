@@ -60,9 +60,9 @@ export default function Services() {
       );
     }
 
-    return sortedAndFilteredServices
-      .filter((svc) => svc.active)
-      .map((svc) => <ServiceCard key={svc.name} service={svc} />);
+    return sortedAndFilteredServices.map((svc) => (
+      <ServiceCard key={svc.name} service={svc} />
+    ));
   };
 
   return (
