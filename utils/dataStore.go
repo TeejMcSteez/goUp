@@ -169,7 +169,7 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 		ServiceHTTPResponse: d.ServiceHttpResponse.String,
 		ServiceAPIResponse:  d.ServiceApiResponse.String,
 		Error:               d.Error != 0,
-		Active:              d.Active == 0,
+		Active:              d.Active != 0,
 	}
 	if d.ServiceResponseTime.Valid {
 		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
