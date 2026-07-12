@@ -18,12 +18,16 @@ func init() {
 // (e.g. "1.234ms") to INTEGER nanoseconds. Values that already parse as an
 // integer are left untouched, so this is safe to run against a table that's
 // a mix of old and new rows.
-func upResponseTimeToNanoseconds(ctx context.Context, tx *sql.Tx) error {
+func upResponseTimeToNanoseconds(ctx context.Context, tx *sql.Tx) (err error) {
 	rows, err := tx.QueryContext(ctx, "SELECT id, service_response_time FROM service_data")
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if e := rows.Close(); e != nil {
+			err = e
+		}
+	}()
 
 	type pending struct {
 		id int
@@ -58,7 +62,7 @@ func upResponseTimeToNanoseconds(ctx context.Context, tx *sql.Tx) error {
 	if len(updates) > 0 {
 		log.Printf("Migrated %d rows: response time TEXT -> INTEGER nanoseconds", len(updates))
 	}
-	return nil
+	return err
 }
 
 // downResponseTimeToNanoseconds is a no-op: the original TEXT formatting
