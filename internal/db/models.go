@@ -18,4 +18,5 @@ type ServiceDatum struct {
 	ServiceResponseTime sql.NullInt64
 	Timestamp           sql.NullString
 	Error               int64
+	Active              int64
 }

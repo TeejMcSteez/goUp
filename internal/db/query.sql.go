@@ -49,7 +49,7 @@ func (q *Queries) DeleteService(ctx context.Context, serviceName sql.NullString)
 }
 
 const getAllData = `-- name: GetAllData :many
-SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error FROM service_data
+SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data
 `
 
 func (q *Queries) GetAllData(ctx context.Context) ([]ServiceDatum, error) {
@@ -71,6 +71,7 @@ func (q *Queries) GetAllData(ctx context.Context) ([]ServiceDatum, error) {
 			&i.ServiceResponseTime,
 			&i.Timestamp,
 			&i.Error,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
@@ -86,7 +87,7 @@ func (q *Queries) GetAllData(ctx context.Context) ([]ServiceDatum, error) {
 }
 
 const getDataForService = `-- name: GetDataForService :many
-SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error FROM service_data WHERE service_name = ? ORDER BY id DESC
+SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data WHERE service_name = ? ORDER BY id DESC
 `
 
 func (q *Queries) GetDataForService(ctx context.Context, serviceName sql.NullString) ([]ServiceDatum, error) {
@@ -108,6 +109,7 @@ func (q *Queries) GetDataForService(ctx context.Context, serviceName sql.NullStr
 			&i.ServiceResponseTime,
 			&i.Timestamp,
 			&i.Error,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
@@ -123,7 +125,7 @@ func (q *Queries) GetDataForService(ctx context.Context, serviceName sql.NullStr
 }
 
 const getErrorDataAsc = `-- name: GetErrorDataAsc :many
-SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error FROM service_data WHERE error = 1 ORDER BY timestamp ASC LIMIT ?
+SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data WHERE error = 1 ORDER BY timestamp ASC LIMIT ?
 `
 
 func (q *Queries) GetErrorDataAsc(ctx context.Context, limit int64) ([]ServiceDatum, error) {
@@ -145,6 +147,7 @@ func (q *Queries) GetErrorDataAsc(ctx context.Context, limit int64) ([]ServiceDa
 			&i.ServiceResponseTime,
 			&i.Timestamp,
 			&i.Error,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +163,7 @@ func (q *Queries) GetErrorDataAsc(ctx context.Context, limit int64) ([]ServiceDa
 }
 
 const getErrorDataDesc = `-- name: GetErrorDataDesc :many
-SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error FROM service_data WHERE error = 1 ORDER BY timestamp DESC LIMIT ?
+SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data WHERE error = 1 ORDER BY timestamp DESC LIMIT ?
 `
 
 func (q *Queries) GetErrorDataDesc(ctx context.Context, limit int64) ([]ServiceDatum, error) {
@@ -182,6 +185,7 @@ func (q *Queries) GetErrorDataDesc(ctx context.Context, limit int64) ([]ServiceD
 			&i.ServiceResponseTime,
 			&i.Timestamp,
 			&i.Error,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
@@ -197,7 +201,7 @@ func (q *Queries) GetErrorDataDesc(ctx context.Context, limit int64) ([]ServiceD
 }
 
 const getRecentData = `-- name: GetRecentData :many
-SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error FROM service_data WHERE id IN (
+SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data WHERE id IN (
 	SELECT MAX(id) FROM service_data GROUP BY service_name
 ) ORDER BY id DESC
 `
@@ -221,6 +225,7 @@ func (q *Queries) GetRecentData(ctx context.Context) ([]ServiceDatum, error) {
 			&i.ServiceResponseTime,
 			&i.Timestamp,
 			&i.Error,
+			&i.Active,
 		); err != nil {
 			return nil, err
 		}
@@ -236,7 +241,7 @@ func (q *Queries) GetRecentData(ctx context.Context) ([]ServiceDatum, error) {
 }
 
 const insertData = `-- name: InsertData :exec
-INSERT INTO service_data (service_url, service_name, service_description, service_HTTP_response, service_API_response, service_response_time, timestamp, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO service_data (service_url, service_name, service_description, service_HTTP_response, service_API_response, service_response_time, timestamp, error, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertDataParams struct {
@@ -248,6 +253,7 @@ type InsertDataParams struct {
 	ServiceResponseTime sql.NullInt64
 	Timestamp           sql.NullString
 	Error               int64
+	Active              int64
 }
 
 func (q *Queries) InsertData(ctx context.Context, arg InsertDataParams) error {
@@ -260,6 +266,7 @@ func (q *Queries) InsertData(ctx context.Context, arg InsertDataParams) error {
 		arg.ServiceResponseTime,
 		arg.Timestamp,
 		arg.Error,
+		arg.Active,
 	)
 	return err
 }

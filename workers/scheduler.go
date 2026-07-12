@@ -28,7 +28,8 @@ func computeDuration(Span int, Interval string) time.Duration {
 	case 'h':
 		return d * time.Hour
 	default:
-		panic("Invalid Interval (expected seconds/minutes/hours)")
+		log.Printf("Invalid Interval (expected seconds/minutes/hours): %d %s\nDefaulting to 60 second fetch interval", Span, Interval)
+		return 60 * time.Second
 	}
 }
 

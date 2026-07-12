@@ -123,25 +123,32 @@ definitions:
     type: object
   utils.Service:
     properties:
-      api_KEY:
+      API_KEY:
         type: string
-      api_URL:
+      API_URL:
         type: string
-      description:
+      Active:
+        description: |-
+          Active is a *bool so an unset value (nil) can default to true,
+          distinct from an explicit `active: false`.
+        type: boolean
+      Description:
         type: string
-      name:
+      Name:
         type: string
-      retry_Requests:
+      Retry_Requests:
         type: integer
-      url:
+      URL:
         type: string
-      valid_Responses:
+      Valid_Responses:
         items:
           type: string
         type: array
     type: object
   utils.ServiceData:
     properties:
+      active:
+        type: boolean
       data:
         type: string
       description:
@@ -255,15 +262,6 @@ paths:
       - config
   /api/config/backoff:
     get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Backoff duration, e.g. 5m; blank disables the global backoff
-          (POST only)
-        in: body
-        name: backoff
-        schema:
-          $ref: '#/definitions/server.BackoffPayload'
       produces:
       - application/json
       responses:
@@ -271,15 +269,11 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.BackoffPayload'
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Get or set the global trigger backoff period
+      summary: Get the global trigger backoff period
       tags:
       - config
     post:
@@ -287,9 +281,9 @@ paths:
       - application/json
       parameters:
       - description: Backoff duration, e.g. 5m; blank disables the global backoff
-          (POST only)
         in: body
         name: backoff
+        required: true
         schema:
           $ref: '#/definitions/server.BackoffPayload'
       produces:
@@ -298,7 +292,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.BackoffPayload'
+            additionalProperties:
+              type: boolean
+            type: object
         "400":
           description: bad request
           schema:
@@ -307,19 +303,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Get or set the global trigger backoff period
+      summary: Set the global trigger backoff period
       tags:
       - config
   /api/config/discord:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Discord  config (POST only)
-        in: body
-        name: discord
-        schema:
-          $ref: '#/definitions/utils.DiscordTrigger'
       produces:
       - application/json
       responses:
@@ -329,24 +317,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Discord trigger configuration
+      summary: Remove Discord trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Discord  config (POST only)
+      - description: Discord config
         in: body
         name: discord
+        required: true
         schema:
           $ref: '#/definitions/utils.DiscordTrigger'
       produces:
@@ -366,19 +351,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Discord trigger configuration
+      summary: Set Discord trigger configuration
       tags:
       - config
   /api/config/gotify:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Gotify config (POST only)
-        in: body
-        name: gotify
-        schema:
-          $ref: '#/definitions/utils.GotifyTrigger'
       produces:
       - application/json
       responses:
@@ -388,24 +365,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Gotify trigger configuration
+      summary: Remove Gotify trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Gotify config (POST only)
+      - description: Gotify config
         in: body
         name: gotify
+        required: true
         schema:
           $ref: '#/definitions/utils.GotifyTrigger'
       produces:
@@ -425,19 +399,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Gotify trigger configuration
+      summary: Set Gotify trigger configuration
       tags:
       - config
   /api/config/ha:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Home Assistant config (POST only)
-        in: body
-        name: ha
-        schema:
-          $ref: '#/definitions/utils.HATrigger'
       produces:
       - application/json
       responses:
@@ -447,24 +413,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Home Assistant trigger configuration
+      summary: Remove Home Assistant trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Home Assistant config (POST only)
+      - description: Home Assistant config
         in: body
         name: ha
+        required: true
         schema:
           $ref: '#/definitions/utils.HATrigger'
       produces:
@@ -484,19 +447,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Home Assistant trigger configuration
+      summary: Set Home Assistant trigger configuration
       tags:
       - config
   /api/config/mqtt:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: MQTT config (POST only)
-        in: body
-        name: mqtt
-        schema:
-          $ref: '#/definitions/utils.MQTTTrigger'
       produces:
       - application/json
       responses:
@@ -506,24 +461,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove MQTT trigger configuration
+      summary: Remove MQTT trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: MQTT config (POST only)
+      - description: MQTT config
         in: body
         name: mqtt
+        required: true
         schema:
           $ref: '#/definitions/utils.MQTTTrigger'
       produces:
@@ -543,7 +495,7 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove MQTT trigger configuration
+      summary: Set MQTT trigger configuration
       tags:
       - config
   /api/config/service:
@@ -551,16 +503,12 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Service definition (POST and DELETE)
+      - description: Service definition
         in: body
         name: service
+        required: true
         schema:
           $ref: '#/definitions/utils.Service'
-      - description: Old name + new service definition (PUT)
-        in: body
-        name: payload
-        schema:
-          $ref: '#/definitions/server.ServiceUpdatePayload'
       produces:
       - application/json
       responses:
@@ -574,31 +522,23 @@ paths:
           description: bad request
           schema:
             type: string
-        "409":
-          description: conflict
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Add, update, or delete a monitored service
+      summary: Delete a monitored service
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Service definition (POST and DELETE)
+      - description: Service definition
         in: body
         name: service
+        required: true
         schema:
           $ref: '#/definitions/utils.Service'
-      - description: Old name + new service definition (PUT)
-        in: body
-        name: payload
-        schema:
-          $ref: '#/definitions/server.ServiceUpdatePayload'
       produces:
       - application/json
       responses:
@@ -620,21 +560,17 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Add, update, or delete a monitored service
+      summary: Add a monitored service
       tags:
       - config
     put:
       consumes:
       - application/json
       parameters:
-      - description: Service definition (POST and DELETE)
-        in: body
-        name: service
-        schema:
-          $ref: '#/definitions/utils.Service'
-      - description: Old name + new service definition (PUT)
+      - description: Old name + new service definition
         in: body
         name: payload
+        required: true
         schema:
           $ref: '#/definitions/server.ServiceUpdatePayload'
       produces:
@@ -650,15 +586,67 @@ paths:
           description: bad request
           schema:
             type: string
-        "409":
-          description: conflict
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Update a monitored service
+      tags:
+      - config
+  /api/config/service/active:
+    get:
+      parameters:
+      - description: Service name to look up
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Service'
+        "400":
+          description: bad request
           schema:
             type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Add, update, or delete a monitored service
+      summary: Get a service's active (fetch enabled) state
+      tags:
+      - config
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Service to toggle active state
+        in: body
+        name: service
+        required: true
+        schema:
+          $ref: '#/definitions/utils.Service'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: bad request
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Enable or disable fetch for a service
       tags:
       - config
   /api/config/size:
@@ -709,14 +697,6 @@ paths:
       - config
   /api/config/slack:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Slack config (POST only)
-        in: body
-        name: slack
-        schema:
-          $ref: '#/definitions/utils.SlackTrigger'
       produces:
       - application/json
       responses:
@@ -726,24 +706,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Slack trigger configuration
+      summary: Remove Slack trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Slack config (POST only)
+      - description: Slack config
         in: body
         name: slack
+        required: true
         schema:
           $ref: '#/definitions/utils.SlackTrigger'
       produces:
@@ -763,19 +740,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Slack trigger configuration
+      summary: Set Slack trigger configuration
       tags:
       - config
   /api/config/smtp:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: SMTP config (POST only)
-        in: body
-        name: smtp
-        schema:
-          $ref: '#/definitions/utils.SMTPTrigger'
       produces:
       - application/json
       responses:
@@ -785,24 +754,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove SMTP trigger configuration
+      summary: Remove SMTP trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: SMTP config (POST only)
+      - description: SMTP config
         in: body
         name: smtp
+        required: true
         schema:
           $ref: '#/definitions/utils.SMTPTrigger'
       produces:
@@ -822,19 +788,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove SMTP trigger configuration
+      summary: Set SMTP trigger configuration
       tags:
       - config
   /api/config/telegram:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Telegram config (POST only)
-        in: body
-        name: telegram
-        schema:
-          $ref: '#/definitions/utils.TelegramTrigger'
       produces:
       - application/json
       responses:
@@ -844,24 +802,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Telegram trigger configuration
+      summary: Remove Telegram trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Telegram config (POST only)
+      - description: Telegram config
         in: body
         name: telegram
+        required: true
         schema:
           $ref: '#/definitions/utils.TelegramTrigger'
       produces:
@@ -881,19 +836,11 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove Telegram trigger configuration
+      summary: Set Telegram trigger configuration
       tags:
       - config
   /api/config/webhook:
     delete:
-      consumes:
-      - application/json
-      parameters:
-      - description: Webhook config (POST only)
-        in: body
-        name: webhook
-        schema:
-          $ref: '#/definitions/utils.WebhookTrigger'
       produces:
       - application/json
       responses:
@@ -903,24 +850,21 @@ paths:
             additionalProperties:
               type: boolean
             type: object
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Set or remove webhook trigger configuration
+      summary: Remove webhook trigger configuration
       tags:
       - config
     post:
       consumes:
       - application/json
       parameters:
-      - description: Webhook config (POST only)
+      - description: Webhook config
         in: body
         name: webhook
+        required: true
         schema:
           $ref: '#/definitions/utils.WebhookTrigger'
       produces:
@@ -940,7 +884,7 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Set or remove webhook trigger configuration
+      summary: Set webhook trigger configuration
       tags:
       - config
   /api/db/clear:
@@ -967,18 +911,14 @@ paths:
       - application/json
       responses:
         "200":
-          description: persistence enabled (GET) or empty body (POST)
+          description: persistence enabled
           schema:
             type: boolean
-        "400":
-          description: invalid method
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Get or toggle database persistence
+      summary: Get whether database persistence is enabled
       tags:
       - database
     post:
@@ -986,18 +926,14 @@ paths:
       - application/json
       responses:
         "200":
-          description: persistence enabled (GET) or empty body (POST)
-          schema:
-            type: boolean
-        "400":
-          description: invalid method
+          description: empty body
           schema:
             type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Get or toggle database persistence
+      summary: Toggle database persistence
       tags:
       - database
   /api/db/size:
@@ -1064,48 +1000,39 @@ paths:
       - data
   /api/schedule:
     get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Schedule to set (POST only)
-        in: body
-        name: schedule
-        schema:
-          $ref: '#/definitions/utils.ScheduleState'
       produces:
       - application/json
       responses:
         "200":
-          description: current schedule (GET) or {updated:true} (POST)
+          description: OK
           schema:
             $ref: '#/definitions/utils.ScheduleState'
-        "400":
-          description: bad request
-          schema:
-            type: string
         "500":
           description: internal server error
           schema:
             type: string
-      summary: Get or update the polling schedule
+      summary: Get the polling schedule
       tags:
       - schedule
     post:
       consumes:
       - application/json
       parameters:
-      - description: Schedule to set (POST only)
+      - description: Schedule to set
         in: body
         name: schedule
+        required: true
         schema:
           $ref: '#/definitions/utils.ScheduleState'
       produces:
       - application/json
       responses:
         "200":
-          description: current schedule (GET) or {updated:true} (POST)
+          description: '{updated:true}'
           schema:
-            $ref: '#/definitions/utils.ScheduleState'
+            additionalProperties:
+              type: boolean
+            type: object
         "400":
           description: bad request
           schema:
@@ -1114,7 +1041,7 @@ paths:
           description: internal server error
           schema:
             type: string
-      summary: Get or update the polling schedule
+      summary: Update the polling schedule
       tags:
       - schedule
   /api/status:

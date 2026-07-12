@@ -517,3 +517,41 @@ func ReadConfigBackoff(conf *Config) string {
 	}
 	return *conf.Triggers.Backoff_Period
 }
+
+func ReadConfigService(conf *Config, service Service) (Service, error) {
+	if conf == nil {
+		return Service{}, fmt.Errorf("config is nil")
+	}
+
+	s, ok := conf.Services[service.Name]
+	if !ok {
+		log.Printf("invalid service %s", service.Name)
+		return Service{}, fmt.Errorf("invalid service %s", service.Name)
+	}
+	return s, nil
+}
+
+func UpdateConfigServiceActive(conf *Config, service Service) error {
+	if conf == nil {
+		return fmt.Errorf("config is nil")
+	}
+
+	s, ok := conf.Services[service.Name]
+	if !ok {
+		log.Printf("invalid service %s", service.Name)
+		return fmt.Errorf("invalid service %s", service.Name)
+	}
+
+	if s.Active != nil {
+		active := !s.IsActive()
+		s.Active = &active
+		conf.Services[service.Name] = s
+	} else {
+		// defaults to true so on nil create and assigns to false
+		a := false
+		s.Active = &a
+		conf.Services[service.Name] = s
+	}
+
+	return writeConfig(conf)
+}

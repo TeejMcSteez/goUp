@@ -24,28 +24,40 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// @Summary Get or toggle database persistence
+// @Summary Get whether database persistence is enabled
 // @Tags database
 // @Produce json
-// @Success 200 {boolean} bool "persistence enabled (GET) or empty body (POST)"
-// @Failure 400 {string} string "invalid method"
+// @Success 200 {boolean} bool "persistence enabled"
 // @Failure 500 {string} string "internal server error"
 // @Router /api/db/persist [get]
+func (s *Server) getDatabasePersistenceGet(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	persists := utils.ReadConfigDatabasePersistence(utils.Current_Config)
+	if err := json.NewEncoder(w).Encode(persists); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// @Summary Toggle database persistence
+// @Tags database
+// @Produce json
+// @Success 200 {string} string "empty body"
+// @Failure 500 {string} string "internal server error"
 // @Router /api/db/persist [post]
+func (s *Server) getDatabasePersistencePost(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	err := utils.UpdateConfigDatabasePersistence(utils.Current_Config)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (s *Server) GetDatabasePersistence(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		w.Header().Add("Content-Type", "application/json")
-		persists := utils.ReadConfigDatabasePersistence(utils.Current_Config)
-		if err := json.NewEncoder(w).Encode(persists); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		s.getDatabasePersistenceGet(w, req)
 	case "POST":
-		w.Header().Set("Content-Type", "application/json")
-		err := utils.UpdateConfigDatabasePersistence(utils.Current_Config)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		s.getDatabasePersistencePost(w, req)
 	default:
 		http.Error(w, "Invalid Request Method", http.StatusBadRequest)
 	}

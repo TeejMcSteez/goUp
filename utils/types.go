@@ -135,14 +135,28 @@ type DiscordTrigger struct {
 }
 
 // Data for service endponts
+//
+// JSON tags match the Go field names verbatim (the frontend has always
+// read these fields as e.g. svc.Name / svc.URL, relying on encoding/json's
+// untagged default of using the field name as-is) — don't switch these to
+// snake_case without updating every frontend consumer.
 type Service struct {
-	Name            string    `yaml:"-"`
-	URL             string    `yaml:"url"`
-	Description     *string   `yaml:"description"`
-	API_URL         *string   `yaml:"api_url"`
-	API_KEY         *string   `yaml:"api_key"`
-	Valid_Responses *[]string `yaml:"valid_responses"`
-	Retry_Requests  *int      `yaml:"retry"`
+	Name            string    `yaml:"-" json:"Name"`
+	URL             string    `yaml:"url" json:"URL"`
+	Description     *string   `yaml:"description" json:"Description,omitempty"`
+	API_URL         *string   `yaml:"api_url" json:"API_URL,omitempty"`
+	API_KEY         *string   `yaml:"api_key" json:"API_KEY,omitempty"`
+	Valid_Responses *[]string `yaml:"valid_responses" json:"Valid_Responses,omitempty"`
+	Retry_Requests  *int      `yaml:"retry" json:"Retry_Requests,omitempty"`
+	// Active is a *bool so an unset value (nil) can default to true,
+	// distinct from an explicit `active: false`.
+	Active *bool `yaml:"active" json:"Active,omitempty"`
+}
+
+// IsActive reports whether the service should be actively monitored.
+// A service defaults to active unless explicitly disabled in config.
+func (s Service) IsActive() bool {
+	return s.Active == nil || *s.Active
 }
 
 // Shared service endpoint struct
@@ -161,6 +175,7 @@ type ServiceData struct {
 	ServiceResponseTime string    `json:"response_time"`
 	Timestamp           time.Time `json:"timestamp"`
 	Error               bool      `json:"error"`
+	Active              bool      `json:"active"`
 }
 
 type ServiceResponse struct {

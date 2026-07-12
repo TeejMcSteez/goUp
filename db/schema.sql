@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS service_data (
 	"service_api_response" TEXT,
 	"service_response_time" INTEGER,
 	"timestamp" TEXT,
-	"error" INTEGER NOT NULL DEFAULT 0
+	"error" INTEGER NOT NULL DEFAULT 0,
+	"active" INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE INDEX IF NOT EXISTS idx_service_name_id

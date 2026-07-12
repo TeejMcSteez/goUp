@@ -4,13 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	migrations "goUp/db/migrations"
 	database "goUp/internal/db"
 	"log"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )
 
@@ -32,109 +35,90 @@ func InitDB() (*sql.DB, error) {
 	}
 	db.SetMaxOpenConns(1)
 
-	createTableSQL := `CREATE TABLE IF NOT EXISTS service_data (
-		"id" INTEGER PRIMARY KEY AUTOINCREMENT,
-		"service_url" TEXT,
-		"service_name" TEXT,
-		"service_description" TEXT,
-		"service_HTTP_response" TEXT,
-		"service_API_response" TEXT,
-		"service_response_time" INTEGER,
-		"timestamp" TEXT,
-		"error" INTEGER NOT NULL DEFAULT 0
-	);`
-
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
+	if err := runMigrations(db); err != nil {
 		return nil, err
-	}
-
-	// Drop superseded index from earlier schema versions before creating replacements.
-	if _, err = db.Exec(`DROP INDEX IF EXISTS idx_service_data_lookup`); err != nil {
-		return nil, err
-	}
-
-	indexes := []string{
-		// Covers: GetRecentData subquery (GROUP BY service_name, MAX(id)),
-		//         GetDataForService (WHERE service_name = ? ORDER BY id DESC),
-		//         DbServiceDelete / DbServiceRename / DbGarbageCollect (WHERE service_name = ?)
-		`CREATE INDEX IF NOT EXISTS idx_service_name_id
-		 ON service_data(service_name, id)`,
-
-		// Covers: GetErrorData (WHERE error = 1 ORDER BY timestamp ASC/DESC)
-		`CREATE INDEX IF NOT EXISTS idx_error_timestamp
-		 ON service_data(error, timestamp)`,
-	}
-	for _, idx := range indexes {
-		if _, err = db.Exec(idx); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := migrateResponseTimes(db); err != nil {
-		log.Printf("Response time migration warning: %v", err)
 	}
 
 	log.Println("Database ready for queries")
 	return db, nil
 }
 
-// migrateResponseTimes converts legacy TEXT response time values (e.g. "1.234ms")
-// to INTEGER nanoseconds for existing rows written before the schema change.
+// runMigrations applies the goose migration set in db/migrations.
 //
-// This must run before any sqlc-generated query scans service_response_time,
-// since those queries scan it into sql.NullInt64 and a legacy TEXT value like
-// "1.234ms" is not a valid int64.
-func migrateResponseTimes(db *sql.DB) (err error) {
-	rows, err := db.Query("SELECT id, service_response_time FROM service_data")
+// Databases that predate goose (every database created before this change
+// shipped) already have some or all of that schema history applied via the
+// old hand-rolled DDL in this file. bootstrapLegacyVersion detects that case
+// and marks the already-applied migrations as done without re-running them,
+// so goose only executes genuinely new migrations against those databases.
+func runMigrations(db *sql.DB) error {
+	goose.SetBaseFS(migrations.FS)
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+	if err := bootstrapLegacyVersion(db); err != nil {
+		return fmt.Errorf("failed to baseline goose version for existing database: %w", err)
+	}
+	if err := goose.Up(db, "."); err != nil {
+		return fmt.Errorf("failed to run database migrations: %w", err)
+	}
+	return nil
+}
+
+// bootstrapLegacyVersion marks migrations that already ran via the old
+// hand-rolled schema setup as applied, without re-running them, so goose
+// only executes new migrations against a database that predates it.
+//
+// goose.EnsureDBVersion creates its own version-tracking table
+// (goose_db_version) the first time it's called against a database. A
+// version of 0 there means goose has never touched this database before —
+// which is true for every database that exists today, since goose is only
+// being introduced now. If service_data already exists at that point, this
+// is one of those pre-goose databases, and we inspect its current schema to
+// figure out which migrations already happened before marking them applied.
+func bootstrapLegacyVersion(db *sql.DB) error {
+	current, err := goose.EnsureDBVersion(db)
 	if err != nil {
 		return err
 	}
-	// Close should emit err but to be idiomatic and fix IDE warning
-	// Check for row errors before closing rows
-	defer func() {
-		if e := rows.Err(); e != nil {
-			err = e
-		}
-	}()
-	defer func() {
-		if e := rows.Close(); e != nil {
-			err = e
-		}
-	}()
-
-	type pending struct {
-		id int
-		ns int64
-	}
-	var updates []pending
-	for rows.Next() {
-		var id int
-		var raw string
-		if err := rows.Scan(&id, &raw); err != nil {
-			continue
-		}
-		// Already an integer — no migration needed
-		if _, err := strconv.ParseInt(raw, 10, 64); err == nil {
-			continue
-		}
-		d, err := time.ParseDuration(raw)
-		if err != nil {
-			continue
-		}
-		updates = append(updates, pending{id, d.Nanoseconds()})
+	if current > 0 {
+		// goose has run against this database before; nothing to baseline.
+		return nil
 	}
 
-	for _, u := range updates {
-		if _, err := db.Exec("UPDATE service_data SET service_response_time = ? WHERE id = ?", u.ns, u.id); err != nil {
-			log.Printf("Migration: failed to update row %d: %v", u.id, err)
+	var tableExists int
+	if err := db.QueryRow(
+		`SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'service_data'`,
+	).Scan(&tableExists); err != nil {
+		return err
+	}
+	if tableExists == 0 {
+		// Brand-new database — let goose create everything for real.
+		return nil
+	}
+
+	// service_data already exists, so migration 1 (table + indexes) and
+	// migration 2 (response time normalization, which the old code ran on
+	// every boot) already happened under the old hand-rolled setup.
+	baseline := []int64{1, 2}
+
+	var hasActive int
+	if err := db.QueryRow(
+		`SELECT count(*) FROM pragma_table_info('service_data') WHERE name = 'active'`,
+	).Scan(&hasActive); err != nil {
+		return err
+	}
+	if hasActive == 1 {
+		baseline = append(baseline, 3)
+	}
+
+	for _, version := range baseline {
+		if _, err := db.Exec(
+			`INSERT INTO goose_db_version (version_id, is_applied) VALUES (?, 1)`, version,
+		); err != nil {
 			return err
 		}
 	}
-	if len(updates) > 0 {
-		log.Printf("Migrated %d rows: response time TEXT → INTEGER nanoseconds", len(updates))
-	}
-	return err
+	return nil
 }
 
 // formatResponseTime formats nanoseconds into a frontend-friendly string.
@@ -168,6 +152,7 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 		ServiceHTTPResponse: d.ServiceHttpResponse.String,
 		ServiceAPIResponse:  d.ServiceApiResponse.String,
 		Error:               d.Error != 0,
+		Active:              d.Active != 0,
 	}
 	if d.ServiceResponseTime.Valid {
 		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
@@ -203,6 +188,7 @@ func InsertData(db *sql.DB, sd ServiceData) error {
 		ServiceResponseTime: sql.NullInt64{Int64: rtNs, Valid: true},
 		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
 		Error:               boolToInt(sd.Error),
+		Active:              boolToInt(sd.Active),
 	})
 }
 
@@ -234,13 +220,14 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 		return nil, err
 	}
 
-	// Snapshot current live service names to filter out stale DB rows
-	// that may exist due to renames or deletes not yet garbage-collected.
-	liveNames := make(map[string]struct{})
+	// Snapshot current live services to filter out stale DB rows that may
+	// exist due to renames or deletes not yet garbage-collected, and to
+	// overlay the current Active state — a row's stored Active value is
+	// only a snapshot from whenever it was last written, which goes stale
+	// the moment a service is toggled and stops being fetched.
+	liveServices := make(map[string]Service)
 	if Current_Config != nil {
-		for name := range Current_Config.Services {
-			liveNames[name] = struct{}{}
-		}
+		maps.Copy(liveServices, Current_Config.Services)
 	}
 
 	sd := []ServiceData{}
@@ -249,11 +236,12 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(liveNames) == 0 {
+		if len(liveServices) == 0 {
 			sd = append(sd, s)
 			continue
 		}
-		if _, ok := liveNames[s.ServiceName]; ok {
+		if svc, ok := liveServices[s.ServiceName]; ok {
+			s.Active = svc.IsActive()
 			sd = append(sd, s)
 		}
 	}
