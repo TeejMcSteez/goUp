@@ -31,10 +31,19 @@ func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		defaultDB := "goup.db"
+		default_size := "5mb"
+		st := ScheduleState{
+			30,
+			"seconds",
+		}
+		default_persist := true
 		cfg := &Config{
 			ConfigPath:        path,
 			Services:          make(map[string]Service),
 			Database_Location: &defaultDB,
+			Database_Max_Size: &default_size,
+			Schedule:          &st,
+			Persist_db:        &default_persist,
 		}
 		if err := writeConfig(cfg); err != nil {
 			return nil, fmt.Errorf("could not create default config: %w", err)
