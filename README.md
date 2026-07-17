@@ -41,6 +41,7 @@ Services are defined by their name, URL, and optional fields. Only `db_path`, th
 | `api_key` | Bearer token sent with `api_url` requests |
 | `valid_responses` | List of HTTP status codes considered healthy (default: `["200"]`) |
 | `retry` | Number of times to retry a failed request before triggering |
+| `active` | Tells the program whether the service is currently being monitored |
 
 Triggers fire when a service is detected as down. All trigger types are optional; only configure the ones you need.
 
@@ -100,10 +101,12 @@ services:
     api_key: "<token>"
     valid_responses: ["200", "201"]
     retry: 2
+    active: null # Can be true or null for active monitoring
 
   truenas:
     url: "http://nas.example.com/"
     description: "NAS storage"
+    active: false # Skips fetching data until changed to true or null
 
 triggers:
   backoff: "30m"
@@ -158,6 +161,7 @@ Requires:
 - Node package manager (npm, pnpm, yarn, or bun) 
 - [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
 - [sqlc](https://sqlc.dev/) CLI, v1.31.1 (`go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1`)
+- [goose]() CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@latest`)
 
 The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
 
@@ -198,9 +202,10 @@ Schema:
 "service_response_time" INTEGER,
 "timestamp" TEXT,
 "error" INTEGER NOT NULL DEFAULT 0
+"active" INTEGER NOT NULL DEFAULT 1
 ```
 
-`service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup.
+`service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup. (now using [goose](https://pkg.go.dev/github.com/pressly/goose/v3))
 
 ## Arch. Support
 
