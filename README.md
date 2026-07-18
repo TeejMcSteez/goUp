@@ -224,6 +224,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 32.4% of statements
-- goUp/utils coverage: 64.5% of statements
-- goUp/workers coverage: 59.7% of statements
+- goUp/server coverage: 30.8% of statements
+- goUp/utils coverage: 63.3% of statements
+- goUp/workers coverage: 58.2% of statements
