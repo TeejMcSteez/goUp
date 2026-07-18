@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -253,4 +254,63 @@ func TestGetServiceDataRetry(t *testing.T) {
 		t.Fatalf("Expected 1 service data, got %d", len(svcResponse.AllServices))
 	}
 
+}
+
+// TestGetServiceDataValidResponses ensures that Check() correctly treats
+// every status code in a service's configured Valid_Responses list as "up",
+// no matter which one the endpoint happens to return on a given fetch, and
+// still flags the service as down once the response changes to a code that
+// isn't on that list.
+func TestGetServiceDataValidResponses(t *testing.T) {
+	var statusCode int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(statusCode)
+	}))
+	defer server.Close()
+
+	validResponses := []string{"200", "201", "204", "301", "302"}
+	service := utils.Service{Name: "multi-status-service", URL: server.URL, Valid_Responses: &validResponses}
+	utils.SetServiceEndpoints([]utils.Service{service})
+
+	utils.Current_Config = &utils.Config{
+		Services: map[string]utils.Service{
+			"multi-status-service": service,
+		},
+	}
+	// Clear for other tests
+	defer func() { utils.Current_Config = nil }()
+
+	// Every configured status code should be reported as up, regardless of
+	// which one the endpoint returns on a particular fetch.
+	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusMovedPermanently, http.StatusFound} {
+		statusCode = code
+		svcResponse, err := utils.GetServiceData()
+		if err != nil {
+			t.Fatalf("GetServiceData returned an error for status %d: %v", code, err)
+		}
+		if len(svcResponse.AllServices) != 1 {
+			t.Fatalf("Expected 1 service data for status %d, got %d", code, len(svcResponse.AllServices))
+		}
+		got := svcResponse.AllServices[0].ServiceHTTPResponse
+		want := strconv.Itoa(code)
+		if got != want {
+			t.Errorf("Expected HTTP response '%s', got '%s'", want, got)
+		}
+		if len(svcResponse.DownServices) != 0 {
+			t.Errorf("Expected status %d to be treated as valid (0 down services), got %d down: %+v", code, len(svcResponse.DownServices), svcResponse.DownServices)
+		}
+	}
+
+	// A response outside the configured list must be flagged as down.
+	statusCode = http.StatusInternalServerError
+	svcResponse, err := utils.GetServiceData()
+	if err != nil {
+		t.Fatalf("GetServiceData returned an error: %v", err)
+	}
+	if len(svcResponse.DownServices) != 1 {
+		t.Fatalf("Expected service to be down for an unconfigured status code, got %d down services", len(svcResponse.DownServices))
+	}
+	if svcResponse.DownServices[0].ServiceName != "multi-status-service" {
+		t.Errorf("Expected 'multi-status-service' to be marked down, got '%s'", svcResponse.DownServices[0].ServiceName)
+	}
 }
