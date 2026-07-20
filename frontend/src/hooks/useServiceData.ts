@@ -19,5 +19,5 @@ export default function useServiceData() {
     }
   }, []);
 
-  return usePolling(fetchServices, pollRate);
+  return usePolling(["services"], fetchServices, pollRate);
 }

@@ -14,5 +14,5 @@ export default function useErrorData(limit = 100, sortOrder = "desc") {
     return (data as ErrorItem[]) || [];
   }, [limit, sortOrder]);
 
-  return usePolling(fetchErrors, pollRate);
+  return usePolling(["errors", limit, sortOrder], fetchErrors, pollRate);
 }

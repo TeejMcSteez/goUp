@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import type { AppConfig } from "../types";
+import { useQuery } from "@tanstack/react-query";
 
 interface ConfigDataHook {
   config: AppConfig | null;
@@ -8,30 +8,24 @@ interface ConfigDataHook {
   refresh: () => Promise<void>;
 }
 
+async function fetchConfig(): Promise<AppConfig> {
+  const res = await fetch("/api/config");
+  if (!res.ok) throw new Error("Failed to fetch config");
+  return res.json();
+}
+
 export function useConfigData(): ConfigDataHook {
-  const [config, setConfig] = useState<AppConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["config"],
+    queryFn: fetchConfig,
+  });
 
-  const fetchConfig = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/config");
-      if (!res.ok) throw new Error("Failed to fetch config");
-      const data: AppConfig = await res.json();
-      setConfig(data);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
+  return {
+    config: data ?? null,
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    refresh: async () => {
+      await refetch();
+    },
   };
-
-  useEffect(() => {
-    const id = setTimeout(fetchConfig, 0);
-    return () => clearTimeout(id);
-  }, []);
-
-  return { config, loading, error, refresh: fetchConfig };
 }

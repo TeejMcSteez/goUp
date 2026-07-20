@@ -34,5 +34,5 @@ export default function useUptimeData() {
       return null;
     }, []);
 
-  return usePolling(fetchUptimeData, pollRate);
+  return usePolling(["uptime"], fetchUptimeData, pollRate);
 }

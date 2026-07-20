@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, type QueryKey } from "@tanstack/react-query";
 
 interface PollingResult<T> {
   data: T | null;
@@ -8,35 +8,22 @@ interface PollingResult<T> {
 }
 
 export default function usePolling<T>(
+  queryKey: QueryKey,
   fetchFunction: () => Promise<T>,
   interval = 5000,
 ): PollingResult<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey,
+    queryFn: fetchFunction,
+    refetchInterval: interval,
+  });
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await fetchFunction();
-      setData(result);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchFunction]);
-
-  useEffect(() => {
-    const initialId = setTimeout(fetchData, 0);
-    const intervalId = setInterval(fetchData, interval);
-    return () => {
-      clearTimeout(initialId);
-      clearInterval(intervalId);
-    };
-  }, [fetchData, interval]);
-
-  return { data, loading, error, refetch: fetchData };
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    error: error ? (error as Error).message : null,
+    refetch: async () => {
+      await refetch();
+    },
+  };
 }

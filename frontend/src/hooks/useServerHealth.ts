@@ -1,29 +1,25 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface ServerHealth {
   serverDown: boolean;
   networkOnline: boolean;
 }
 
+async function fetchHealth(): Promise<ServerHealth> {
+  const res = await fetch("/health");
+  if (!res.ok) throw new Error("Failed to fetch server health");
+  return res.json();
+}
+
 export function useServerHealth(intervalMs = 10000): ServerHealth {
-  const [serverDown, setServerDown] = useState(false);
-  const [networkOnline, setNetworkOnline] = useState(navigator.onLine);
+  const { data } = useQuery({
+    queryKey: ["health"],
+    queryFn: fetchHealth,
+    refetchInterval: intervalMs
+  });
 
-  useEffect(() => {
-    const check = async () => {
-      setNetworkOnline(navigator.onLine);
-      try {
-        const res = await fetch("/health", { signal: AbortSignal.timeout(4000) });
-        setServerDown(!res.ok);
-      } catch {
-        setServerDown(true);
-      }
-    };
-
-    void check();
-    const id = setInterval(() => void check(), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-
-  return { serverDown, networkOnline };
+  return {
+    serverDown: data?.networkOnline ?? false,
+    networkOnline: navigator.onLine
+  }
 }
