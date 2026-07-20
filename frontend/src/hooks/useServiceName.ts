@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "goUp_prettify_names";
 const EVENT = "goUp:prettify-names-changed";
@@ -28,19 +28,16 @@ export default function useServiceName(): ServiceNameHook {
     return () => window.removeEventListener(EVENT, handler);
   }, []);
 
-  const toggle = useCallback(() => {
+  const toggle = () => {
     setPrettify((prev) => {
       const next = !prev;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       window.dispatchEvent(new CustomEvent<boolean>(EVENT, { detail: next }));
       return next;
     });
-  }, []);
+  };
 
-  const formatName = useCallback(
-    (name: string) => (prettify ? normalizeName(name) : name),
-    [prettify],
-  );
+  const formatName = (name: string) => (prettify ? normalizeName(name) : name);
 
   return { formatName, prettify, toggle };
 }
