@@ -1,6 +1,6 @@
 # GoUp
 
-GoUp is a server monitor featuring an HTTP web interface and API routes to track uptime, response time, status, and more!
+GoUp is a server monitor featuring a web interface and API routes to track server(s) information.
 
 The frontend is built with [React](https://react.dev/) and [Vite](https://vite.dev/), utilizing [Chart.js](https://www.chartjs.org/) for uptime visualization.
 
@@ -161,7 +161,7 @@ Requires:
 - Node package manager (npm, pnpm, yarn, or bun) 
 - [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
 - [sqlc](https://sqlc.dev/) CLI, v1.31.1 (`go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1`)
-- [goose]() CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@latest`)
+- [goose]() CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@v3.27.2`)
 
 The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
 
@@ -174,7 +174,7 @@ The Makefile auto-detects the package manager by matching the existing lock file
 | `make lint` | Lint Go source files via `golangci-lint run` |
 | `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
 | `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` |
-| `make clean` | Remove the compiled binary, generated docs, and `perf/` directory |
+| `make clean` | Remove the compiled binary and `perf/` directory |
 
 ### SQL codegen
 
