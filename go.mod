@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.5.1
-	github.com/pressly/goose/v3 v3.27.2
+	github.com/pressly/goose/v3 v3.27.3
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	gopkg.in/yaml.v3 v3.0.1
