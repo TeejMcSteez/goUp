@@ -8,7 +8,7 @@ import {
 import ConfirmModal from "./ConfirmModal";
 
 const btnPrimary =
-  "px-4 py-2 rounded-lg border border-primary bg-surface text-primary text-sm cursor-pointer transition-all duration-200 hover:bg-primary/10 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
+  "px-4 py-2 justify-end items-end rounded-lg border border-primary bg-surface text-primary text-sm cursor-pointer transition-all duration-200 hover:bg-primary/10 hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
 function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return "0 Bytes";
@@ -123,7 +123,7 @@ export default function DatabasePanel() {
     <div className="flex flex-col gap-4">
       <StatusMessage message={status?.text} isError={status?.error} />
       <div className="flex flex-col md:flex-row md:justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
           <span className="text-sm text-muted">
             Persist:{" "}
             <strong className="text-fg">
@@ -131,11 +131,19 @@ export default function DatabasePanel() {
             </strong>
           </span>
           <button
-            className={btnPrimary}
+            className={`${btnPrimary} ml-auto`}
             onClick={handleToggle}
             disabled={persists === null}
           >
             Toggle
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 md:justify-end">
+          <span className="text-sm text-muted whitespace-nowrap">Max size</span>
+          <input ref={siRef} placeholder={size?.db_max_size} />
+          <button className={`${btnPrimary} ml-auto`} onClick={handleUpdate}>
+            Update
           </button>
         </div>
 
@@ -162,13 +170,6 @@ export default function DatabasePanel() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 md:justify-end">
-          <span className="text-sm text-muted whitespace-nowrap">Max size</span>
-          <input ref={siRef} placeholder={size?.db_max_size} />
-          <button className={btnPrimary} onClick={handleUpdate}>
-            Update
-          </button>
-        </div>
       </div>
     </div>
   );
