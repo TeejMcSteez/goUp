@@ -1,9 +1,27 @@
 import { lazy, type ComponentType } from "react";
 
 const nullModule: { default: ComponentType } = { default: () => null };
+const RELOAD_KEY = "goup:chunk-reload";
 
 function lazyView(loader: () => Promise<{ default: ComponentType }>) {
-  return lazy(() => loader().catch(() => nullModule));
+  return lazy(() =>
+    loader()
+      .then((mod) => {
+        sessionStorage.removeItem(RELOAD_KEY);
+        return mod;
+      })
+      .catch((err) => {
+        // Stale chunk hash after a rebuild (old tab, new dist): reload once
+        // to pick up the fresh index.html instead of rendering a blank view.
+        if (!sessionStorage.getItem(RELOAD_KEY)) {
+          sessionStorage.setItem(RELOAD_KEY, "1");
+          window.location.reload();
+          return new Promise<{ default: ComponentType }>(() => {});
+        }
+        console.error(err);
+        return nullModule;
+      }),
+  );
 }
 
 export const VIEWS: Record<string, ComponentType> = {
