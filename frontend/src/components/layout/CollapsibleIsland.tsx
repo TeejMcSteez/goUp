@@ -12,7 +12,7 @@ export default function CollapsibleIsland({
   title,
   children,
   headerAction,
-  defaultOpen = false,
+  defaultOpen = true,
 }: CollapsibleIslandProps) {
   const [open, setOpen] = useState(defaultOpen);
 
