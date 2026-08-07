@@ -16,6 +16,7 @@ type Scheduler struct {
 	state chan utils.ScheduleState
 	get   chan GetState
 	stop  chan struct{}
+	fire  chan struct{}
 }
 
 func computeDuration(Span int, Interval string) time.Duration {
@@ -49,6 +50,7 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 		state: make(chan utils.ScheduleState),
 		get:   make(chan GetState),
 		stop:  make(chan struct{}),
+		fire:  make(chan struct{}),
 	}
 
 	go s.StartScheduler(db, span, interval)
@@ -126,6 +128,27 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			req.res <- utils.ScheduleState{Span: Span, Interval: Interval}
 		case <-fetchDone:
 			fetching = false
+		case <-s.fire:
+			// Drain timer
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			// time to fetch data
+			if fetching {
+				log.Println("Previous service data fetch still running, skipping this tick")
+			} else {
+				fetching = true
+				go func(db *sql.DB) {
+					runFetchCycle(db)
+					fetchDone <- struct{}{}
+				}(db)
+			}
+			// schedule next run based on the *current* Span/Interval
+			dur = computeDuration(Span, Interval)
+			timer.Reset(dur)
 		case <-timer.C:
 			// time to fetch data
 			if fetching {
@@ -172,6 +195,11 @@ func (s *Scheduler) Update(state utils.ScheduleState) bool {
 	}
 
 	return true
+}
+
+func (s *Scheduler) Fire() {
+	var c struct{}
+	s.fire <- c
 }
 
 func (s *Scheduler) Get() utils.ScheduleState {

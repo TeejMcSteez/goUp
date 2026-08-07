@@ -149,6 +149,15 @@ func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Error encoding error data to json: %v", err)
-		http.Error(w, "failed to encode data to json", http.StatusInternalServerError)
+		http.Error(w, "Failed to encode data to json", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) ManualFire(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+	s.scd.Fire()
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "success"}); err != nil {
+		log.Printf("Failed to send response message, %v", err)
+		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 	}
 }

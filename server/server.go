@@ -41,6 +41,7 @@ func (s *Server) Start() error {
 	}
 	http.HandleFunc("/health", s.Health)
 	http.HandleFunc("/api", s.Api)
+	http.HandleFunc("/api/fire", s.ManualFire)
 	http.HandleFunc("/api/schedule", s.ScheduleApi)
 	http.HandleFunc("/api/status", s.StatusApi)
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
