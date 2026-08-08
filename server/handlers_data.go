@@ -153,6 +153,13 @@ func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// @Summary Manually trigger a service data fetch
+// @Description Fires the scheduler immediately instead of waiting for the next scheduled interval
+// @Tags data
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 500 {string} string "internal server error"
+// @Router /api/fire [post]
 func (s *Server) ManualFire(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	s.scd.Fire()

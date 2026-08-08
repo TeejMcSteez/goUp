@@ -980,6 +980,26 @@ paths:
       summary: Get error log entries
       tags:
       - data
+  /api/fire:
+    post:
+      description: Fires the scheduler immediately instead of waiting for the next
+        scheduled interval
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Manually trigger a service data fetch
+      tags:
+      - data
   /api/rt:
     get:
       produces:

@@ -1174,6 +1174,35 @@
                 }
             }
         },
+        "/api/fire": {
+            "post": {
+                "description": "Fires the scheduler immediately instead of waiting for the next scheduled interval",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Manually trigger a service data fetch",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/rt": {
             "get": {
                 "produces": [
