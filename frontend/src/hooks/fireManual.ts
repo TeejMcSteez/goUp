@@ -3,7 +3,7 @@ interface Response {
 }
 
 export default async function fireManual(): Promise<string> {
-  const res = await fetch("/api/fire")
+  const res = await fetch("/api/fire", {method: "POST"})
   if (!res.ok) {
 
   }
