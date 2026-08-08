@@ -162,6 +162,10 @@ func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 // @Router /api/fire [post]
 func (s *Server) ManualFire(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
+	if req.Method != "POST" {
+		http.Error(w, "invalid method", http.StatusInternalServerError)
+		return
+	}
 	s.scd.Fire()
 	if err := json.NewEncoder(w).Encode(map[string]string{"status": "success"}); err != nil {
 		log.Printf("Failed to send response message, %v", err)
