@@ -71,8 +71,8 @@ func TestUptimeRounding(t *testing.T) {
 	}
 
 	expected := 0.33
-	if avg != expected {
-		t.Errorf("Expected average to be %.2f, but got %f", expected, avg)
+	if *avg != expected {
+		t.Errorf("Expected average to be %.2f, but got %f", expected, *avg)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestUptimeCalculation(t *testing.T) {
 	}
 
 	expectedAvg := 0.25
-	if avg != expectedAvg {
-		t.Errorf("Expected average to be %f, but got %f", expectedAvg, avg)
+	if *avg != expectedAvg {
+		t.Errorf("Expected average to be %f, but got %f", expectedAvg, *avg)
 	}
 }

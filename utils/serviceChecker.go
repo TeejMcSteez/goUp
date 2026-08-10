@@ -43,26 +43,26 @@ func Check(data []ServiceData) ([]ServiceData, error) {
 }
 
 // Returns the uptime average for a service or error
-func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
+func GetUptimeAverage(db *sql.DB, name string) (*float64, error) {
 	data, err := GetDataForService(db, name)
 	if err != nil {
-		return 0.0, err
+		return nil, err
 	}
 	chk, err := Check(data)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
-		return 0.0, err
+		return nil, err
 	}
 	numberDown := len(chk)
 	totalNumber := len(data)
 	if totalNumber == 0 {
-		return 0.0, err
+		return nil, err
 	}
 	average := float64(numberDown) / float64(totalNumber)
 	// Rounds to 2 decimal places
 	rounded_average, err := strconv.ParseFloat(strconv.FormatFloat(average, 'f', 2, 64), 64)
 	if err != nil {
-		return 0.0, err
+		return nil, err
 	}
-	return rounded_average, nil
+	return &rounded_average, nil
 }

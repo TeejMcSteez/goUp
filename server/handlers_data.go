@@ -85,7 +85,10 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			avgData = append(avgData, utils.AverageData{Name: endpointName, Average: upAvg})
+			// If upAvg is nil an error occured during the uptime calculation, ignore
+			if upAvg != nil {
+				avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+			}
 		}
 		if err := json.NewEncoder(w).Encode(avgData); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
