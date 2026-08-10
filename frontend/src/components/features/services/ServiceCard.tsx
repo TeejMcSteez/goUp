@@ -31,8 +31,8 @@ export default function ServiceCard({ service }: ServiceCardProps) {
           <h3 className="m-0 text-fg font-semibold text-lg leading-tight flex items-center gap-2">
             <img
               src={faviconUrl}
-              alt=""
-              className="w-4 h-4 rounded-sm shrink-0 grayscale"
+              alt="favicon"
+              className="hidden md:flex w-4 h-4 rounded-sm shrink-0 grayscale"
               onError={(e) => {
                 e.currentTarget.src = fallback;
               }}
@@ -88,7 +88,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
           <img
             src={faviconUrl}
             alt=""
-            className="w-4 h-4 rounded-sm shrink-0"
+            className="hidden md:flex w-4 h-4 rounded-sm shrink-0"
             onError={(e) => {
               e.currentTarget.src = fallback;
             }}
