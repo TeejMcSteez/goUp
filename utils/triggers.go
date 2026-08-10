@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -23,17 +23,17 @@ func resolveBackoff(name string, period *string, fallback time.Duration) time.Du
 	}
 	dur, err := time.ParseDuration(*period)
 	if err != nil {
-		log.Printf("Invalid Backoff_Period '%s' for %s: %v. Falling back to default.", *period, name, err)
+		slog.Warn("Invalid trigger backoff period, falling back to default", "period", *period, "trigger", name, "error", err)
 		return fallback
 	}
-	log.Printf("%s backoff period set to %s", name, dur)
+	slog.Info("Backoff period set", "trigger", name, "duration", dur)
 	return dur
 }
 
 // shouldBackoff reports whether a trigger fired within its backoff window.
 func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Duration) bool {
 	if backoffDuration > 0 && !lastFired.IsZero() && time.Since(lastFired) < backoffDuration {
-		log.Printf("Trigger backoff period active for %s, skipping. Last trigger was %s ago.", name, time.Since(lastFired))
+		slog.Info("Trigger backoff period active, skipping", "trigger", name, "last_fired", time.Since(lastFired))
 		return true
 	}
 	return false
@@ -47,14 +47,14 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if cfg.Triggers.Backoff_Period != nil && *cfg.Triggers.Backoff_Period != "" {
 		dur, err := time.ParseDuration(*cfg.Triggers.Backoff_Period)
 		if err != nil {
-			log.Printf("Invalid Backoff_Period '%s': %v. Disabling backoff.", *cfg.Triggers.Backoff_Period, err)
+			slog.Warn("Invalid trigger backoff period, disabling backoff", "period", *cfg.Triggers.Backoff_Period, "error", err)
 			t.backoffDuration = 0
 		} else {
-			log.Printf("Trigger backoff period set to %s", dur)
+			slog.Info("Trigger backoff period set", "duration", dur)
 			t.backoffDuration = dur
 		}
 	} else {
-		log.Println("No backup period setup!")
+		slog.Info("No backoff period setup")
 	}
 
 	t.MQTT.backoffDuration = resolveBackoff("MQTT", t.MQTT.Backoff_Period, t.backoffDuration)
@@ -91,11 +91,11 @@ func SetupTrigger(cfg *Config) *Trigger {
 		t.handlers = append(t.handlers, &t.Discord)
 	}
 	if len(t.handlers) == 0 {
-		log.Println("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
+		slog.Info("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
 	}
 
-	log.Println("Triggers setup")
+	slog.Info("Triggers setup")
 	return t
 }
 
@@ -127,11 +127,11 @@ func (m *MQTTTrigger) Fire(data []ServiceData) {
 	m.lastFired = time.Now()
 
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
-		log.Println("Connected to MQTT Broker")
+		slog.Info("Connected to MQTT broker")
 	}
 
 	var lostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
-		log.Println("Connection Lost: " + err.Error())
+		slog.Error("MQTT connection lost", "error", err)
 	}
 
 	opts := mqtt.NewClientOptions()
@@ -147,20 +147,20 @@ func (m *MQTTTrigger) Fire(data []ServiceData) {
 	client := mqtt.NewClient(opts)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Println("Error pushing to MQTT client: " + token.Error().Error())
+		slog.Error("Error pushing to MQTT client", "error", token.Error())
 	}
 
 	if jsonData, err := json.Marshal(data); err != nil {
-		log.Printf("Error formatting service data into JSON: %v\n", err)
+		slog.Error("Error formatting service data into JSON", "error", err)
 	} else {
 		// Keep retain to true to store last known good message
 		token := client.Publish("goup_status", 0, true, jsonData)
 		token.Done()
 
 		if err := token.Error(); err != nil {
-			log.Printf("Error with MQTT token: %v\n", err)
+			slog.Error("Error with MQTT token", "error", err)
 		}
-		log.Println("Disconnecting from MQTT broker, sent message complete")
+		slog.Info("Disconnecting from MQTT broker, sent message complete")
 	}
 
 	client.Disconnect(500)
@@ -180,13 +180,13 @@ func (w *WebhookTrigger) Fire(data []ServiceData) {
 
 	jsonMessage, err := w.buildMessage(data)
 	if err != nil {
-		log.Printf("Failed parsing json service data message: %v\n", err)
+		slog.Error("Failed parsing json service data message", "error", err)
 	}
-	log.Println("Firing webhook")
+	slog.Info("Firing webhook")
 
 	req, err := http.NewRequest("POST", *w.Webhook_url, jsonMessage)
 	if err != nil {
-		log.Printf("Error creating webhook request: %v\n", err)
+		slog.Error("Error creating webhook request", "error", err)
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -195,16 +195,16 @@ func (w *WebhookTrigger) Fire(data []ServiceData) {
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending webhook: %v\n", err)
+		slog.Error("Error sending webhook", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("Error closing webhook request: %v", err)
+			slog.Error("Error closing webhook request", "error", err)
 		}
 	}()
 
-	log.Printf("Webhook sent, status: %s\n", res.Status)
+	slog.Info("Webhook sent", "status", res.Status)
 }
 
 // buildMessage returns the JSON body for the webhook, applying any custom message template.
@@ -224,7 +224,7 @@ func (w *WebhookTrigger) buildMessage(data []ServiceData) (io.Reader, error) {
 
 	jsonSvcData, err := json.Marshal(data)
 	if err != nil {
-		log.Printf("Error occured while parsing webhook message: %v\n", err)
+		slog.Error("Error occured while parsing webhook message", "error", err)
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonSvcData), nil
@@ -251,10 +251,10 @@ func (e *SMTPTrigger) Fire(data []ServiceData) {
 	}
 	email := append(header, msg...)
 	if err := smtp.SendMail(*e.SMTPServer, smtp.PlainAuth("", *e.Email, *e.App_Password, host), *e.Email, []string{*e.Email}, email); err != nil {
-		log.Printf("Error SMTP request: %v", err)
+		slog.Error("Error SMTP request", "error", err)
 		return
 	}
-	log.Print("SMTP message sent")
+	slog.Info("SMTP message sent")
 }
 
 // Checks if all parameters for the SMTP trigger is is configured
@@ -290,14 +290,14 @@ func (g *GotifyTrigger) Fire(data []ServiceData) {
 		"priority": priority,
 	})
 	if err != nil {
-		log.Printf("Error building Gotify payload: %v", err)
+		slog.Error("Error building Gotify payload", "error", err)
 		return
 	}
 
 	url := strings.TrimRight(*g.Gotify_Server, "/") + "/message"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Printf("Error creating Gotify request: %v", err)
+		slog.Error("Error creating Gotify request", "error", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -305,16 +305,16 @@ func (g *GotifyTrigger) Fire(data []ServiceData) {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error sending Gotify notification: %v", err)
+		slog.Error("Error sending Gotify notification", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("Error closing Gotify response: %v", err)
+			slog.Error("Error closing Gotify response", "error", err)
 		}
 	}()
 
-	log.Printf("Gotify notification sent, status: %s\n", res.Status)
+	slog.Info("Gotify notification sent", "status", res.Status)
 }
 
 func (g *GotifyTrigger) IsConfigured() bool {
@@ -343,24 +343,24 @@ func (s *SlackTrigger) Fire(data []ServiceData) {
 		"text":     text.String(),
 	})
 	if err != nil {
-		log.Printf("Failed craft payload for Slack trigger: %v", err)
+		slog.Error("Failed craft payload for Slack trigger", "error", err)
 		return
 	}
 	req, err := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer(payload))
 	if err != nil {
-		log.Printf("Failed to create request for slack: %v", err)
+		slog.Error("Failed to create request for slack", "error", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+*s.Slack_Token)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Failed to send request to slack: %v", err)
+		slog.Error("Failed to send request to slack", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("Error closing slack response body: %v", err)
+			slog.Error("Error closing slack response body", "error", err)
 		}
 	}()
 	var slackResp struct {
@@ -368,14 +368,14 @@ func (s *SlackTrigger) Fire(data []ServiceData) {
 		Error string `json:"error"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&slackResp); err != nil {
-		log.Printf("Failed to decode Slack response: %v", err)
+		slog.Error("Failed to decode Slack response", "error", err)
 		return
 	}
 	if !slackResp.OK {
-		log.Printf("Slack notification failed: %s", slackResp.Error)
+		slog.Error("Slack notification failed", "error", slackResp.Error)
 		return
 	}
-	log.Println("Slack notification sent")
+	slog.Info("Slack notification sent")
 }
 
 func (s *SlackTrigger) IsConfigured() bool {
@@ -397,24 +397,24 @@ func (t *TelegramTrigger) Fire(data []ServiceData) {
 		"text":    text.String(),
 	})
 	if err != nil {
-		log.Printf("failed to craft payload for telegram: %v", err)
+		slog.Error("failed to craft payload for telegram", "error", err)
 		return
 	}
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Printf("failed to create request for telegram: %v", err)
+		slog.Error("failed to create request for telegram", "error", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("failed to send request for telegram: %v", err)
+		slog.Error("failed to send request for telegram", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("Error closing Telegram response body: %v", err)
+			slog.Error("Error closing Telegram response body", "error", err)
 		}
 	}()
 	var telegramResp struct {
@@ -422,14 +422,14 @@ func (t *TelegramTrigger) Fire(data []ServiceData) {
 		Description string `json:"description"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&telegramResp); err != nil {
-		log.Printf("Failed to decode Telegram response: %v", err)
+		slog.Error("Failed to decode Telegram response", "error", err)
 		return
 	}
 	if !telegramResp.OK {
-		log.Printf("Telegram notification failed: %s", telegramResp.Description)
+		slog.Error("Telegram notification failed", "description", telegramResp.Description)
 		return
 	}
-	log.Println("Telegram notification sent")
+	slog.Info("Telegram notification sent")
 }
 
 func (t *TelegramTrigger) IsConfigured() bool {
@@ -450,13 +450,13 @@ func (h *HATrigger) Fire(data []ServiceData) {
 		"details": extraStateAttribs.String(),
 	})
 	if err != nil {
-		log.Printf("failed to create HA json payload: %v", err)
+		slog.Error("failed to create HA json payload", "error", err)
 		return
 	}
 	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		log.Printf("failed to create HA request: %v", err)
+		slog.Error("failed to create HA request", "error", err)
 		return
 	}
 	req.Header.Add("Authorization", "Bearer "+*h.HA_Token)
@@ -464,19 +464,19 @@ func (h *HATrigger) Fire(data []ServiceData) {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("failed to send request for HA: %v", err)
+		slog.Error("failed to send request for HA", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("error closing HA response body: %v", err)
+			slog.Error("error closing HA response body", "error", err)
 		}
 	}()
 	if res.StatusCode != 200 && res.StatusCode != 201 {
-		log.Printf("Failed to send or post sensor state\n Status Code: %d", res.StatusCode)
+		slog.Error("Failed to send or post sensor state", "status_code", res.StatusCode)
 		return
 	}
-	log.Println("HA notification sent")
+	slog.Info("HA notification sent")
 }
 
 func (h *HATrigger) IsConfigured() bool {
@@ -499,32 +499,32 @@ func (d *DiscordTrigger) Fire(data []ServiceData) {
 		"content": "**Server Error Detected**\n" + text.String(),
 	})
 	if err != nil {
-		log.Printf("failed to create payload for discord notification request: %v", err)
+		slog.Error("failed to create payload for discord notification request", "error", err)
 		return
 	}
 	api_url := "https://discord.com/api"
 	req, err := http.NewRequest("POST", api_url+fmt.Sprintf("/channels/%s/messages", *d.Discord_Channel), bytes.NewBuffer(payload))
 	if err != nil {
-		log.Printf("failed to create request for discord notification: %v", err)
+		slog.Error("failed to create request for discord notification", "error", err)
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", *d.Discord_Auth)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("error sending discord notification: %v", err)
+		slog.Error("error sending discord notification", "error", err)
 		return
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("error closing HA response body: %v", err)
+			slog.Error("error closing HA response body", "error", err)
 		}
 	}()
 	if res.StatusCode != 200 {
-		log.Printf("error in discord notification response\nResponse Code: %d", res.StatusCode)
+		slog.Error("error in discord notification response", "status_code", res.StatusCode)
 		return
 	}
-	log.Print("discord notification sent")
+	slog.Info("discord notification sent")
 }
 
 func (d *DiscordTrigger) IsConfigured() bool {

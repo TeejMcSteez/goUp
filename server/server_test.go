@@ -3,7 +3,7 @@ package server_test
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -368,7 +368,7 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 	}
 	cfgPath := cfgFile.Name()
 	if err := cfgFile.Close(); err != nil {
-		log.Printf("Error occured closing config file: %v", err)
+		slog.Error("Error occured closing config file", "error", err)
 	}
 
 	cfg := &utils.Config{
@@ -396,13 +396,13 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 	cleanup := func() {
 		scd.Stop()
 		if err := db.Close(); err != nil {
-			log.Printf("Failed to close database connection: %v", err)
+			slog.Error("Failed to close database connection", "error", err)
 		}
 		if err := os.Remove(dbPath); err != nil {
-			log.Printf("Failed to remove database file: %v", err)
+			slog.Error("Failed to remove database file", "error", err)
 		}
 		if err := os.Remove(cfgPath); err != nil {
-			log.Printf("Failed to remove config file: %v", err)
+			slog.Error("Failed to remove config file", "error", err)
 		}
 		utils.Current_Config = nil
 		utils.SetServiceEndpoints([]utils.Service{})

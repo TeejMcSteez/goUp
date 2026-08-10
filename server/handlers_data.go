@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/json"
 	"goUp/utils"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 )
@@ -110,20 +110,20 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 	param := req.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(param)
 	if err != nil {
-		log.Printf("Error occured, invalid limit: %v\nError: %v", limit, err)
+		slog.Error("Error occured, invalid limit", "limit", limit, "error", err)
 		limit = 0
 	}
 	sortOrder := req.URL.Query().Get("sort")
 	data, err := utils.GetErrorData(s.db, limit, sortOrder)
 	if err != nil {
-		log.Printf("Error occured getting error data from database: %v", err)
+		slog.Error("Error occured getting error data from database", "error", err)
 		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
 			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
 		}
 		return
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Error encoding error data to json: %v", err)
+		slog.Error("Error encoding error data to json", "error", err)
 		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
 			http.Error(w, "Failed to encode error data to json", http.StatusInternalServerError)
 		}
@@ -141,14 +141,14 @@ func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := utils.GetResponseTimes(s.db)
 	if err != nil {
-		log.Printf("Error occured getting response time data from database: %v", err)
+		slog.Error("Error occured getting response time data from database", "error", err)
 		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
 			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
 		}
 		return
 	}
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Error encoding error data to json: %v", err)
+		slog.Error("Error encoding error data to json", "error", err)
 		http.Error(w, "Failed to encode data to json", http.StatusInternalServerError)
 	}
 }
@@ -168,7 +168,7 @@ func (s *Server) ManualFire(w http.ResponseWriter, req *http.Request) {
 	}
 	s.scd.Fire()
 	if err := json.NewEncoder(w).Encode(map[string]string{"status": "success"}); err != nil {
-		log.Printf("Failed to send response message, %v", err)
+		slog.Error("Failed to send response message", "error", err)
 		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 	}
 }

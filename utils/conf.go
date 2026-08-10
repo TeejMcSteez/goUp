@@ -3,7 +3,7 @@ package utils
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"regexp"
 	"strconv"
@@ -114,7 +114,7 @@ func GetMaxSize() (float64, error) {
 			return size, nil
 		}
 	}
-	log.Print("Database max size not set, defaulting to 1GB max size")
+	slog.Warn("Database max size not set, defaulting to 1GB max size")
 	return GB, nil
 }
 
@@ -126,13 +126,13 @@ func GetSizeFromString(str string) (float64, error) {
 	matches := re.FindStringSubmatch(str)
 
 	if len(matches) != 3 {
-		log.Printf("Invalid Database_Max_Size format: %s. Defaulting to 1GB.", str)
+		slog.Warn("Invalid Database_Max_Size format, defaulting to 1GB", "value", str)
 		return GB, fmt.Errorf("invalid database_max_size format: %s", str)
 	}
 
 	number, err := strconv.ParseFloat(matches[1], 64)
 	if err != nil {
-		log.Printf("Failed to parse number from Database_Max_Size: %v. Defaulting to 1GB.", err)
+		slog.Warn("Failed to parse number from Database_Max_Size, defaulting to 1GB", "error", err)
 		return GB, fmt.Errorf("failed to parse number from database_max_size: %w", err)
 	}
 	sizeUnit := strings.ToLower(matches[2])
@@ -140,19 +140,19 @@ func GetSizeFromString(str string) (float64, error) {
 	switch sizeUnit {
 	case "kb":
 		if number < 4 {
-			log.Print("Database size must be at least 4KB, returning 4KB.\n")
+			slog.Warn("Database size must be at least 4KB, returning 4KB")
 			return 4 * 1000, fmt.Errorf("database size must be at least 4KB")
 		}
-		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		slog.Info("Set max database size", "size", number, "unit", sizeUnit)
 		return number * 1000, nil
 	case "mb":
-		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		slog.Info("Set max database size", "size", number, "unit", sizeUnit)
 		return number * 1e6, nil
 	case "gb":
-		log.Printf("Set max database size to: %v%v", number, sizeUnit)
+		slog.Info("Set max database size", "size", number, "unit", sizeUnit)
 		return number * 1e9, nil
 	default:
-		log.Printf("Invalid size unit: %s. Defaulting to 1GB.", sizeUnit)
+		slog.Warn("Invalid size unit, defaulting to 1GB", "unit", sizeUnit)
 		return GB, fmt.Errorf("invalid size unit \"%s\": Defaulting to 1GB", sizeUnit)
 	}
 }
@@ -534,7 +534,7 @@ func ReadConfigService(conf *Config, service Service) (Service, error) {
 
 	s, ok := conf.Services[service.Name]
 	if !ok {
-		log.Printf("invalid service %s", service.Name)
+		slog.Error("invalid service", "service", service.Name)
 		return Service{}, fmt.Errorf("invalid service %s", service.Name)
 	}
 	return s, nil
@@ -547,7 +547,7 @@ func UpdateConfigServiceActive(conf *Config, service Service) error {
 
 	s, ok := conf.Services[service.Name]
 	if !ok {
-		log.Printf("invalid service %s", service.Name)
+		slog.Error("invalid service", "service", service.Name)
 		return fmt.Errorf("invalid service %s", service.Name)
 	}
 

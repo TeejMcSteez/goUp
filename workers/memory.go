@@ -4,14 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"goUp/utils"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 )
 
 func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 	maxSize, err := utils.GetMaxSize()
 	if err != nil {
-		log.Fatalf("Failed to get database max size: %v", err)
+		slog.Error("Failed to get database max size", "error", err)
+		os.Exit(1)
 	}
 
 	ticker := time.NewTicker(1 * time.Minute)
@@ -23,17 +25,17 @@ func StartMemoryWatcher(ctx context.Context, db *sql.DB) {
 		case <-ticker.C:
 			t, err := utils.GetDatabaseSize()
 			if err != nil {
-				log.Printf("Failed to get file size while watching database memory: %v", err)
+				slog.Error("Failed to get file size while watching database memory", "error", err)
 			}
 			if t > int64(maxSize) {
-				log.Printf("File size is %v, clearing database memory", t)
+				slog.Info("Clearing database memory", "file_size", t)
 				if err := utils.ClearDatabase(db); err != nil {
-					log.Printf("error occured clearing database: %v", err)
+					slog.Error("error occured clearing database", "error", err)
 				}
 
 			}
 		case <-ctx.Done():
-			log.Println("Memory watcher received termination signal")
+			slog.Info("Memory watcher received termination signal")
 			return
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	migrations "goUp/db/migrations"
 	database "goUp/internal/db"
-	"log"
+	"log/slog"
 	"maps"
 	"os"
 	"strconv"
@@ -39,7 +39,7 @@ func InitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
-	log.Println("Database ready for queries")
+	slog.Info("Database ready for queries")
 	return db, nil
 }
 
@@ -160,7 +160,7 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 	var err error
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, d.Timestamp.String)
 	if err != nil {
-		log.Printf("Error parsing timestamp in scan: %v", err)
+		slog.Error("Error parsing timestamp in scan", "error", err)
 	}
 	return s, err
 }
@@ -354,14 +354,14 @@ func ClearDatabase(db *sql.DB) (retErr error) {
 
 // Cleans up database after exit
 func CleanupDbFiles() error {
-	log.Printf("Cleaning up database file")
+	slog.Info("Cleaning up database file")
 	if Current_Config == nil || Current_Config.Database_Location == nil {
 		return fmt.Errorf("no database location configured, skipping cleanup")
 	}
 	if err := os.Remove(*Current_Config.Database_Location); err != nil {
 		return err
 	}
-	log.Println("Database file succesfully removed")
+	slog.Info("Database file succesfully removed")
 	return nil
 }
 
@@ -370,7 +370,7 @@ func DbServiceDelete(db *sql.DB, service Service) error {
 		return err
 	}
 
-	log.Printf("Removed all instances of %s", service.Name)
+	slog.Info("Removed all instances of service", "service", service.Name)
 
 	return nil
 }
@@ -386,7 +386,7 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 		return err
 	}
 
-	log.Printf("Renamed %s to %s in database", oldName, newName)
+	slog.Info("Renamed service in database", "old_name", oldName, "new_name", newName)
 
 	// Removes any orphan rows written under the old name by a concurrent
 	// insert that raced with the rename above.
@@ -394,7 +394,7 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 		return err
 	}
 
-	log.Printf("Removed all orphan rows in database with old name %s", oldName)
+	slog.Info("Removed all orphan rows in database", "old_name", oldName)
 
 	return nil
 }
@@ -411,7 +411,7 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 		if err := q.ClearServiceData(ctx); err != nil {
 			return err
 		}
-		log.Printf("GC: removed all rows (no services in config)")
+		slog.Info("GC: removed all rows (no services in config)")
 		return nil
 	}
 
@@ -424,6 +424,6 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 		return err
 	}
 
-	log.Printf("GC: removed orphaned rows not matching current config")
+	slog.Info("GC: removed orphaned rows not matching current config")
 	return nil
 }

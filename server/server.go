@@ -6,7 +6,7 @@ import (
 	_ "goUp/docs"
 	scheduler "goUp/workers"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -64,7 +64,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/backoff", s.ConfigBackoffApi)
 	http.HandleFunc("/api/config/size", s.ConfigDatabaseApi)
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
-	log.Println("Starting server at http://localhost:8101/ . . .")
+	slog.Info("Starting server", "address", "http://localhost:8101/")
 	if err := http.ListenAndServe(":8101", nil); err != nil {
 		return err
 	}

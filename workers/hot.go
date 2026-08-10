@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"goUp/utils"
-	"log"
+	"log/slog"
 	"time"
 )
 
@@ -21,7 +21,7 @@ func StartHotReloaderWithInterval(path string, ctx context.Context, db *sql.DB, 
 func startHotReloader(path string, ctx context.Context, db *sql.DB, interval time.Duration) {
 	initialModTime, err := utils.GetFileTimestamp(path)
 	if err != nil {
-		log.Printf("Failed to get file information while starting hot reloading service: %v", err)
+		slog.Error("Failed to get file information while starting hot reloading service", "error", err)
 	}
 
 	notify := utils.ConfigWriteNotify()
@@ -33,38 +33,38 @@ func startHotReloader(path string, ctx context.Context, db *sql.DB, interval tim
 		case <-ticker.C:
 			t, err := utils.GetFileTimestamp(path)
 			if err != nil {
-				log.Printf("Failed to get file information while reloading: %v", err)
+				slog.Error("Failed to get file information while reloading", "error", err)
 			}
 			if !t.Equal(initialModTime) {
 				select {
 				case <-notify:
 					// Program wrote this change and already called Setup — just advance baseline.
-					log.Println("Config updated by program, skipping redundant hot reload")
+					slog.Info("Config updated by program, skipping redundant hot reload")
 					initialModTime = t
 				default:
 					// External edit — do the full reload.
-					log.Println("File change detected, reloading configuration")
+					slog.Info("File change detected, reloading configuration")
 					cfg, err := utils.LoadConfig(path)
 					if err != nil {
-						log.Printf("Hot reload failed loading config: %v", err)
+						slog.Error("Hot reload failed loading config", "error", err)
 						return
 					}
 					if err := utils.Setup(cfg); err != nil {
-						log.Printf("Hot reload failed: %v", err)
+						slog.Error("Hot reload failed", "error", err)
 						return
 					}
 					if db != nil {
 						if err := utils.DbGarbageCollect(db, cfg); err != nil {
-							log.Printf("Hot reload GC failed: %v", err)
+							slog.Error("Hot reload GC failed", "error", err)
 						}
 					} else {
-						log.Print("Hot reload GC failed: database is nil")
+						slog.Error("Hot reload GC failed: database is nil")
 					}
 					initialModTime = t
 				}
 			}
 		case <-ctx.Done():
-			log.Println("Reloader Worker recieved termination signal")
+			slog.Info("Reloader Worker recieved termination signal")
 			return
 		}
 	}

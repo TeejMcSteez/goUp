@@ -60,7 +60,6 @@ func main() {
 	go workers.StartHotReloader(*configPath, ctx, db)
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
-		log.Println("Starting server on port 8081")
 		if serverCreateErr := server.NewServer(db, sch, &serve).Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}

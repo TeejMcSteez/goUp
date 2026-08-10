@@ -2,7 +2,7 @@ package utils
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
@@ -34,11 +34,11 @@ func Setup(cfg *Config) error {
 	defer svcEndpoints.Mux.Unlock()
 
 	Current_Config = cfg
-	log.Println("Setting up triggers")
+	slog.Info("Setting up triggers")
 	Current_Config.Triggers = *SetupTrigger(cfg)
 
 	var updatedEndpoints []Service
-	log.Println("Setting up service endpoints")
+	slog.Info("Setting up service endpoints")
 	if cfg.Services != nil {
 		updatedEndpoints = append(updatedEndpoints, scanDeadEndpoints(cfg)...)
 
@@ -47,8 +47,8 @@ func Setup(cfg *Config) error {
 		return &NoServiceEndpointsError{"No service endpoints found in current configuration!"}
 	}
 	svcEndpoints.ServiceEndpoint = updatedEndpoints
-	log.Println("Service endpoints setup finished")
-	log.Println("Configuration setup finished")
+	slog.Info("Service endpoints setup finished")
+	slog.Info("Configuration setup finished")
 	return nil
 }
 
@@ -66,7 +66,7 @@ func scanDeadEndpoints(cfg *Config) []Service {
 		if svc, found := configServices[endpoint.URL]; found {
 			updatedEndpoints = append(updatedEndpoints, svc)
 		} else {
-			log.Println("Removing", endpoint.Name, "from service endpoints")
+			slog.Info("Removing endpoint from service endpoints", "endpoint", endpoint.Name)
 		}
 	}
 	return updatedEndpoints
@@ -84,7 +84,7 @@ func scanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 			}
 		}
 		if !found {
-			log.Println("Adding", name, "to service endpoints")
+			slog.Info("Adding endpoint to service endpoints", "endpoint", name)
 			svc.Name = name
 			newEndpoints = append(newEndpoints, svc)
 		}
@@ -104,7 +104,7 @@ func fetchOne(endpoint Service) ServiceData {
 	}
 	req, err := http.NewRequest("GET", endpoint.URL, nil)
 	if err != nil {
-		log.Printf("Error creating new HTTP request: %v", err)
+		slog.Error("Error creating new HTTP request", "error", err)
 	}
 	req.Header.Add("User-Agent", "GoUp/"+Version)
 	start := time.Now()
@@ -113,7 +113,7 @@ func fetchOne(endpoint Service) ServiceData {
 	if err != nil {
 		res, err = ErrorRetry(&sd, endpoint, err)
 		if err != nil {
-			log.Printf("Error fetching %s: %v %s", endpoint.URL, err, "❌")
+			slog.Error("Error fetching endpoint", "url", endpoint.URL, "error", err)
 			sd.ServiceHTTPResponse = err.Error()
 			sd.ServiceResponseTime = time.Since(start).String()
 			return sd
@@ -121,14 +121,14 @@ func fetchOne(endpoint Service) ServiceData {
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
-			log.Printf("Failed to close response body: %v", err)
+			slog.Error("Failed to close response body", "error", err)
 		}
 	}()
 
 	sd.ServiceHTTPResponse = strconv.Itoa(res.StatusCode)
 	if endpoint.API_URL != nil {
 		if err := GetAPIData(endpoint, &sd, start); err != nil {
-			log.Printf("Error getting API data for %s: %v", endpoint.Name, err)
+			slog.Error("Error getting API data", "endpoint", endpoint.Name, "error", err)
 			sd.Error = true
 			sd.ServiceAPIResponse = err.Error()
 		}
@@ -142,9 +142,9 @@ func fetchOne(endpoint Service) ServiceData {
 // GetServiceData fetches all service endpoints concurrently and returns the results.
 func GetServiceData() (*ServiceResponse, error) {
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
-		log.Println("No service endpoints found looking for config . . .")
+		slog.Info("No service endpoints found looking for config . . .")
 		if err := Setup(Current_Config); err != nil {
-			log.Printf("Error setting up config while fetching service data!\n%v", err)
+			slog.Error("Error setting up config while fetching service data", "error", err)
 			return nil, err
 		}
 	}
@@ -153,7 +153,7 @@ func GetServiceData() (*ServiceResponse, error) {
 	results := make([]ServiceData, len(endpoints))
 	var wg sync.WaitGroup
 
-	log.Println("Scanning services HTTP endpoints . . .")
+	slog.Info("Scanning services HTTP endpoints . . .")
 	for i, ep := range endpoints {
 		wg.Add(1)
 		go func(i int, ep Service) {
@@ -161,7 +161,7 @@ func GetServiceData() (*ServiceResponse, error) {
 			if ep.IsActive() {
 				results[i] = fetchOne(ep)
 			} else {
-				log.Printf("%s is disabled continuing", ep.Name)
+				slog.Info("Endpoint is disabled, continuing", "endpoint", ep.Name)
 			}
 		}(i, ep)
 	}
@@ -201,13 +201,13 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	apiRes, apiErr := httpClient.Do(apiReq)
 
 	if apiErr != nil {
-		log.Printf("Error occured during API request: %v\n", apiErr)
+		slog.Error("Error occured during API request", "error", apiErr)
 		return apiErr
 	}
 
 	defer func() {
 		if err := apiRes.Body.Close(); err != nil {
-			log.Printf("Error closing API response body: %v\n", err)
+			slog.Error("Error closing API response body", "error", err)
 		}
 	}()
 
@@ -218,7 +218,7 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	sd.ServiceAPIResponse = string(apiBody)
 	elapsed := time.Since(start)
 	sd.ServiceResponseTime = elapsed.String()
-	log.Print("Fetched API data successfully\n")
+	slog.Info("Fetched API data successfully")
 	return nil
 }
 
@@ -249,7 +249,7 @@ func ErrorRetry(sd *ServiceData, endpoint Service, initialErr error) (*http.Resp
 	// This will attempt to retry to get a new valid response the specified number of times
 	if endpoint.Retry_Requests != nil {
 		for range *endpoint.Retry_Requests {
-			log.Printf("Error fetching %s: %v %s\nRe-attempting GET request.", endpoint.URL, currentErr, "❌")
+			slog.Warn("Error fetching endpoint, re-attempting GET request", "url", endpoint.URL, "error", currentErr)
 			retry_res, retry_err := httpClient.Get(endpoint.URL)
 			if retry_err == nil {
 				return retry_res, nil

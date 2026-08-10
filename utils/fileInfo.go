@@ -3,7 +3,7 @@ package utils
 import (
 	"errors"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -38,7 +38,7 @@ Returns last known modification time from the OS FileInfo
 func GetFileTimestamp(path string) (t time.Time, err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		log.Printf("Failed to open file while getting file timestamp: %v", err)
+		slog.Error("Failed to open file while getting file timestamp", "error", err)
 		return time.Now(), err
 	}
 	defer func() {
@@ -49,7 +49,7 @@ func GetFileTimestamp(path string) (t time.Time, err error) {
 	}()
 	fileInfo, err := file.Stat()
 	if err != nil {
-		log.Printf("Failed to get file information while getting file timestamp: %v", err)
+		slog.Error("Failed to get file information while getting file timestamp", "error", err)
 		return time.Now(), err
 	}
 	return fileInfo.ModTime(), nil

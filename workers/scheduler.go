@@ -3,7 +3,7 @@ package workers
 import (
 	"database/sql"
 	"goUp/utils"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -29,7 +29,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 	case 'h':
 		return d * time.Hour
 	default:
-		log.Printf("Invalid Interval (expected seconds/minutes/hours): %d %s\nDefaulting to 60 second fetch interval", Span, Interval)
+		slog.Warn("Invalid interval, defaulting to 60 second fetch interval", "span", Span, "interval", Interval)
 		return 60 * time.Second
 	}
 }
@@ -67,27 +67,27 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 func runFetchCycle(db *sql.DB) {
 	data, err := utils.GetServiceData()
 	if err != nil {
-		log.Printf("Failed fetching service data in scheduler: %v\n", err)
+		slog.Error("Failed fetching service data in scheduler", "error", err)
 		return
 	}
 	for i := range data.AllServices {
 		if err := utils.InsertData(db, data.AllServices[i]); err != nil {
-			log.Printf("Failed to insert data: %v", err)
+			slog.Error("Failed to insert data", "error", err)
 		}
 	}
 	checkedData, err := utils.Check(data.AllServices)
 	if err != nil {
-		log.Printf("Received error from checking data in scheduler: %v", err)
+		slog.Error("Received error from checking data in scheduler", "error", err)
 		return
 	}
 	if len(checkedData) > 0 {
 		utils.Current_Config.Triggers.Fire(checkedData)
 	}
-	log.Println("Scheduler fetched service data successfully")
+	slog.Info("Scheduler fetched service data successfully")
 }
 
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
-	log.Println("Starting service data scheduler")
+	slog.Info("Starting service data scheduler")
 
 	dur := computeDuration(Span, Interval)
 	timer := time.NewTimer(dur)
@@ -106,7 +106,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				default:
 				}
 			}
-			log.Println("Scheduler stopped")
+			slog.Info("Scheduler stopped")
 			return
 
 		case upd := <-s.state:
@@ -123,7 +123,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				}
 			}
 			timer.Reset(dur)
-			log.Println("Schedule updated to:", Span, Interval)
+			slog.Info("Schedule updated", "span", Span, "interval", Interval)
 		case req := <-s.get:
 			req.res <- utils.ScheduleState{Span: Span, Interval: Interval}
 		case <-fetchDone:
@@ -138,7 +138,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			}
 			// time to fetch data
 			if fetching {
-				log.Println("Previous service data fetch still running, skipping this tick")
+				slog.Info("Previous service data fetch still running, skipping this tick")
 			} else {
 				fetching = true
 				go func(db *sql.DB) {
@@ -152,7 +152,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		case <-timer.C:
 			// time to fetch data
 			if fetching {
-				log.Println("Previous service data fetch still running, skipping this tick")
+				slog.Info("Previous service data fetch still running, skipping this tick")
 			} else {
 				fetching = true
 				go func(db *sql.DB) {
@@ -185,7 +185,7 @@ func (s *Scheduler) Update(state utils.ScheduleState) bool {
 
 	if utils.Current_Config != nil {
 		if err := utils.UpdateConfigSchedule(utils.Current_Config, state); err != nil {
-			log.Printf("Failed to persist schedule to config: %v", err)
+			slog.Error("Failed to persist schedule to config", "error", err)
 		}
 	}
 

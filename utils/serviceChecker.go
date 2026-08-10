@@ -3,7 +3,7 @@ package utils
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"slices"
 	"strconv"
 )
@@ -50,7 +50,8 @@ func GetUptimeAverage(db *sql.DB, name string) (float64, error) {
 	}
 	chk, err := Check(data)
 	if err != nil {
-		log.Fatalf("Error while checking data in getting uptime averages: %v", err)
+		slog.Error("Error while checking data in getting uptime averages", "error", err)
+		return 0.0, err
 	}
 	numberDown := len(chk)
 	totalNumber := len(data)
