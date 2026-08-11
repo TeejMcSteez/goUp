@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName";
 import { ServiceCardProps } from "../../../types.ts";
-import fallback from "../../../../static/goup.webp";
+import ServiceCardImage from "./ServiceCardImage.tsx";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
   const {
@@ -29,14 +29,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
       <div className="bg-surface rounded-xl p-6 flex flex-col gap-3 border-l-4 border border-border border-l-muted opacity-60">
         <div className="flex items-start justify-between gap-2">
           <h3 className="m-0 text-fg font-semibold text-lg leading-tight flex items-center gap-2">
-            <img
-              src={faviconUrl}
-              alt="favicon"
-              className="hidden md:flex w-4 h-4 rounded-sm shrink-0 grayscale"
-              onError={(e) => {
-                e.currentTarget.src = fallback;
-              }}
-            />
+            <ServiceCardImage faviconUrl={faviconUrl}/>
             <a href={url} target="_blank" rel="noreferrer">
               {formatName(name)}
             </a>
@@ -85,14 +78,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="m-0 text-fg font-semibold text-lg leading-tight flex items-center gap-2">
-          <img
-            src={faviconUrl}
-            alt=""
-            className="hidden md:flex w-4 h-4 rounded-sm shrink-0"
-            onError={(e) => {
-              e.currentTarget.src = fallback;
-            }}
-          />
+          <ServiceCardImage faviconUrl={faviconUrl} />
           <a href={url} target="_blank" rel="noreferrer">
             {formatName(name)}
           </a>
