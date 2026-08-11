@@ -1,6 +1,14 @@
 import { createContext, use, useState, type ReactNode } from "react";
 
 const DEFAULT_POLL_RATE = 5000;
+const STORAGE_KEY = "goUp_poll_rate";
+
+function loadStoredPollRate(): number {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === null) return DEFAULT_POLL_RATE;
+  const val = Number(stored);
+  return Number.isFinite(val) && val > 0 ? val : DEFAULT_POLL_RATE;
+}
 
 interface PollRateContextValue {
   pollRate: number;
@@ -13,7 +21,13 @@ const PollRateContext = createContext<PollRateContextValue>({
 });
 
 export function PollRateProvider({ children }: { children: ReactNode }) {
-  const [pollRate, setPollRate] = useState(DEFAULT_POLL_RATE);
+  const [pollRate, setPollRateState] = useState(loadStoredPollRate);
+
+  function setPollRate(n: number) {
+    localStorage.setItem(STORAGE_KEY, String(n));
+    setPollRateState(n);
+  }
+
   return (
     <PollRateContext value={{ pollRate, setPollRate }}>
       {children}
