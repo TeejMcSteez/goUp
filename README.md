@@ -173,7 +173,7 @@ The Makefile auto-detects the package manager by matching the existing lock file
 | `make fmt` | Format Go source files via `golangci-lint fmt` |
 | `make lint` | Lint Go source files via `golangci-lint run` |
 | `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
-| `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` |
+| `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` use [pprof](https://github.com/google/pprof) for viewing (example: `pprof -http=:8080 perf/workers.mem.out`)|
 | `make clean` | Remove the compiled binary and `perf/` directory |
 
 ### SQL codegen
