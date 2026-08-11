@@ -123,7 +123,7 @@ export default function DatabasePanel() {
     <div className="flex flex-col gap-4">
       <StatusMessage message={status?.text} isError={status?.error} />
       <div className="flex flex-col md:flex-row md:justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3 flex-none">
           <span className="text-sm text-muted">
             Persist:{" "}
             <strong className="text-fg">
@@ -131,7 +131,7 @@ export default function DatabasePanel() {
             </strong>
           </span>
           <button
-            className={`${btnPrimary} ml-auto`}
+            className={`${btnPrimary} ml-auto md:ml-2`}
             onClick={handleToggle}
             disabled={persists === null}
           >
