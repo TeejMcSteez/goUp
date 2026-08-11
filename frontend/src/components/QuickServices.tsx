@@ -1,39 +1,9 @@
-import { useState, useEffect } from "react";
-import type { Service } from "../types";
+import useQuickServices from "../hooks/useQuickServices";
 import RefreshButton from "./RefreshButton";
 
 export default function QuickServices() {
-  const [qs, setQs] = useState<Service[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const getDownServices = async () => {
-      try {
-        const res = await fetch("/api/status");
-        if (!res.ok) {
-          throw new Error(`Server error: ${res.status}`);
-        }
-        const data: unknown = await res.json();
-        if (Array.isArray(data)) {
-          setQs(data as Service[]);
-        } else if (data === null) {
-          setQs([]);
-        } else {
-          console.error(
-            `Expected array from /api/status, got: ${JSON.stringify(data)}`,
-          );
-        }
-        setError(null);
-      } catch (err) {
-        setError((err as Error).message);
-        console.error("Error fetching quick service data:", err);
-      }
-    };
-
-    void getDownServices();
-    const intervalId = setInterval(() => void getDownServices(), 5000);
-    return () => clearInterval(intervalId);
-  }, []);
+  const { data, error } = useQuickServices();
+  const qs = data ?? [];
 
   function navToServices() {
     window.dispatchEvent(
