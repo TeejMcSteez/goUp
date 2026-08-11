@@ -47,3 +47,4 @@ services1.yml
 
 goUp
 perf
+__debug_*
