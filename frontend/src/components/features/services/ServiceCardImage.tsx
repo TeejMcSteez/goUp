@@ -14,7 +14,7 @@ export default function ServiceCardImage(props: ServiceCardImageProps): ReactNod
   return <img
                 src={props.faviconUrl}
                 alt="favicon"
-                className="hidden md:flex w-4 h-4 rounded-sm shrink-0 grayscale"
+                className="hidden md:flex w-4 h-4 rounded-sm shrink-0"
                 onError={(e) => {
                   e.currentTarget.src = fallback;
                 }}
