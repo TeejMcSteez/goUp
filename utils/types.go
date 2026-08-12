@@ -224,3 +224,22 @@ type DatabaseStatistic struct {
 type DatabaseSizePayload struct {
 	Size int64 `json:"size_string"`
 }
+
+type TlsStatus struct {
+	ServiceName  string    `json:"service_name"`
+	Fingerprint  string    `json:"fingerprint"`
+	Not_after    time.Time `json:"not_after"`
+	Subject      string    `json:"subject"`
+	Issuer       string    `json:"issuer"`
+	Is_expired   bool      `json:"is_expired"`
+	Chain        string    `json:"chain"`
+	First_seen   time.Time `json:"first_seen"`
+	Last_checked time.Time `json:"last_checked"`
+}
+
+type CertJSON struct {
+	Subject  string    `json:"subject"`
+	Issuer   string    `json:"issuer"`
+	NotAfter time.Time `json:"not_after"`
+	IsCA     bool      `json:"is_ca"`
+}

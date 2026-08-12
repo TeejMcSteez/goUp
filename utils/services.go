@@ -1,6 +1,13 @@
 package utils
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -90,6 +97,61 @@ func scanNewEndpoints(cfg *Config, endpoints []Service) []Service {
 		}
 	}
 	return newEndpoints
+}
+
+// Returns boolean on whether the current time if after the passed time t
+func isExpired(t time.Time) bool {
+	return time.Now().Compare(t) == 1
+}
+
+func chainExpiry(state *tls.ConnectionState) (soonest time.Time, cert *x509.Certificate, ok bool) {
+	if state == nil || len(state.PeerCertificates) == 0 {
+		return time.Time{}, nil, false // plain HTTP, or handshake gave us nothing
+	}
+	for _, c := range state.PeerCertificates {
+		// a server can include a self-signed root in what it sends;
+		// that root's expiry isn't the operator's concern, so skip it
+		if bytes.Equal(c.RawSubject, c.RawIssuer) {
+			continue
+		}
+		if cert == nil || c.NotAfter.Before(cert.NotAfter) {
+			cert = c
+		}
+	}
+	if cert == nil { // chain was only a self-signed cert (internal CA, etc.)
+		cert = state.PeerCertificates[0]
+	}
+	return cert.NotAfter, cert, true
+}
+
+func checkTls(svc_name string, state *tls.ConnectionState) (TlsStatus, error) {
+	var status TlsStatus
+	status.ServiceName = svc_name
+
+	soonest, c, ok := chainExpiry(state)
+	if !ok {
+		return status, fmt.Errorf("plain HTTP or empty chain") // plain HTTP or empty chain — nothing to record
+	}
+	sum := sha256.Sum256(c.Raw)
+	now := time.Now()
+
+	status.Fingerprint = hex.EncodeToString(sum[:])
+	status.Not_after = soonest
+	status.Subject = c.Subject.CommonName
+	status.Issuer = c.Issuer.CommonName
+	status.Is_expired = isExpired(c.NotAfter) // a field, not the gate
+	var chain []CertJSON
+	for _, cc := range state.PeerCertificates {
+		chain = append(chain, CertJSON{cc.Subject.CommonName, cc.Issuer.CommonName, cc.NotAfter, cc.IsCA})
+	}
+	b, err := json.Marshal(chain)
+	if err != nil {
+		return status, fmt.Errorf("failed to marshal certificate chain: %v", err)
+	}
+	status.Chain = string(b) // full chain JSON from above
+	status.First_seen = now  // upsert CASE preserves real value
+	status.Last_checked = now
+	return status, nil
 }
 
 // fetchOne performs the HTTP fetch (plus optional API fetch) for a single endpoint.
