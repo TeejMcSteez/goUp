@@ -20,3 +20,26 @@ DELETE FROM service_data WHERE service_name = ?;
 UPDATE service_data SET service_name = ? WHERE service_name = ?;
 -- name: Cleanup :exec
 DELETE FROM service_data WHERE service_name NOT IN (sqlc.slice('names'));
+-- name: InsertTlsStatus :exec
+INSERT INTO tls_status (service_name, fingerprint, not_after, subject, issuer,
+                        is_expired, chain, first_seen, last_checked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(service_name) DO UPDATE SET
+    fingerprint  = excluded.fingerprint,
+    not_after    = excluded.not_after,
+    subject      = excluded.subject,
+    issuer       = excluded.issuer,
+    is_expired   = excluded.is_expired,
+    chain        = excluded.chain,
+    last_checked = excluded.last_checked,
+    first_seen   = CASE
+        WHEN tls_status.fingerprint = excluded.fingerprint
+        THEN tls_status.first_seen   -- same cert, keep it
+        ELSE excluded.first_seen     -- renewed, resets, giving cert age for free
+    END;
+-- name: GetServiceTlsStatus :one
+SELECT * FROM tls_status WHERE service_name = ? LIMIT 1;
+-- name: GetTlsStatus :many
+SELECT * FROM tls_status;
+-- name: DeleteServiceTlsStatus :exec
+DELETE FROM tls_status WHERE service_name = ?;
