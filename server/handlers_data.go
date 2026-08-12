@@ -76,23 +76,140 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Invalid method", http.StatusBadRequest)
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
+
+		timeRange := req.URL.Query().Get("range")
 		endpoints := utils.GetServiceEndpoints()
-		var avgData []utils.AverageData
-		for idx := range endpoints {
-			endpointName := endpoints[idx].Name
-			upAvg, err := utils.GetUptimeAverage(s.db, endpointName)
-			if err != nil {
+
+		switch timeRange {
+		case "":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetUptimeAverage(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			// If upAvg is nil an error occured during the uptime calculation, ignore
-			if upAvg != nil {
-				avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+		case "1hr":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPastHourUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
 			}
-		}
-		if err := json.NewEncoder(w).Encode(avgData); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "12hr":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPast12HourUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "week":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPastWeekUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "day":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPastDayUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "month":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPastMonthUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "year":
+			var avgData []utils.AverageData
+			for idx := range endpoints {
+				endpointName := endpoints[idx].Name
+				upAvg, err := utils.GetPastYearUptime(s.db, endpointName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				// If upAvg is nil an error occured during the uptime calculation, ignore
+				if upAvg != nil {
+					avgData = append(avgData, utils.AverageData{Name: endpointName, Average: *upAvg})
+				}
+			}
+			if err := json.NewEncoder(w).Encode(avgData); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		default:
+			http.Error(w, "bad range provided to search over", http.StatusBadRequest)
+			slog.Error("client requested uptime API over range with bad range provided", "error", "bad request")
 		}
 	default:
 		http.Error(w, "Bad request", http.StatusBadRequest)
