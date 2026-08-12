@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useServiceName from "../../../hooks/useServiceName";
+import useTlsData from "../../../hooks/useTlsData";
 import { ServiceCardProps } from "../../../types.ts";
 import ServiceCardImage from "./ServiceCardImage.tsx";
 
@@ -16,6 +17,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
     timestamp,
   } = service;
   const { formatName } = useServiceName();
+  const { data: tlsData } = useTlsData();
   const [showApiResponse, setShowApiResponse] = useState(false);
   const [showFullHttpResponse, setShowFullHttpResponse] = useState(false);
 
@@ -23,6 +25,8 @@ export default function ServiceCard({ service }: ServiceCardProps) {
   const faviconUrl = base + "favicon.ico";
 
   const isLongHttpResponse = error && response && response.length > 3;
+
+  const tls = tlsData?.find((t) => t.service_name === name);
 
   if (!active) {
     return (
@@ -63,6 +67,23 @@ export default function ServiceCard({ service }: ServiceCardProps) {
               {response ?? "—"}
             </span>
           </div>
+          {tls && (
+            <div className="flex flex-col">
+              <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+                TLS Cert
+              </span>
+              <span
+                className="text-sm font-semibold text-muted"
+                title={
+                  tls.fingerprint
+                    ? `Expires ${new Date(tls.not_after).toLocaleString()}`
+                    : "No stored certificate fingerprint — likely an HTTP (non-TLS) endpoint"
+                }
+              >
+                {tls.fingerprint ? (tls.is_expired ? "Expired" : "Valid") : "HTTP"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -126,6 +147,28 @@ export default function ServiceCard({ service }: ServiceCardProps) {
             </span>
           )}
         </div>
+        {tls && (
+          <div className="flex flex-col">
+            <span className="text-[0.7rem] uppercase tracking-wider text-muted font-medium">
+              TLS Cert
+            </span>
+            {tls.fingerprint ? (
+              <span
+                className={`text-sm font-semibold ${tls.is_expired ? "text-error" : "text-success"}`}
+                title={`Expires ${new Date(tls.not_after).toLocaleString()}`}
+              >
+                {tls.is_expired ? "Expired" : "Valid"}
+              </span>
+            ) : (
+              <span
+                className="text-sm font-semibold text-muted"
+                title="No stored certificate fingerprint — likely an HTTP (non-TLS) endpoint"
+              >
+                HTTP
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {isLongHttpResponse && showFullHttpResponse && (

@@ -192,3 +192,15 @@ export interface StatusMessage {
 export interface ServiceCardProps {
   service: Service;
 }
+
+export interface TlsStatus {
+  service_name: string;
+  fingerprint: string;
+  not_after: string;
+  subject: string;
+  issuer: string;
+  is_expired: boolean;
+  chain: string;
+  first_seen: string;
+  last_checked: string;
+}
