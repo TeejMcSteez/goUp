@@ -192,6 +192,21 @@ func InsertData(db *sql.DB, sd ServiceData) error {
 	})
 }
 
+func UpsertTls(db *sql.DB, t TlsStatus) error {
+	payload := database.InsertTlsStatusParams{
+		ServiceName: t.ServiceName,
+		Fingerprint: t.Fingerprint,
+		NotAfter:    t.Not_after.Unix(),
+		Subject:     sql.NullString{String: t.Subject},
+		Issuer:      sql.NullString{String: t.Issuer},
+		IsExpired:   boolToInt(t.Is_expired),
+		Chain:       sql.NullString{String: t.Chain},
+		FirstSeen:   t.First_seen.String(),
+		LastChecked: t.Last_checked.String(),
+	}
+	return database.New(db).InsertTlsStatus(context.Background(), payload)
+}
+
 // Gets all service data
 func GetData(db *sql.DB) ([]ServiceData, error) {
 	rows, err := database.New(db).GetAllData(context.Background())

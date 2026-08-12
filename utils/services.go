@@ -155,7 +155,7 @@ func checkTls(svc_name string, state *tls.ConnectionState) (TlsStatus, error) {
 }
 
 // fetchOne performs the HTTP fetch (plus optional API fetch) for a single endpoint.
-func fetchOne(endpoint Service) ServiceData {
+func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 	var sd ServiceData
 	sd.Timestamp = time.Now()
 	sd.ServiceName = endpoint.Name
@@ -178,8 +178,16 @@ func fetchOne(endpoint Service) ServiceData {
 			slog.Error("Error fetching endpoint", "url", endpoint.URL, "error", err)
 			sd.ServiceHTTPResponse = err.Error()
 			sd.ServiceResponseTime = time.Since(start).String()
-			return sd
+			tls, err := checkTls(endpoint.Name, res.TLS)
+			if err != nil {
+				slog.Error("failed to check TLS status for %v", "error", err)
+			}
+			return sd, tls
 		}
+	}
+	tls, err := checkTls(endpoint.Name, res.TLS)
+	if err != nil {
+		slog.Error("failed to check TLS status", "error", err)
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
@@ -198,7 +206,7 @@ func fetchOne(endpoint Service) ServiceData {
 	if sd.ServiceResponseTime == "" {
 		sd.ServiceResponseTime = time.Since(start).String()
 	}
-	return sd
+	return sd, tls
 }
 
 // GetServiceData fetches all service endpoints concurrently and returns the results.
@@ -212,7 +220,10 @@ func GetServiceData() (*ServiceResponse, error) {
 	}
 
 	endpoints := svcEndpoints.ServiceEndpoint
-	results := make([]ServiceData, len(endpoints))
+	results := make([]struct {
+		data ServiceData
+		tls  TlsStatus
+	}, len(endpoints))
 	var wg sync.WaitGroup
 
 	slog.Info("Scanning services HTTP endpoints . . .")
@@ -221,7 +232,7 @@ func GetServiceData() (*ServiceResponse, error) {
 		go func(i int, ep Service) {
 			defer wg.Done()
 			if ep.IsActive() {
-				results[i] = fetchOne(ep)
+				results[i].data, results[i].tls = fetchOne(ep)
 			} else {
 				slog.Info("Endpoint is disabled, continuing", "endpoint", ep.Name)
 			}
@@ -234,10 +245,11 @@ func GetServiceData() (*ServiceResponse, error) {
 		// Disabled endpoints are never fetched, leaving their slot as a
 		// zero-value ServiceData{}; skip them so we don't insert blank
 		// rows into the DB or have Check() flag them as down.
-		if r.ServiceName == "" {
+		if r.data.ServiceName == "" {
 			continue
 		}
-		svcResponse.AllServices = append(svcResponse.AllServices, r)
+		svcResponse.AllServices = append(svcResponse.AllServices, r.data)
+		svcResponse.TlsData = append(svcResponse.TlsData, r.tls)
 	}
 	var err error
 	if svcResponse.DownServices, err = Check(svcResponse.AllServices); err != nil {

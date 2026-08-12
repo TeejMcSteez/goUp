@@ -75,13 +75,13 @@ func runFetchCycle(db *sql.DB) {
 			slog.Error("Failed to insert data", "error", err)
 		}
 	}
-	checkedData, err := utils.Check(data.AllServices)
-	if err != nil {
-		slog.Error("Received error from checking data in scheduler", "error", err)
-		return
+	if len(data.DownServices) > 0 {
+		utils.Current_Config.Triggers.Fire(data.DownServices)
 	}
-	if len(checkedData) > 0 {
-		utils.Current_Config.Triggers.Fire(checkedData)
+	for _, t := range data.TlsData {
+		if err := utils.UpsertTls(db, t); err != nil {
+			slog.Error("failed to insert TLS data", "error", err)
+		}
 	}
 	slog.Info("Scheduler fetched service data successfully")
 }

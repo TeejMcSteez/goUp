@@ -181,6 +181,7 @@ type ServiceData struct {
 type ServiceResponse struct {
 	AllServices  []ServiceData `json:"services"`
 	DownServices []ServiceData `json:"downed_services"`
+	TlsData      []TlsStatus   `json:"tls_status"`
 }
 
 type ServiceResponseTime struct {
