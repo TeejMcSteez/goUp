@@ -2,8 +2,19 @@ import usePolling from "./usePolling";
 import type { UptimeItem, UptimeChartData } from "../types";
 import { usePollRate } from "../context/PollRateContext";
 
-async function fetchUptimeData(): Promise<UptimeChartData | null> {
-  const res = await fetch("/api/uptime");
+export type UptimeRange =
+  | ""
+  | "1hr"
+  | "12hr"
+  | "day"
+  | "week"
+  | "month"
+  | "year";
+
+async function fetchUptimeData(
+  range: UptimeRange,
+): Promise<UptimeChartData | null> {
+  const res = await fetch(`/api/uptime?range=${range}`);
   if (!res.ok) {
     throw new Error(`Error fetching data: ${res.statusText}`);
   }
@@ -30,7 +41,7 @@ async function fetchUptimeData(): Promise<UptimeChartData | null> {
   return null;
 }
 
-export default function useUptimeData() {
+export default function useUptimeData(range: UptimeRange = "") {
   const { pollRate } = usePollRate();
-  return usePolling(["uptime"], fetchUptimeData, pollRate);
+  return usePolling(["uptime", range], () => fetchUptimeData(range), pollRate);
 }

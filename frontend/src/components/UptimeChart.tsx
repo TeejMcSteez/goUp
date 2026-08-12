@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -8,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import useUptimeData from "../hooks/useUptimeData";
+import useUptimeData, { type UptimeRange } from "../hooks/useUptimeData";
 
 ChartJS.register(
   CategoryScale,
@@ -19,35 +20,43 @@ ChartJS.register(
   Legend,
 );
 
+const RANGE_OPTIONS: { label: string; value: UptimeRange }[] = [
+  { label: "All Time", value: "" },
+  { label: "1 Hour", value: "1hr" },
+  { label: "12 Hours", value: "12hr" },
+  { label: "Day", value: "day" },
+  { label: "Week", value: "week" },
+  { label: "Month", value: "month" },
+  { label: "Year", value: "year" },
+];
+
 export default function UptimeChart() {
-  const { data: chartData, loading, error } = useUptimeData();
+  const [range, setRange] = useState<UptimeRange>("");
+  const { data: chartData, loading, error } = useUptimeData(range);
 
+  const rangeSelector = (
+    <select
+      className="border rounded px-2 py-1 text-sm"
+      value={range}
+      onChange={(e) => setRange(e.target.value as UptimeRange)}
+    >
+      {RANGE_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+
+  let body;
   if (error) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-100">
-        <p>Could not load chart: {error}</p>
-      </div>
-    );
-  }
-
-  if (loading && !chartData) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-100">
-        <p>Loading chart...</p>
-      </div>
-    );
-  }
-
-  if (!chartData) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-100">
-        <p>No chart data available</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full flex items-center justify-center p-4 min-h-100">
+    body = <p>Could not load chart: {error}</p>;
+  } else if (loading && !chartData) {
+    body = <p>Loading chart...</p>;
+  } else if (!chartData) {
+    body = <p>No chart data available</p>;
+  } else {
+    body = (
       <Bar
         data={chartData}
         options={{
@@ -80,6 +89,15 @@ export default function UptimeChart() {
           maintainAspectRatio: false,
         }}
       />
+    );
+  }
+
+  return (
+    <div className="w-full flex flex-col items-center justify-center p-4 min-h-100">
+      <div className="w-full flex justify-end mb-2">{rangeSelector}</div>
+      <div className="w-full flex-1 flex items-center justify-center">
+        {body}
+      </div>
     </div>
   );
 }
