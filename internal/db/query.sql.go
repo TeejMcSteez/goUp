@@ -397,3 +397,17 @@ func (q *Queries) ServiceRename(ctx context.Context, arg ServiceRenameParams) er
 	_, err := q.db.ExecContext(ctx, serviceRename, arg.ServiceName, arg.ServiceName_2)
 	return err
 }
+
+const updateTlsServiceName = `-- name: UpdateTlsServiceName :exec
+UPDATE tls_status SET service_name = ? WHERE service_name = ?
+`
+
+type UpdateTlsServiceNameParams struct {
+	ServiceName   string
+	ServiceName_2 string
+}
+
+func (q *Queries) UpdateTlsServiceName(ctx context.Context, arg UpdateTlsServiceNameParams) error {
+	_, err := q.db.ExecContext(ctx, updateTlsServiceName, arg.ServiceName, arg.ServiceName_2)
+	return err
+}

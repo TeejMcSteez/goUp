@@ -160,6 +160,11 @@ func (s *Server) configServicePut(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if err := utils.UpdateServiceTls(s.db, payload.OldName, payload.Service.Name); err != nil {
+		slog.Error("Error updating TLS service name", "error", err)
+		http.Error(w, "failed to update TLS certificate for service", http.StatusInternalServerError)
+		return
+	}
 	if err := utils.Setup(utils.Current_Config); err != nil {
 		slog.Warn("failed to refresh endpoints after updating service", "error", err)
 	}
@@ -188,6 +193,12 @@ func (s *Server) configServiceDelete(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := utils.DeleteConfigService(utils.Current_Config, service, s.db); err != nil {
 		slog.Error("Error deleting config service", "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// delete TLS data for that service as well
+	if err := utils.DbServiceTlsDelete(s.db, service); err != nil {
+		slog.Error("Error deleting tls for service", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

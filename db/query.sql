@@ -41,5 +41,7 @@ ON CONFLICT(service_name) DO UPDATE SET
 SELECT * FROM tls_status WHERE service_name = ? LIMIT 1;
 -- name: GetTlsStatus :many
 SELECT * FROM tls_status;
+-- name: UpdateTlsServiceName :exec
+UPDATE tls_status SET service_name = ? WHERE service_name = ?;
 -- name: DeleteServiceTlsStatus :exec
 DELETE FROM tls_status WHERE service_name = ?;

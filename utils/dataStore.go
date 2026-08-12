@@ -368,6 +368,10 @@ func GetExpiredTls(db *sql.DB) ([]TlsStatus, error) {
 	return status, nil
 }
 
+func UpdateServiceTls(db *sql.DB, oldName string, newName string) (retErr error) {
+	return database.New(db).UpdateTlsServiceName(context.Background(), database.UpdateTlsServiceNameParams{ServiceName: newName, ServiceName_2: oldName})
+}
+
 // Clears all table information from service_data and reclaims unused pages
 func ClearDatabase(db *sql.DB) (retErr error) {
 	// Pass context with timeout
@@ -421,6 +425,16 @@ func DbServiceDelete(db *sql.DB, service Service) error {
 	}
 
 	slog.Info("Removed all instances of service", "service", service.Name)
+
+	return nil
+}
+
+func DbServiceTlsDelete(db *sql.DB, service Service) error {
+	if err := database.New(db).DeleteServiceTlsStatus(context.Background(), service.Name); err != nil {
+		return err
+	}
+
+	slog.Info("Removed all instances of tls data", "service", service.Name)
 
 	return nil
 }
