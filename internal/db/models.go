@@ -20,3 +20,15 @@ type ServiceDatum struct {
 	Error               int64
 	Active              int64
 }
+
+type TlsStatus struct {
+	ServiceName string
+	Fingerprint string
+	NotAfter    int64
+	Subject     sql.NullString
+	Issuer      sql.NullString
+	IsExpired   int64
+	Chain       sql.NullString
+	FirstSeen   string
+	LastChecked string
+}

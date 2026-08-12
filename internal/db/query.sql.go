@@ -48,6 +48,15 @@ func (q *Queries) DeleteService(ctx context.Context, serviceName sql.NullString)
 	return err
 }
 
+const deleteServiceTlsStatus = `-- name: DeleteServiceTlsStatus :exec
+DELETE FROM tls_status WHERE service_name = ?
+`
+
+func (q *Queries) DeleteServiceTlsStatus(ctx context.Context, serviceName string) error {
+	_, err := q.db.ExecContext(ctx, deleteServiceTlsStatus, serviceName)
+	return err
+}
+
 const getAllData = `-- name: GetAllData :many
 SELECT id, service_url, service_name, service_description, service_http_response, service_api_response, service_response_time, timestamp, error, active FROM service_data
 `
@@ -240,6 +249,64 @@ func (q *Queries) GetRecentData(ctx context.Context) ([]ServiceDatum, error) {
 	return items, nil
 }
 
+const getServiceTlsStatus = `-- name: GetServiceTlsStatus :one
+SELECT service_name, fingerprint, not_after, subject, issuer, is_expired, chain, first_seen, last_checked FROM tls_status WHERE service_name = ? LIMIT 1
+`
+
+func (q *Queries) GetServiceTlsStatus(ctx context.Context, serviceName string) (TlsStatus, error) {
+	row := q.db.QueryRowContext(ctx, getServiceTlsStatus, serviceName)
+	var i TlsStatus
+	err := row.Scan(
+		&i.ServiceName,
+		&i.Fingerprint,
+		&i.NotAfter,
+		&i.Subject,
+		&i.Issuer,
+		&i.IsExpired,
+		&i.Chain,
+		&i.FirstSeen,
+		&i.LastChecked,
+	)
+	return i, err
+}
+
+const getTlsStatus = `-- name: GetTlsStatus :many
+SELECT service_name, fingerprint, not_after, subject, issuer, is_expired, chain, first_seen, last_checked FROM tls_status
+`
+
+func (q *Queries) GetTlsStatus(ctx context.Context) ([]TlsStatus, error) {
+	rows, err := q.db.QueryContext(ctx, getTlsStatus)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TlsStatus
+	for rows.Next() {
+		var i TlsStatus
+		if err := rows.Scan(
+			&i.ServiceName,
+			&i.Fingerprint,
+			&i.NotAfter,
+			&i.Subject,
+			&i.Issuer,
+			&i.IsExpired,
+			&i.Chain,
+			&i.FirstSeen,
+			&i.LastChecked,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertData = `-- name: InsertData :exec
 INSERT INTO service_data (service_url, service_name, service_description, service_HTTP_response, service_API_response, service_response_time, timestamp, error, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
@@ -267,6 +334,52 @@ func (q *Queries) InsertData(ctx context.Context, arg InsertDataParams) error {
 		arg.Timestamp,
 		arg.Error,
 		arg.Active,
+	)
+	return err
+}
+
+const insertTlsStatus = `-- name: InsertTlsStatus :exec
+INSERT INTO tls_status (service_name, fingerprint, not_after, subject, issuer,
+                        is_expired, chain, first_seen, last_checked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(service_name) DO UPDATE SET
+    fingerprint  = excluded.fingerprint,
+    not_after    = excluded.not_after,
+    subject      = excluded.subject,
+    issuer       = excluded.issuer,
+    is_expired   = excluded.is_expired,
+    chain        = excluded.chain,
+    last_checked = excluded.last_checked,
+    first_seen   = CASE
+        WHEN tls_status.fingerprint = excluded.fingerprint
+        THEN tls_status.first_seen   -- same cert, keep it
+        ELSE excluded.first_seen     -- renewed, resets, giving cert age for free
+    END
+`
+
+type InsertTlsStatusParams struct {
+	ServiceName string
+	Fingerprint string
+	NotAfter    int64
+	Subject     sql.NullString
+	Issuer      sql.NullString
+	IsExpired   int64
+	Chain       sql.NullString
+	FirstSeen   string
+	LastChecked string
+}
+
+func (q *Queries) InsertTlsStatus(ctx context.Context, arg InsertTlsStatusParams) error {
+	_, err := q.db.ExecContext(ctx, insertTlsStatus,
+		arg.ServiceName,
+		arg.Fingerprint,
+		arg.NotAfter,
+		arg.Subject,
+		arg.Issuer,
+		arg.IsExpired,
+		arg.Chain,
+		arg.FirstSeen,
+		arg.LastChecked,
 	)
 	return err
 }
