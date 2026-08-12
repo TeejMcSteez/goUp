@@ -46,6 +46,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/status", s.StatusApi)
 	http.HandleFunc("/api/uptime", s.UptimeAPI)
 	http.HandleFunc("/api/rt", s.GetResponseTimes)
+	http.HandleFunc("/api/tls", s.GetTls)
 	http.HandleFunc("/api/errors", s.GetErrorData)
 	http.HandleFunc("/api/db/size", s.GetDatabaseSize)
 	http.HandleFunc("/api/db/persist", s.GetDatabasePersistence)

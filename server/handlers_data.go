@@ -175,3 +175,28 @@ func (s *Server) ManualFire(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 	}
 }
+
+// @Summary Gets all TLS certificate(s)
+// @Description Returns all TLS certificates - null if none
+// @Tags data
+// @Produce json
+// @Success 200 {array} utils.TlsStatus
+// @Failure 500 {string} string "internal server error"
+// @Router /api/tls [get]
+func (s *Server) GetTls(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if req.Method != "GET" {
+		http.Error(w, "invalid method", http.StatusInternalServerError)
+		return
+	}
+	data, err := utils.GetExpiredTls(s.db)
+	if err != nil {
+		http.Error(w, "failed to get TLS data", http.StatusInternalServerError)
+		return
+	}
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		slog.Error("Error encoding tls data to json", "error", err)
+		http.Error(w, "Failed to encode data to json", http.StatusInternalServerError)
+	}
+
+}

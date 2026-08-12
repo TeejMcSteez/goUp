@@ -165,6 +165,28 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 	return s, err
 }
 
+func rowToTlsStatus(t database.TlsStatus) TlsStatus {
+	firstSeen, err := time.Parse(time.RFC3339Nano, t.FirstSeen)
+	if err != nil {
+		slog.Error("failed to parse row first seen to time", "error", err)
+	}
+	lastChecked, err := time.Parse(time.RFC3339Nano, t.LastChecked)
+	if err != nil {
+		slog.Error("failed to parse row last checked to time", "error", err)
+	}
+	return TlsStatus{
+		ServiceName:  t.ServiceName,
+		Fingerprint:  t.Fingerprint,
+		Not_after:    time.Unix(t.NotAfter, 0),
+		Subject:      t.Subject.String,
+		Issuer:       t.Issuer.String,
+		Is_expired:   t.IsExpired == 1,
+		Chain:        t.Chain.String,
+		First_seen:   firstSeen,
+		Last_checked: lastChecked,
+	}
+}
+
 func boolToInt(b bool) int64 {
 	if b {
 		return 1
@@ -201,8 +223,8 @@ func UpsertTls(db *sql.DB, t TlsStatus) error {
 		Issuer:      sql.NullString{String: t.Issuer},
 		IsExpired:   boolToInt(t.Is_expired),
 		Chain:       sql.NullString{String: t.Chain},
-		FirstSeen:   t.First_seen.String(),
-		LastChecked: t.Last_checked.String(),
+		FirstSeen:   t.First_seen.Format(time.RFC3339Nano),
+		LastChecked: t.Last_checked.Format(time.RFC3339Nano),
 	}
 	return database.New(db).InsertTlsStatus(context.Background(), payload)
 }
@@ -331,6 +353,19 @@ func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
 		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
 	}
 	return svcRespTimes, nil
+}
+
+func GetExpiredTls(db *sql.DB) ([]TlsStatus, error) {
+	rows, err := database.New(db).GetTlsStatus(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	var status []TlsStatus
+	for _, r := range rows {
+		status = append(status, rowToTlsStatus(r))
+	}
+	return status, nil
 }
 
 // Clears all table information from service_data and reclaims unused pages
