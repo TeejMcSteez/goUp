@@ -1,8 +1,10 @@
 package utils_test
 
 import (
+	"database/sql"
 	"goUp/utils"
 	"testing"
+	"time"
 )
 
 func TestServiceCheck(t *testing.T) {
@@ -110,5 +112,108 @@ func TestUptimeCalculation(t *testing.T) {
 	expectedAvg := 0.25
 	if *avg != expectedAvg {
 		t.Errorf("Expected average to be %f, but got %f", expectedAvg, *avg)
+	}
+}
+
+func TestGetPastUptimeFunctions(t *testing.T) {
+	type uptimeFunc func(*sql.DB, string) (*float64, error)
+
+	cases := []struct {
+		name   string
+		fn     uptimeFunc
+		window time.Duration
+	}{
+		{"GetPastHourUptime", utils.GetPastHourUptime, time.Hour},
+		{"GetPast12HourUptime", utils.GetPast12HourUptime, 12 * time.Hour},
+		{"GetPastDayUptime", utils.GetPastDayUptime, 24 * time.Hour},
+		{"GetPastWeekUptime", utils.GetPastWeekUptime, 168 * time.Hour},
+		{"GetPastMonthUptime", utils.GetPastMonthUptime, 730 * time.Hour},
+		{"GetPastYearUptime", utils.GetPastYearUptime, 8760 * time.Hour},
+	}
+
+	setupService := func(t *testing.T, serviceName string) *sql.DB {
+		db, cleanup := setupTestDB(t)
+		t.Cleanup(cleanup)
+
+		utils.Current_Config.Services = map[string]utils.Service{
+			serviceName: {
+				Name:            serviceName,
+				URL:             "http://test.com",
+				Valid_Responses: &[]string{"200"},
+			},
+		}
+		return db
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+"/WithinWindow", func(t *testing.T) {
+			serviceName := "svc_" + tc.name
+			db := setupService(t, serviceName)
+
+			now := time.Now()
+			testData := []utils.ServiceData{
+				// Within the window: 1 down out of 3
+				{ServiceName: serviceName, ServiceHTTPResponse: "200", Timestamp: now.Add(-tc.window / 2)},
+				{ServiceName: serviceName, ServiceHTTPResponse: "200", Timestamp: now.Add(-tc.window / 4)},
+				{ServiceName: serviceName, ServiceHTTPResponse: "503", Timestamp: now.Add(-time.Minute)},
+				// Outside the window: should be excluded from the calculation
+				{ServiceName: serviceName, ServiceHTTPResponse: "503", Timestamp: now.Add(-tc.window - time.Hour)},
+			}
+
+			for _, sd := range testData {
+				if err := utils.InsertData(db, sd); err != nil {
+					t.Fatalf("Failed to insert data: %v", err)
+				}
+			}
+
+			avg, err := tc.fn(db, serviceName)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if avg == nil {
+				t.Fatal("Expected non-nil average, got nil")
+			}
+
+			expected := 0.33
+			if *avg != expected {
+				t.Errorf("Expected average %.2f, but got %f", expected, *avg)
+			}
+		})
+
+		t.Run(tc.name+"/OutsideWindowOnly", func(t *testing.T) {
+			serviceName := "svc_outside_" + tc.name
+			db := setupService(t, serviceName)
+
+			now := time.Now()
+			sd := utils.ServiceData{
+				ServiceName:         serviceName,
+				ServiceHTTPResponse: "503",
+				Timestamp:           now.Add(-tc.window - time.Hour),
+			}
+			if err := utils.InsertData(db, sd); err != nil {
+				t.Fatalf("Failed to insert data: %v", err)
+			}
+
+			avg, err := tc.fn(db, serviceName)
+			if err != nil {
+				t.Errorf("Expected nil error, but got: %v", err)
+			}
+			if avg != nil {
+				t.Errorf("Expected nil average when all data is outside the window, got %v", *avg)
+			}
+		})
+
+		t.Run(tc.name+"/NoData", func(t *testing.T) {
+			serviceName := "svc_empty_" + tc.name
+			db := setupService(t, serviceName)
+
+			avg, err := tc.fn(db, serviceName)
+			if err != nil {
+				t.Errorf("Expected nil error, but got: %v", err)
+			}
+			if avg != nil {
+				t.Errorf("Expected nil average when there is no data, got %v", *avg)
+			}
+		})
 	}
 }
