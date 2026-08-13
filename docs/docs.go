@@ -1331,6 +1331,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/tls": {
+            "get": {
+                "description": "Returns all TLS certificates - null if none",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Gets all TLS certificate(s)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/utils.TlsStatus"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/uptime": {
             "get": {
                 "produces": [
@@ -1622,6 +1651,12 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/utils.ServiceData"
                     }
+                },
+                "tls_status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/utils.TlsStatus"
+                    }
                 }
             }
         },
@@ -1663,6 +1698,38 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "telegram_Token": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.TlsStatus": {
+            "type": "object",
+            "properties": {
+                "chain": {
+                    "type": "string"
+                },
+                "fingerprint": {
+                    "type": "string"
+                },
+                "first_seen": {
+                    "type": "string"
+                },
+                "is_expired": {
+                    "type": "boolean"
+                },
+                "issuer": {
+                    "type": "string"
+                },
+                "last_checked": {
+                    "type": "string"
+                },
+                "not_after": {
+                    "type": "string"
+                },
+                "service_name": {
+                    "type": "string"
+                },
+                "subject": {
                     "type": "string"
                 }
             }

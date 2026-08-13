@@ -176,6 +176,10 @@ definitions:
         items:
           $ref: '#/definitions/utils.ServiceData'
         type: array
+      tls_status:
+        items:
+          $ref: '#/definitions/utils.TlsStatus'
+        type: array
     type: object
   utils.ServiceResponseTime:
     properties:
@@ -202,6 +206,27 @@ definitions:
       telegram_Channel_Id:
         type: string
       telegram_Token:
+        type: string
+    type: object
+  utils.TlsStatus:
+    properties:
+      chain:
+        type: string
+      fingerprint:
+        type: string
+      first_seen:
+        type: string
+      is_expired:
+        type: boolean
+      issuer:
+        type: string
+      last_checked:
+        type: string
+      not_after:
+        type: string
+      service_name:
+        type: string
+      subject:
         type: string
     type: object
   utils.WebhookTrigger:
@@ -1080,6 +1105,25 @@ paths:
             type: string
       summary: Get current service status returning any downed services or null for
         no services down
+      tags:
+      - data
+  /api/tls:
+    get:
+      description: Returns all TLS certificates - null if none
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/utils.TlsStatus'
+            type: array
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Gets all TLS certificate(s)
       tags:
       - data
   /api/uptime:
