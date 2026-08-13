@@ -557,6 +557,249 @@ func TestFireDiscord(t *testing.T) {
 	}
 }
 
+func TestWebhookClear(t *testing.T) {
+	var gotAuth string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected POST request, got %s", r.Method)
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("Expected Content-Type application/json, got %s", r.Header.Get("Content-Type"))
+		}
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	key := "Bearer test-key"
+	w := utils.WebhookTrigger{
+		Webhook_url:        &server.URL,
+		Webhook_key_string: &key,
+	}
+	w.Clear()
+
+	if gotAuth != key {
+		t.Errorf("expected Authorization %q, got %q", key, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal webhook clear payload: %v", err)
+	}
+	if payload["status"] != "clear" {
+		t.Errorf("expected status 'clear', got %v", payload["status"])
+	}
+	if payload["message"] == "" {
+		t.Error("expected non-empty message in webhook clear payload")
+	}
+}
+
+func TestFireGotifyClear(t *testing.T) {
+	var gotPath, gotKey string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotKey = r.Header.Get("X-Gotify-Key")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	title := "Test Alert"
+	token := "gotify-token"
+	g := utils.GotifyTrigger{
+		Gotify_Server: &server.URL,
+		Gotify_Token:  &token,
+		Gotify_Title:  &title,
+	}
+	g.Clear()
+
+	if gotPath != "/message" {
+		t.Errorf("expected path /message, got %s", gotPath)
+	}
+	if gotKey != token {
+		t.Errorf("expected X-Gotify-Key %q, got %q", token, gotKey)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Gotify clear payload: %v", err)
+	}
+	if payload["title"] != title {
+		t.Errorf("expected title %q, got %v", title, payload["title"])
+	}
+	if payload["message"] == "" {
+		t.Error("expected non-empty message in Gotify clear payload")
+	}
+}
+
+func TestFireGotifyClearDefaultTitle(t *testing.T) {
+	var gotBody []byte
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	token := "tok"
+	g := utils.GotifyTrigger{
+		Gotify_Server: &server.URL,
+		Gotify_Token:  &token,
+	}
+	g.Clear()
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Gotify clear payload: %v", err)
+	}
+	if payload["title"] != "GoUp Alert" {
+		t.Errorf("expected default title 'GoUp Alert', got %v", payload["title"])
+	}
+}
+
+func TestFireSlackClear(t *testing.T) {
+	var gotAuth, gotBody string
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	defer cleanup()
+
+	tok := "xoxb-slack-token"
+	ch := "#ops"
+	s := utils.SlackTrigger{
+		Slack_Token:   &tok,
+		Slack_Channel: &ch,
+	}
+	s.Clear()
+
+	if gotAuth != "Bearer "+tok {
+		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(gotBody), &payload); err != nil {
+		t.Fatalf("failed to unmarshal Slack clear payload: %v", err)
+	}
+	if payload["channel"] != ch {
+		t.Errorf("expected channel %q, got %v", ch, payload["channel"])
+	}
+	if payload["text"] == "" {
+		t.Error("expected non-empty text in Slack clear payload")
+	}
+	if payload["username"] != "GoUp Bot" {
+		t.Errorf("expected default username 'GoUp Bot', got %v", payload["username"])
+	}
+}
+
+func TestFireTelegramClear(t *testing.T) {
+	var gotBody []byte
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	defer cleanup()
+
+	tok := "123456:ABC-telegram-token"
+	ch := "-1001234567890"
+	tg := utils.TelegramTrigger{
+		Telegram_Token:      &tok,
+		Telegram_Channel_Id: &ch,
+	}
+	tg.Clear()
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Telegram clear payload: %v", err)
+	}
+	if payload["chat_id"] != ch {
+		t.Errorf("expected chat_id %q, got %v", ch, payload["chat_id"])
+	}
+	if payload["text"] == "" {
+		t.Error("expected non-empty text in Telegram clear payload")
+	}
+}
+
+func TestFireHAClear(t *testing.T) {
+	var gotPath, gotAuth string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	tok := "ha-token"
+	h := utils.HATrigger{
+		HA_URL:   &server.URL,
+		HA_Token: &tok,
+	}
+	h.Clear()
+
+	if gotPath != "/api/events/goup_alert" {
+		t.Errorf("expected path /api/events/goup_alert, got %s", gotPath)
+	}
+	if gotAuth != "Bearer "+tok {
+		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal HA clear payload: %v", err)
+	}
+	if payload["details"] == "" {
+		t.Error("expected non-empty details in HA clear payload")
+	}
+}
+
+func TestFireDiscordClear(t *testing.T) {
+	var gotAuth string
+	var gotBody []byte
+
+	_, cleanup := interceptTLS(t, func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	auth := "Bot discord-bot-token"
+	ch := "987654321098765432"
+	d := utils.DiscordTrigger{
+		Discord_Auth:    &auth,
+		Discord_Channel: &ch,
+	}
+	d.Clear()
+
+	if gotAuth != auth {
+		t.Errorf("expected Authorization %q, got %q", auth, gotAuth)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(gotBody, &payload); err != nil {
+		t.Fatalf("failed to unmarshal Discord clear payload: %v", err)
+	}
+	content, ok := payload["content"].(string)
+	if !ok || content == "" {
+		t.Errorf("expected non-empty content in Discord clear payload, got %v", payload["content"])
+	}
+}
+
 func TestFireWithBackoff(t *testing.T) {
 	hits := make(chan struct{}, 10)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
