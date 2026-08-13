@@ -58,6 +58,9 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 	return s
 }
 
+// stores failed state for fetchCycle
+var hasFailed bool = false
+
 // runFetchCycle fetches current service data, persists it, and fires any
 // triggers for newly-down services. Split out of StartScheduler's select loop
 // so it can run on its own goroutine — service checks can block for a while
@@ -77,6 +80,10 @@ func runFetchCycle(db *sql.DB) {
 	}
 	if len(data.DownServices) > 0 {
 		utils.Current_Config.Triggers.Fire(data.DownServices)
+		hasFailed = true
+	} else if hasFailed {
+		utils.Current_Config.Triggers.Clear()
+		hasFailed = false
 	}
 	for _, t := range data.TlsData {
 		if err := utils.UpsertTls(db, t); err != nil {

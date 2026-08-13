@@ -55,6 +55,7 @@ type Trigger struct {
 type TriggerHandler interface {
 	Fire(data []ServiceData)
 	IsConfigured() bool
+	Clear()
 }
 
 type MQTTTrigger struct {
