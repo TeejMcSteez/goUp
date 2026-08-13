@@ -162,6 +162,9 @@ Requires:
 - [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
 - [sqlc](https://sqlc.dev/) CLI, v1.31.1 (`go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1`)
 - [goose]() CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@v3.27.2`)
+### Development:
+- [golangci-lint](https://golangci-lint.run/)
+- [pprof](https://github.com/google/pprof) - for performance profiling
 
 The Makefile auto-detects the package manager by matching the existing lock file, then falls back to whichever is installed.
 
@@ -207,6 +210,18 @@ Schema:
 
 `service_response_time` is stored as nanoseconds (INTEGER) for efficient range queries and indexing. The column is indexed together with `service_name` via `idx_service_data_lookup`. Existing databases with legacy TEXT response times (e.g. `"1.234ms"`) are migrated automatically on startup. (now using [goose](https://pkg.go.dev/github.com/pressly/goose/v3))
 
+```sql
+"service_name" TEXT PRIMARY KEY,
+"fingerprint" TEXT NOT NULL, -- sha256 of the soonest certs DER
+"not_after" INTEGER NOT NULL, -- soonest expiry in chain
+"subject" TEXT,
+"issuer" TEXT,
+"is_expired" INTEGER NOT NULL DEFAULT 0,
+"chain" TEXT,
+"first_seen" TEXT NOT NULL,
+"last_checked" TEXT NOT NULL
+```
+
 ## Arch. Support
 
 - Linux ARM64/AMD64
@@ -224,6 +239,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 30.8% of statements
-- goUp/utils coverage: 63.3% of statements
-- goUp/workers coverage: 58.2% of statements
+- goUp/server coverage: 25.7% of statements
+- goUp/utils coverage: 62.8% of statements
+- goUp/workers coverage: 51.4% of statements
