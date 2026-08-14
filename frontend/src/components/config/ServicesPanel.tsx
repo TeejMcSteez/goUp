@@ -138,6 +138,27 @@ export default function ServicesPanel({
     }
   };
 
+  const handleToggleSkipInsecure = async (svc: ServiceConfig) => {
+    const nowSkipping = !(svc.SkipInsecure ?? false);
+    const res = await fetch("/api/config/service", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        old_name: svc.Name,
+        service: { ...svc, SkipInsecure: nowSkipping },
+      }),
+    });
+    if (res.ok) {
+      setStatus({
+        text: `TLS verification ${nowSkipping ? "skipped" : "enabled"} for ${svc.Name}.`,
+        error: false,
+      });
+      onRefresh();
+    } else {
+      setStatus({ text: await res.text(), error: true });
+    }
+  };
+
   const handleDelete = async (svc: ServiceConfig) => {
     const res = await fetch("/api/config/service", {
       method: "DELETE",
@@ -210,6 +231,15 @@ export default function ServicesPanel({
                         onChange={() => handleToggleActive(svc)}
                       />
                       Logging
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[0.85rem] text-muted cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="cursor-pointer"
+                        checked={svc.SkipInsecure ?? false}
+                        onChange={() => handleToggleSkipInsecure(svc)}
+                      />
+                      Skip TLS Verify
                     </label>
                     <button
                       className={btnBase}

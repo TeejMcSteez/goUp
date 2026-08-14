@@ -8,6 +8,7 @@ export interface Service {
   error?: string;
   active: boolean;
   timestamp?: string;
+  skip_insecure: boolean;
 }
 
 export interface ErrorItem {
@@ -47,6 +48,7 @@ export interface ServiceConfig {
   Valid_Responses?: number[];
   Retry_Requests?: number;
   Active?: boolean;
+  SkipInsecure?: boolean;
 }
 
 export interface MQTTConfig {

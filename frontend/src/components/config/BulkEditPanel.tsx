@@ -9,6 +9,7 @@ interface RowData {
   API_URL: string;
   Valid_Responses: string;
   Retry_Requests: string;
+  SkipInsecure: boolean;
 }
 
 interface BulkEditPanelProps {
@@ -23,7 +24,7 @@ const inputClass =
 const btnBase =
   "px-6 py-2 rounded-lg border border-border bg-surface text-fg text-[0.9rem] cursor-pointer transition-all duration-200 hover:bg-elevated hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50";
 
-const cols = ["Name", "URL", "Description", "API URL", "Valid Responses", "Retries"] as const;
+const cols = ["Name", "URL", "Description", "API URL", "Valid Responses", "Retries", "Skip TLS Verify"] as const;
 
 export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPanelProps) {
   const [rows, setRows] = useState<RowData[]>(() =>
@@ -35,14 +36,18 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
       API_URL: svc.API_URL ?? "",
       Valid_Responses: svc.Valid_Responses?.join(", ") ?? "",
       Retry_Requests: svc.Retry_Requests != null ? String(svc.Retry_Requests) : "",
+      SkipInsecure: svc.SkipInsecure ?? false,
     }))
   );
   const [saving, setSaving] = useState(false);
 
   const setCell =
-    (idx: number, field: keyof Omit<RowData, "key">) =>
+    (idx: number, field: keyof Omit<RowData, "key" | "SkipInsecure">) =>
     (e: React.ChangeEvent<HTMLInputElement>) =>
       setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: e.target.value } : r)));
+
+  const toggleSkipInsecure = (idx: number) => () =>
+    setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, SkipInsecure: !r.SkipInsecure } : r)));
 
   const handleSave = async () => {
     setSaving(true);
@@ -60,6 +65,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
           ...(validResponses?.length ? { Valid_Responses: validResponses.map(Number) } : { Valid_Responses: undefined }),
           ...(row.Retry_Requests !== "" ? { Retry_Requests: parseInt(row.Retry_Requests) } : { Retry_Requests: undefined }),
           Active: services[row.key]?.Active,
+          SkipInsecure: row.SkipInsecure,
         } as Partial<ServiceConfig>,
       };
     });
@@ -70,7 +76,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
   return (
     <div className="flex flex-col gap-4 p-3 sm:p-4 bg-elevated border border-border rounded-lg">
       {/* Column headers — desktop only */}
-      <div className="hidden sm:grid sm:grid-cols-[1fr_2fr_2fr_2fr_1.5fr_0.6fr] gap-2 text-muted text-[0.8rem] font-medium pb-1 border-b border-border">
+      <div className="hidden sm:grid sm:grid-cols-[1fr_2fr_2fr_2fr_1.5fr_0.6fr_0.9fr] gap-2 text-muted text-[0.8rem] font-medium pb-1 border-b border-border">
         {cols.map((c) => <span key={c}>{c}</span>)}
       </div>
 
@@ -78,7 +84,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
         {rows.map((row, idx) => (
           <div
             key={row.key}
-            className="flex flex-col gap-2 p-3 bg-surface border border-border rounded-lg sm:p-0 sm:bg-transparent sm:border-x-0 sm:border-t-0 sm:rounded-none sm:grid sm:grid-cols-[1fr_2fr_2fr_2fr_1.5fr_0.6fr] sm:gap-2 sm:items-center sm:pb-2"
+            className="flex flex-col gap-2 p-3 bg-surface border border-border rounded-lg sm:p-0 sm:bg-transparent sm:border-x-0 sm:border-t-0 sm:rounded-none sm:grid sm:grid-cols-[1fr_2fr_2fr_2fr_1.5fr_0.6fr_0.9fr] sm:gap-2 sm:items-center sm:pb-2"
           >
             <div className="flex flex-col gap-1">
               <label className="sm:hidden text-muted text-[0.75rem] font-medium">Name</label>
@@ -103,6 +109,15 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
             <div className="flex flex-col gap-1">
               <label className="sm:hidden text-muted text-[0.75rem] font-medium">Retries</label>
               <input className={inputClass} type="number" min="0" value={row.Retry_Requests} onChange={setCell(idx, "Retry_Requests")} placeholder="3" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="sm:hidden text-muted text-[0.75rem] font-medium">Skip TLS Verify</label>
+              <input
+                type="checkbox"
+                className="cursor-pointer justify-self-start"
+                checked={row.SkipInsecure}
+                onChange={toggleSkipInsecure(idx)}
+              />
             </div>
           </div>
         ))}
