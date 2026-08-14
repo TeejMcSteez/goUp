@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -117,6 +119,32 @@ func TestChainExpiryFallsBackToSelfSignedOnly(t *testing.T) {
 	}
 	if !soonest.Equal(expiry) {
 		t.Errorf("Expected soonest %v, got %v", expiry, soonest)
+	}
+}
+
+// TestFetchOneHandlesRequestErrorWithoutRetries is a regression test for a
+// nil pointer dereference: when the initial request fails and the endpoint
+// has no Retry_Requests configured, ErrorRetry returns a nil *http.Response,
+// but fetchOne used to dereference res.TLS unconditionally in that path.
+func TestFetchOneHandlesRequestErrorWithoutRetries(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	url := server.URL
+	server.Close() // requests to url now fail immediately with no response
+
+	svc := Service{Name: "unreachable-service", URL: url}
+
+	sd, status := fetchOne(svc)
+
+	if sd.ServiceName != "unreachable-service" {
+		t.Errorf("Expected ServiceName to be set, got %q", sd.ServiceName)
+	}
+	if sd.ServiceHTTPResponse == "" {
+		t.Error("Expected ServiceHTTPResponse to contain the request error, got empty string")
+	}
+	if status.ServiceName != "unreachable-service" {
+		t.Errorf("Expected TlsStatus.ServiceName to be set even without a response, got %q", status.ServiceName)
 	}
 }
 
