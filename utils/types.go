@@ -151,7 +151,8 @@ type Service struct {
 	Retry_Requests  *int      `yaml:"retry" json:"Retry_Requests,omitempty"`
 	// Active is a *bool so an unset value (nil) can default to true,
 	// distinct from an explicit `active: false`.
-	Active *bool `yaml:"active" json:"Active,omitempty"`
+	Active       *bool `yaml:"active" json:"Active,omitempty"`
+	SkipInsecure *bool `yaml:"skip_insecure" json:"skip_insecure"`
 }
 
 // IsActive reports whether the service should be actively monitored.

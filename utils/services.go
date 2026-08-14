@@ -22,9 +22,28 @@ var transport = &http.Transport{
 	IdleConnTimeout: 30 * time.Second,
 	MaxIdleConns:    10,
 }
+var insecureTransport = &http.Transport{
+	IdleConnTimeout: 30 * time.Second,
+	MaxIdleConns:    10,
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+}
 var httpClient = &http.Client{
 	Timeout:   30 * time.Second,
 	Transport: transport,
+}
+var insecureHTTPClient = &http.Client{
+	Timeout:   30 * time.Second,
+	Transport: insecureTransport,
+}
+
+// clientFor returns the http.Client appropriate for the endpoint's
+// SkipInsecure setting, so TLS verification can be relaxed per-service
+// without duplicating the fetch/retry logic.
+func clientFor(svc Service) *http.Client {
+	if svc.SkipInsecure != nil && *svc.SkipInsecure {
+		return insecureHTTPClient
+	}
+	return httpClient
 }
 
 type NoServiceEndpointsError struct {
@@ -171,7 +190,7 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 	req.Header.Add("User-Agent", "GoUp/"+Version)
 	start := time.Now()
 
-	res, err := httpClient.Do(req)
+	res, err := clientFor(endpoint).Do(req)
 	if err != nil {
 		res, err = ErrorRetry(&sd, endpoint, err)
 		if err != nil {
@@ -276,7 +295,7 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	apiReq.Header.Set("Content-Type", "application/json")
 	apiReq.Header.Set("User-Agent", "GoUp/"+Version)
 
-	apiRes, apiErr := httpClient.Do(apiReq)
+	apiRes, apiErr := clientFor(endpoint).Do(apiReq)
 
 	if apiErr != nil {
 		slog.Error("Error occured during API request", "error", apiErr)
@@ -328,7 +347,7 @@ func ErrorRetry(sd *ServiceData, endpoint Service, initialErr error) (*http.Resp
 	if endpoint.Retry_Requests != nil {
 		for range *endpoint.Retry_Requests {
 			slog.Warn("Error fetching endpoint, re-attempting GET request", "url", endpoint.URL, "error", currentErr)
-			retry_res, retry_err := httpClient.Get(endpoint.URL)
+			retry_res, retry_err := clientFor(endpoint).Get(endpoint.URL)
 			if retry_err == nil {
 				return retry_res, nil
 			}
