@@ -178,7 +178,11 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 			slog.Error("Error fetching endpoint", "url", endpoint.URL, "error", err)
 			sd.ServiceHTTPResponse = err.Error()
 			sd.ServiceResponseTime = time.Since(start).String()
-			tls, err := checkTls(endpoint.Name, res.TLS)
+			var state *tls.ConnectionState
+			if res != nil {
+				state = res.TLS
+			}
+			tls, err := checkTls(endpoint.Name, state)
 			if err != nil {
 				slog.Error("failed to check TLS status for %v", "error", err)
 			}
