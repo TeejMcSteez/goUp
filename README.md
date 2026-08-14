@@ -42,6 +42,7 @@ Services are defined by their name, URL, and optional fields. Only `db_path`, th
 | `valid_responses` | List of HTTP status codes considered healthy (default: `["200"]`) |
 | `retry` | Number of times to retry a failed request before triggering |
 | `active` | Tells the program whether the service is currently being monitored |
+| `skip_insecure` | Skips TLS certificate verification for this service (e.g. self-signed or hostname-mismatched certs) |
 
 Triggers fire when a service is detected as down. All trigger types are optional; only configure the ones you need.
 
@@ -107,6 +108,11 @@ services:
     url: "http://nas.example.com/"
     description: "NAS storage"
     active: false # Skips fetching data until changed to true or null
+
+  streamer:
+    url: "https://streamer.example.com:8080/"
+    description: "Internal service with a self-signed cert"
+    skip_insecure: true # Skips TLS certificate verification for this service only
 
 triggers:
   backoff: "30m"
@@ -240,5 +246,5 @@ With this in mind below are the current coverages of the code found by running `
 
 - goUp coverage: 0.0% of statements
 - goUp/server coverage: 25.7% of statements
-- goUp/utils coverage: 62.8% of statements
+- goUp/utils coverage: 63.7% of statements
 - goUp/workers coverage: 51.4% of statements
