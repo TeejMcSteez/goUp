@@ -152,7 +152,7 @@ type Service struct {
 	// Active is a *bool so an unset value (nil) can default to true,
 	// distinct from an explicit `active: false`.
 	Active       *bool `yaml:"active" json:"Active,omitempty"`
-	SkipInsecure *bool `yaml:"skip_insecure" json:"skip_insecure"`
+	SkipInsecure *bool `yaml:"skip_insecure" json:"SkipInsecure,omitempty"`
 }
 
 // IsActive reports whether the service should be actively monitored.
@@ -178,6 +178,7 @@ type ServiceData struct {
 	Timestamp           time.Time `json:"timestamp"`
 	Error               bool      `json:"error"`
 	Active              bool      `json:"active"`
+	SkipInsecure        bool      `json:"skip_insecure"`
 }
 
 type ServiceResponse struct {

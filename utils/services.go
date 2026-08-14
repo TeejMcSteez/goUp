@@ -183,6 +183,7 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 	if endpoint.Description != nil {
 		sd.ServiceDescription = *endpoint.Description
 	}
+	sd.SkipInsecure = endpoint.SkipInsecure != nil && *endpoint.SkipInsecure
 	req, err := http.NewRequest("GET", endpoint.URL, nil)
 	if err != nil {
 		slog.Error("Error creating new HTTP request", "error", err)
