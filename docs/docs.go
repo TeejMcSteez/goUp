@@ -1594,6 +1594,9 @@ const docTemplate = `{
                 "Retry_Requests": {
                     "type": "integer"
                 },
+                "SkipInsecure": {
+                    "type": "boolean"
+                },
                 "URL": {
                     "type": "string"
                 },
@@ -1628,6 +1631,9 @@ const docTemplate = `{
                 },
                 "response_time": {
                     "type": "string"
+                },
+                "skip_insecure": {
+                    "type": "boolean"
                 },
                 "timestamp": {
                     "type": "string"

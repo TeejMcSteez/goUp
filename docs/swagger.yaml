@@ -138,6 +138,8 @@ definitions:
         type: string
       Retry_Requests:
         type: integer
+      SkipInsecure:
+        type: boolean
       URL:
         type: string
       Valid_Responses:
@@ -161,6 +163,8 @@ definitions:
         type: string
       response_time:
         type: string
+      skip_insecure:
+        type: boolean
       timestamp:
         type: string
       url:
