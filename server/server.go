@@ -16,6 +16,26 @@ type Server struct {
 	db      *sql.DB
 	scd     *scheduler.Scheduler
 	serveUi *string
+	handler *GoupHandler
+}
+
+type GoupHandler struct {
+	Cors   bool
+	Origin *string
+	next   http.Handler
+}
+
+func (g *GoupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	getOrigin := func(handler *GoupHandler) string {
+		if handler.Origin == nil {
+			return "*"
+		}
+		return *handler.Origin
+	}(g)
+	if g.Cors {
+		w.Header().Add("Access-Control-Allow-Origin", getOrigin)
+	}
+	g.next.ServeHTTP(w, r)
 }
 
 //go:embed all:static
