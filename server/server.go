@@ -42,8 +42,8 @@ func (g *GoupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var content embed.FS
 
 // Returns a new server instance
-func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi *string) *Server {
-	return &Server{db: db, scd: scd, serveUi: serveUi}
+func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi string, handler GoupHandler) *Server {
+	return &Server{db: db, scd: scd, serveUi: &serveUi, handler: &handler}
 }
 
 // Starts server with all handler functions
@@ -85,8 +85,9 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/backoff", s.ConfigBackoffApi)
 	http.HandleFunc("/api/config/size", s.ConfigDatabaseApi)
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+	s.handler.next = http.DefaultServeMux
 	slog.Info("Starting server", "address", "http://localhost:8101/")
-	if err := http.ListenAndServe(":8101", nil); err != nil {
+	if err := http.ListenAndServe(":8101", s.handler); err != nil {
 		return err
 	}
 

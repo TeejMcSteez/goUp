@@ -25,6 +25,8 @@ func main() {
 	configPath := flag.String("config", "services.yml", "path to config file")
 	serveReact := flag.String("ui", "y", "serve frontend React file, otherwise just run API server")
 	getVersion := flag.Bool("version", false, "Used to display version")
+	cors := flag.Bool("cors", false, "Allow CORS aside from localhost\nMainly for Swagger API")
+	origin := flag.String("origin", "*", "Sets allowed origin\nDefault is \"*\"")
 	flag.Parse()
 	if *getVersion {
 		log.Print("Build Version: " + utils.Version)
@@ -60,7 +62,12 @@ func main() {
 	go workers.StartHotReloader(*configPath, ctx, db)
 	go workers.StartMemoryWatcher(ctx, db)
 	go func() {
-		if serverCreateErr := server.NewServer(db, sch, &serve).Start(); err != nil {
+		// Next is set in NewServer to use the DefaultServeMux
+		handler := server.GoupHandler{
+			Cors:   *cors,
+			Origin: origin,
+		}
+		if serverCreateErr := server.NewServer(db, sch, serve, handler).Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
