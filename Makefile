@@ -1,6 +1,7 @@
 SWAG   := $(shell go env GOPATH)/bin/swag
 BINARY := goUp
 VERSION := $(shell git describe --tags --always --dirty)
+ARGS ?= ""
 
 # Detect package manager: prefer the one matching the existing lock file,
 # then fall back to whatever is installed, then plain npm.
@@ -20,7 +21,7 @@ all: docs lint fmt test build
 dev:
 	cd frontend && $(PM) run build
 	cd db && sqlc generate
-	go run .
+	go run . $(ARGS)
 
 docs:
 	$(SWAG) init -g main.go -o docs
