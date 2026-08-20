@@ -15,7 +15,7 @@ import (
 type Server struct {
 	db      *sql.DB
 	scd     *scheduler.Scheduler
-	serveUi *string
+	serveUi bool
 	handler *GoupHandler
 }
 
@@ -42,15 +42,15 @@ func (g *GoupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var content embed.FS
 
 // Returns a new server instance
-func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi string, handler GoupHandler) *Server {
-	return &Server{db: db, scd: scd, serveUi: &serveUi, handler: &handler}
+func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler) *Server {
+	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler}
 }
 
 // Starts server with all handler functions
 //
 // Returns an error if a problem with the server occurs
 func (s *Server) Start() error {
-	if *s.serveUi == "y" {
+	if s.serveUi {
 		staticFS, err := fs.Sub(content, "static")
 		if err != nil {
 			return err

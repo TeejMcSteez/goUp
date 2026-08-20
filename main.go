@@ -17,13 +17,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 )
 
 func main() {
 	configPath := flag.String("config", "services.yml", "path to config file")
-	serveReact := flag.String("ui", "y", "serve frontend React file, otherwise just run API server")
+	serveReact := flag.Bool("ui", true, "serve frontend React file, otherwise just run API server")
 	getVersion := flag.Bool("version", false, "Used to display version")
 	cors := flag.Bool("cors", false, "Allow CORS aside from localhost\nMainly for Swagger API")
 	origin := flag.String("origin", "*", "Sets allowed origin\nDefault is \"*\"")
@@ -31,10 +30,6 @@ func main() {
 	if *getVersion {
 		log.Print("Build Version: " + utils.Version)
 		return
-	}
-	serve := string([]byte(*serveReact)[0])
-	if strings.ToLower(*serveReact) != "y" && strings.ToLower(serve) != "n" {
-		log.Fatalf("UI flag must be 'y' or 'n'\nwas: %v", *serveReact)
 	}
 
 	cfg, err := utils.LoadConfig(*configPath)
@@ -67,7 +62,7 @@ func main() {
 			Cors:   *cors,
 			Origin: origin,
 		}
-		if serverCreateErr := server.NewServer(db, sch, serve, handler).Start(); err != nil {
+		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler).Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
