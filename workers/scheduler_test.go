@@ -20,6 +20,51 @@ func newTestScheduler(t *testing.T) *workers.Scheduler {
 	return s
 }
 
+// withEmptyServiceConfig points utils.Current_Config at a config with no
+// service endpoints configured, so a fetch cycle triggered via Fire() fails
+// fast inside GetServiceData (NoServiceEndpointsError) instead of making
+// real network calls. The previous config is restored on test cleanup.
+func withEmptyServiceConfig(t *testing.T) {
+	t.Helper()
+	prev := utils.Current_Config
+	utils.Current_Config = &utils.Config{
+		Schedule: &utils.ScheduleState{Span: 60, Interval: "minutes"},
+	}
+	t.Cleanup(func() { utils.Current_Config = prev })
+}
+
+// syncBuffer is a concurrency-safe io.Writer, since fetch cycles run on a
+// separate goroutine from the test and both may log concurrently.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.buf.String()
+}
+
+// waitForLog polls buf until it contains substr or the timeout elapses.
+func waitForLog(t *testing.T, buf *syncBuffer, substr string, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if bytes.Contains([]byte(buf.String()), []byte(substr)) {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("Expected log output to contain %q within %s, got:\n%s", substr, timeout, buf.String())
+}
+
 func TestSchedulerGetInitialState(t *testing.T) {
 	s := newTestScheduler(t)
 	defer s.Stop()
