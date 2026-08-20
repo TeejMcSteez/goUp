@@ -1,9 +1,12 @@
 package workers_test
 
 import (
+	"bytes"
 	"database/sql"
 	"goUp/utils"
 	"goUp/workers"
+	"log/slog"
+	"sync"
 	"testing"
 	"time"
 )
@@ -149,6 +152,103 @@ func TestSchedulerUpdateValidIntervalVariants(t *testing.T) {
 		if !s.Update(utils.ScheduleState{Span: 1, Interval: interval}) {
 			t.Errorf("Expected Update to return true for interval %q", interval)
 		}
+	}
+}
+
+// TestSchedulerFireRunsFetchCycle verifies that Fire() drives a fetch cycle
+// through to completion: the fire case spawns the fetch goroutine, and the
+// fetchDone case observes its completion and clears the fetching flag,
+// leaving the scheduler's select loop free to keep servicing requests.
+func TestSchedulerFireRunsFetchCycle(t *testing.T) {
+	withEmptyServiceConfig(t)
+
+	buf := &syncBuffer{}
+	prevLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
+	defer slog.SetDefault(prevLogger)
+
+	s := newTestScheduler(t)
+	defer s.Stop()
+
+	s.Fire()
+
+	// With no service endpoints configured, GetServiceData fails fast via
+	// NoServiceEndpointsError, so runFetchCycle logs this specific error.
+	waitForLog(t, buf, "Failed fetching service data in scheduler", 2*time.Second)
+
+	// The fetchDone signal must have been processed by the select loop for
+	// this to return; otherwise the loop would still be blocked mid-cycle.
+	state := s.Get()
+	if state.Span != 60 {
+		t.Errorf("Expected Span=60 after Fire() completed, got %d", state.Span)
+	}
+}
+
+// TestSchedulerFireDoesNotBlockScheduler verifies that handling the fire
+// case is non-blocking (the actual fetch runs on its own goroutine), so the
+// scheduler's select loop stays responsive to Get() immediately after.
+func TestSchedulerFireDoesNotBlockScheduler(t *testing.T) {
+	withEmptyServiceConfig(t)
+
+	buf := &syncBuffer{}
+	prevLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
+	defer slog.SetDefault(prevLogger)
+
+	s := newTestScheduler(t)
+	defer s.Stop()
+
+	s.Fire()
+
+	done := make(chan utils.ScheduleState, 1)
+	go func() { done <- s.Get() }()
+
+	select {
+	case <-done:
+		// success
+	case <-time.After(1 * time.Second):
+		t.Fatal("Get() did not return after Fire(), scheduler select loop appears stuck")
+	}
+
+	// Wait for the fetch goroutine to actually finish reading Current_Config
+	// before the test returns and withEmptyServiceConfig's cleanup restores
+	// it out from under an in-flight fetch.
+	waitForLog(t, buf, "Failed fetching service data in scheduler", 2*time.Second)
+}
+
+// TestSchedulerFireSkipsOverlappingFetch verifies the fetching guard: firing
+// again while a previous fetch is still in flight logs a "skip" instead of
+// starting a second concurrent fetch cycle.
+func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
+	withEmptyServiceConfig(t)
+
+	buf := &syncBuffer{}
+	prevLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
+	defer slog.SetDefault(prevLogger)
+
+	s := newTestScheduler(t)
+	defer s.Stop()
+
+	// Fire() blocks on the unbuffered s.fire channel until the select loop
+	// is ready to receive, so these sends are serialized by the loop one
+	// iteration at a time. The fetch goroutine spawned by the first Fire()
+	// needs to be scheduled and run before it clears the fetching flag, so
+	// firing again immediately after should observe fetching still true.
+	s.Fire()
+	s.Fire()
+
+	waitForLog(t, buf, "Previous service data fetch still running, skipping this tick", 2*time.Second)
+
+	// Wait for the one real fetch goroutine to finish reading Current_Config
+	// before the test returns and withEmptyServiceConfig's cleanup restores
+	// it out from under it.
+	waitForLog(t, buf, "Failed fetching service data in scheduler", 2*time.Second)
+
+	// Scheduler must remain responsive after the overlapping fire.
+	state := s.Get()
+	if state.Span != 60 {
+		t.Errorf("Expected Span=60 after overlapping Fire(), got %d", state.Span)
 	}
 }
 
