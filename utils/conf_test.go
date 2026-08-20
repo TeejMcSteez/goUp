@@ -1112,6 +1112,230 @@ services:
 	}
 }
 
+func TestUpdateBackoffGlobal(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	if err := utils.UpdateBackoff(conf, "45s", ""); err != nil {
+		t.Fatalf("UpdateBackoff: %v", err)
+	}
+
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	if got := utils.ReadConfigBackoff(conf); got != "45s" {
+		t.Errorf("Expected global backoff '45s', got %q", got)
+	}
+
+	// "global" trigger name is equivalent to "".
+	if err := utils.UpdateBackoff(conf, "1m", "global"); err != nil {
+		t.Fatalf("UpdateBackoff global: %v", err)
+	}
+	if got := utils.ReadConfigBackoff(conf); got != "1m" {
+		t.Errorf("Expected global backoff '1m', got %q", got)
+	}
+
+	// Blank value clears the global backoff.
+	if err := utils.UpdateBackoff(conf, "", ""); err != nil {
+		t.Fatalf("UpdateBackoff clear: %v", err)
+	}
+	if got := utils.ReadConfigBackoff(conf); got != "" {
+		t.Errorf("Expected cleared global backoff, got %q", got)
+	}
+}
+
+func TestUpdateBackoffPerTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	if err := utils.UpdateBackoff(conf, "2m", "mqtt"); err != nil {
+		t.Fatalf("UpdateBackoff mqtt: %v", err)
+	}
+	if conf.Triggers.MQTT.Backoff_Period == nil || *conf.Triggers.MQTT.Backoff_Period != "2m" {
+		t.Errorf("Expected MQTT backoff '2m', got %v", conf.Triggers.MQTT.Backoff_Period)
+	}
+
+	// Setting a per-trigger backoff must not affect the global backoff.
+	if got := utils.ReadConfigBackoff(conf); got != "" {
+		t.Errorf("Expected global backoff to remain unset, got %q", got)
+	}
+
+	if err := utils.UpdateBackoff(conf, "3m", "webhook"); err != nil {
+		t.Fatalf("UpdateBackoff webhook: %v", err)
+	}
+	if conf.Triggers.Webhook.Backoff_Period == nil || *conf.Triggers.Webhook.Backoff_Period != "3m" {
+		t.Errorf("Expected webhook backoff '3m', got %v", conf.Triggers.Webhook.Backoff_Period)
+	}
+}
+
+func TestUpdateBackoffInvalidDuration(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	if err := utils.UpdateBackoff(conf, "not-a-duration", "mqtt"); err == nil {
+		t.Fatal("Expected error for invalid duration, got nil")
+	}
+	if conf.Triggers.MQTT.Backoff_Period != nil {
+		t.Errorf("Expected MQTT backoff to remain unset after invalid update, got %v", conf.Triggers.MQTT.Backoff_Period)
+	}
+}
+
+func TestUpdateBackoffUnknownTrigger(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	if err := utils.UpdateBackoff(conf, "1m", "carrier-pigeon"); err == nil {
+		t.Fatal("Expected error for unknown trigger, got nil")
+	}
+}
+
+func TestUpdateBackoffNilConfig(t *testing.T) {
+	if err := utils.UpdateBackoff(nil, "1m", ""); err == nil {
+		t.Fatal("Expected error for nil config, got nil")
+	}
+}
+
+func TestReadConfigBackoff(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc:
+    url: "https://example.com"
+triggers:
+  backoff: "30m"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if got := utils.ReadConfigBackoff(conf); got != "30m" {
+		t.Errorf("Expected '30m', got %q", got)
+	}
+
+	conf.Triggers.Backoff_Period = nil
+	if got := utils.ReadConfigBackoff(conf); got != "" {
+		t.Errorf("Expected empty string when Backoff_Period is nil, got %q", got)
+	}
+}
+
+func TestReadConfigService(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc1:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	svc, err := utils.ReadConfigService(conf, utils.Service{Name: "svc1"})
+	if err != nil {
+		t.Fatalf("ReadConfigService: %v", err)
+	}
+	if svc.URL != "https://example.com" {
+		t.Errorf("Expected URL 'https://example.com', got %q", svc.URL)
+	}
+
+	if _, err := utils.ReadConfigService(conf, utils.Service{Name: "does-not-exist"}); err == nil {
+		t.Fatal("Expected error for unknown service, got nil")
+	}
+
+	if _, err := utils.ReadConfigService(nil, utils.Service{Name: "svc1"}); err == nil {
+		t.Fatal("Expected error for nil config, got nil")
+	}
+}
+
+func TestUpdateConfigServiceActive(t *testing.T) {
+	cleanup := createTestYML(`db_path: "./test_data.db"
+services:
+  svc1:
+    url: "https://example.com"
+`, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+
+	// Active starts nil (defaults to true via IsActive) -> first toggle sets it false.
+	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "svc1"}); err != nil {
+		t.Fatalf("UpdateConfigServiceActive: %v", err)
+	}
+	svc := conf.Services["svc1"]
+	if svc.Active == nil || *svc.Active != false {
+		t.Errorf("Expected Active false after first toggle, got %v", svc.Active)
+	}
+
+	// Second toggle flips false -> true.
+	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "svc1"}); err != nil {
+		t.Fatalf("UpdateConfigServiceActive: %v", err)
+	}
+	svc = conf.Services["svc1"]
+	if svc.Active == nil || *svc.Active != true {
+		t.Errorf("Expected Active true after second toggle, got %v", svc.Active)
+	}
+
+	// Verify persisted to disk.
+	conf, err = utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Reload: %v", err)
+	}
+	svc = conf.Services["svc1"]
+	if svc.Active == nil || *svc.Active != true {
+		t.Errorf("Expected Active true on disk after reload, got %v", svc.Active)
+	}
+
+	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "does-not-exist"}); err == nil {
+		t.Fatal("Expected error for unknown service, got nil")
+	}
+
+	if err := utils.UpdateConfigServiceActive(nil, utils.Service{Name: "svc1"}); err == nil {
+		t.Fatal("Expected error for nil config, got nil")
+	}
+}
+
 func TestReadDatabaseSize(t *testing.T) {
 	cleanup := createTestYML(`db_path: "./test_data.db"
 db_max_size: "2gb"
