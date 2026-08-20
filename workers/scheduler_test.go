@@ -3,9 +3,13 @@ package workers_test
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"goUp/utils"
 	"goUp/workers"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -26,14 +30,22 @@ func newTestScheduler(t *testing.T) *workers.Scheduler {
 // withEmptyServiceConfig points utils.Current_Config at a config with no
 // service endpoints configured, so a fetch cycle triggered via Fire() fails
 // fast inside GetServiceData (NoServiceEndpointsError) instead of making
-// real network calls. The previous config is restored on test cleanup.
+// real network calls. It also resets utils' cached endpoint list to empty,
+// both so this test doesn't inherit endpoints left behind by another test
+// and so it doesn't leave any behind for the next one; GetServiceData only
+// re-derives that list from Current_Config when it's empty. The previous
+// config is restored on test cleanup.
 func withEmptyServiceConfig(t *testing.T) {
 	t.Helper()
 	prev := utils.Current_Config
+	utils.SetServiceEndpoints([]utils.Service{})
 	utils.Current_Config = &utils.Config{
 		Schedule: &utils.ScheduleState{Span: 60, Interval: "minutes"},
 	}
-	t.Cleanup(func() { utils.Current_Config = prev })
+	t.Cleanup(func() {
+		utils.SetServiceEndpoints([]utils.Service{})
+		utils.Current_Config = prev
+	})
 }
 
 // syncBuffer is a concurrency-safe io.Writer, since fetch cycles run on a
@@ -219,31 +231,76 @@ func TestSchedulerFireDoesNotBlockScheduler(t *testing.T) {
 // TestSchedulerFireSkipsOverlappingFetch verifies the fetching guard: firing
 // again while a previous fetch is still in flight logs a "skip" instead of
 // starting a second concurrent fetch cycle.
+//
+// This needs a fetch slow enough to reliably still be running when the
+// second Fire() lands - the "no service endpoints" fast-fail path used by
+// the other Fire tests completes in-process in a handful of microseconds,
+// far too fast to deterministically race against. So this test wires up a
+// real (deliberately slow) HTTP endpoint and a real sqlite DB, matching how
+// runFetchCycle behaves against an actual configured service.
 func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
-	withEmptyServiceConfig(t)
+	const fetchDelay = 300 * time.Millisecond
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(fetchDelay)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	dbPath := fmt.Sprintf("./scheduler_fire_skip_%s.db", t.Name())
+	prevConfig := utils.Current_Config
+	cfg := &utils.Config{
+		Database_Location: &dbPath,
+		Schedule:          &utils.ScheduleState{Span: 60, Interval: "minutes"},
+		Services: map[string]utils.Service{
+			"Slow": {Name: "Slow", URL: srv.URL},
+		},
+	}
+	utils.Current_Config = cfg
+	// Bypass Setup() and point utils directly at our slow endpoint, so the
+	// fetch is guaranteed to take fetchDelay regardless of what endpoint
+	// list an earlier test may have left behind.
+	utils.SetServiceEndpoints([]utils.Service{{Name: "Slow", URL: srv.URL}})
+	t.Cleanup(func() {
+		utils.SetServiceEndpoints([]utils.Service{})
+		utils.Current_Config = prevConfig
+	})
+
+	db, err := utils.InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("db.Close: %v", err)
+		}
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("os.Remove %s: %v", dbPath, err)
+		}
+	})
 
 	buf := &syncBuffer{}
 	prevLogger := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
 	defer slog.SetDefault(prevLogger)
 
-	s := newTestScheduler(t)
+	s := workers.NewScheduler(db, cfg)
 	defer s.Stop()
 
 	// Fire() blocks on the unbuffered s.fire channel until the select loop
 	// is ready to receive, so these sends are serialized by the loop one
-	// iteration at a time. The fetch goroutine spawned by the first Fire()
-	// needs to be scheduled and run before it clears the fetching flag, so
-	// firing again immediately after should observe fetching still true.
+	// iteration at a time. The first Fire() kicks off a fetch that will
+	// take at least fetchDelay to finish, so the second Fire(), landing
+	// essentially immediately after, is guaranteed to see fetching still
+	// true and skip instead of starting a second concurrent fetch cycle.
 	s.Fire()
 	s.Fire()
 
 	waitForLog(t, buf, "Previous service data fetch still running, skipping this tick", 2*time.Second)
 
-	// Wait for the one real fetch goroutine to finish reading Current_Config
-	// before the test returns and withEmptyServiceConfig's cleanup restores
-	// it out from under it.
-	waitForLog(t, buf, "Failed fetching service data in scheduler", 2*time.Second)
+	// Wait for the one real fetch to finish before the test returns and
+	// cleanup tears down the DB and Current_Config out from under it.
+	waitForLog(t, buf, "Scheduler fetched service data successfully", 2*time.Second)
 
 	// Scheduler must remain responsive after the overlapping fire.
 	state := s.Get()
