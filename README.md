@@ -31,6 +31,8 @@ When shrinking the database the system switches off WAL mode so the row deletion
 
 One can also specify whether or not to keep data after stopping the program with `persist_db` being `true` or `false`
 
+Other command line flags can be found running `goUp -help`
+
 Services are defined by their name, URL, and optional fields. Only `db_path`, the service name, and `url` are mandatory; all other fields are optional.
 
 | Service field | Description |
@@ -246,5 +248,5 @@ With this in mind below are the current coverages of the code found by running `
 
 - goUp coverage: 0.0% of statements
 - goUp/server coverage: 25.7% of statements
-- goUp/utils coverage: 63.7% of statements
-- goUp/workers coverage: 51.4% of statements
+- goUp/utils coverage: 67.2% of statements
+- goUp/workers coverage: 63.0% of statements
