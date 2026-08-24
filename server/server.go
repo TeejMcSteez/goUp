@@ -85,6 +85,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/api/config/backoff", s.ConfigBackoffApi)
 	http.HandleFunc("/api/config/size", s.ConfigDatabaseApi)
 	http.HandleFunc("/swagger/", httpSwagger.WrapHandler)
+	http.HandleFunc("/ws", s.handleWs)
 	s.handler.next = http.DefaultServeMux
 	slog.Info("Starting server", "address", "http://localhost:8101/")
 	if err := http.ListenAndServe(":8101", s.handler); err != nil {
