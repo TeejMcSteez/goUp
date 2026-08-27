@@ -491,3 +491,22 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 	slog.Info("GC: removed orphaned rows not matching current config")
 	return nil
 }
+
+// Uses PingContext to check database health returning any errors
+func CheckDatabaseHealth(ctx context.Context, db *sql.DB) error {
+	if err := db.PingContext(ctx); err != nil {
+		return err
+	}
+
+	var res string
+	err := db.QueryRowContext(ctx, `PRAGMA integrity_check`).Scan(&res)
+	if err != nil {
+		return err
+	}
+
+	if res != "ok" {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
