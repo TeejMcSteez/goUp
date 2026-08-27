@@ -16,8 +16,8 @@ require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
-	github.com/go-openapi/jsonreference v1.0.0 // indirect
-	github.com/go-openapi/spec v0.22.9 // indirect
+	github.com/go-openapi/jsonreference v1.0.1 // indirect
+	github.com/go-openapi/spec v0.22.11 // indirect
 	github.com/go-openapi/swag/conv v0.29.1 // indirect
 	github.com/go-openapi/swag/jsonutils v0.29.1 // indirect
 	github.com/go-openapi/swag/loading v0.29.1 // indirect
@@ -39,7 +39,7 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
-	modernc.org/libc v1.75.4 // indirect
+	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
