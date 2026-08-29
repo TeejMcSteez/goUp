@@ -143,6 +143,8 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 				default:
 				}
 			}
+			// Set any fails to false for refresh
+			hasFailed = false
 			// time to fetch data
 			if fetching {
 				slog.Info("Previous service data fetch still running, skipping this tick")
