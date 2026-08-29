@@ -15,15 +15,16 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-const (
-	writeWait = 10 * time.Second
+// Unused for now - comment out for linter
+// const (
+// 	writeWait = 10 * time.Second
 
-	pongWait = 60 * time.Second
+// 	pongWait = 60 * time.Second
 
-	pingPeriod = (pongWait * 9) / 10
+// 	pingPeriod = (pongWait * 9) / 10
 
-	maxMessageSize = 512
-)
+// 	maxMessageSize = 512
+// )
 
 func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(w, req, nil)
