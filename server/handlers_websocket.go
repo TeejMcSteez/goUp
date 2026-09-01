@@ -1,30 +1,35 @@
 package server
 
 import (
-	"encoding/json"
-	"goUp/utils"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
+
+type wsConn struct {
+	conn *websocket.Conn
+	send chan []byte
+	done chan struct{}
+	once sync.Once
+}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-// Unused for now - comment out for linter
-// const (
-// 	writeWait = 10 * time.Second
+const (
+	writeWait = 10 * time.Second
 
-// 	pongWait = 60 * time.Second
+	pongWait = 60 * time.Second
 
-// 	pingPeriod = (pongWait * 9) / 10
-
-// 	maxMessageSize = 512
-// )
+	pingPeriod = (pongWait * 9) / 10
+	// max message size
+	_ = 512
+)
 
 func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(w, req, nil)
@@ -32,32 +37,60 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	go s.writeLoop(conn)
+	wsConn := wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte)}
+	go wsConn.readLoop()
+	go wsConn.writeLoop()
 }
 
-func (s *Server) writeLoop(c *websocket.Conn) {
-	ticker := time.NewTicker(5 * time.Second)
+func (ws *wsConn) readLoop() {
+	for {
+		_, msg, err := ws.conn.ReadMessage()
+		if err != nil {
+			slog.Error("error in websocket read loop", "error", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				slog.Error("unexpected close error in websocket read loop", "error", err)
+			}
+			return
+		}
+		slog.Info("read loop input", "info", msg)
+	}
+}
+
+func (ws *wsConn) writeLoop() {
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		if err := c.Close(); err != nil {
-			slog.Error("error closing websocket connection", "error", err)
+		ticker.Stop()
+		if err := ws.conn.Close(); err != nil {
+			slog.Error("error closing websocket connection in write loop", "error", err)
 		}
 	}()
 	for {
-		<-ticker.C
-		recentData, err := utils.GetRecentData(s.db)
-		if err != nil {
-			slog.Error("error getting recent data in websocket write loop", "error", err)
-			break
-		}
-		jsonData, err := json.Marshal(recentData)
-		if err != nil {
-			slog.Error("error encoding json data", "error", err)
-			break
-		}
-		err = c.WriteMessage(1, jsonData)
-		if err != nil {
-			slog.Error("error writing websocket message", "error", err)
-			break
+		select {
+		case <-ticker.C:
+			if err := ws.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				slog.Error("error setting read deadline in websocket writeLoop", "error", err)
+			}
+			err := ws.conn.WriteMessage(1, nil)
+			if err != nil {
+				slog.Error("error writing websocket message", "error", err)
+			}
+		case b, ok := <-ws.send:
+			if !ok {
+				return
+			}
+			if err := ws.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				slog.Error("error setting read deadline in websocket writeLoop", "error", err)
+			}
+			if err := ws.conn.WriteMessage(websocket.TextMessage, b); err != nil {
+				ws.stop()
+				return
+			}
+		case <-ws.done:
+			return
 		}
 	}
+}
+
+func (ws *wsConn) stop() {
+	ws.once.Do(func() { close(ws.done) })
 }
