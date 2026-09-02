@@ -173,93 +173,47 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 	return writeConfig(conf)
 }
 
-func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
-	if config == nil {
+func setTrigger[T comparable](conf *Config, field *T, newVal T, name string) error {
+	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
-	if newMQTT == config.Triggers.MQTT {
-		return fmt.Errorf("MQTT trigger is the same")
+	if *field == newVal {
+		return fmt.Errorf("%s config is the same", name)
 	}
-	config.Triggers.MQTT = newMQTT
-	return writeConfig(config)
+	*field = newVal
+	return writeConfig(conf)
+}
+
+func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
+	return setTrigger(config, &config.Triggers.MQTT, newMQTT, "MQTT")
 }
 
 func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	org_webhook := config.Triggers.Webhook
-	if newWebhook == org_webhook {
-		return fmt.Errorf("webhook is the same")
-	}
-	config.Triggers.Webhook = newWebhook
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.Webhook, newWebhook, "webhook")
 }
 
 func AddConfigSMTPTrigger(config *Config, newSmtp SMTPTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newSmtp == config.Triggers.SMTP {
-		return fmt.Errorf("SMTP config is the same")
-	}
-	config.Triggers.SMTP = newSmtp
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.SMTP, newSmtp, "SMTP")
 }
 
 func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newGotify == config.Triggers.Gotify {
-		return fmt.Errorf("gotify config is the same")
-	}
-	config.Triggers.Gotify = newGotify
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.Gotify, newGotify, "gotify")
 }
 
 func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newSlack == config.Triggers.Slack {
-		return fmt.Errorf("slack config is the same")
-	}
-	config.Triggers.Slack = newSlack
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.Slack, newSlack, "slack")
 }
 
 func AddConfigTelegramTrigger(config *Config, newTelegram TelegramTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newTelegram == config.Triggers.Telegram {
-		return fmt.Errorf("slack config is the same")
-	}
-	config.Triggers.Telegram = newTelegram
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.Telegram, newTelegram, "telegram")
 }
 
 func AddConfigHATrigger(config *Config, newHA HATrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newHA == config.Triggers.HA {
-		return fmt.Errorf("ha config is the same")
-	}
-	config.Triggers.HA = newHA
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.HA, newHA, "ha")
 }
 
 func AddConfigDiscordTrigger(config *Config, newDiscord DiscordTrigger) error {
-	if config == nil {
-		return fmt.Errorf("config is nil")
-	}
-	if newDiscord == config.Triggers.Discord {
-		return fmt.Errorf("discord config is the same")
-	}
-	config.Triggers.Discord = newDiscord
-	return writeConfig(config)
+	return setTrigger(config, &config.Triggers.Discord, newDiscord, "discord")
 }
 
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
