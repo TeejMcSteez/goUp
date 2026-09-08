@@ -9,7 +9,7 @@ RUN pnpm build
 # Output lands in /build/server/static via vite outDir
 
 # ---- Stage 2: Build Go binary ----
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /build
 RUN GOTOOLCHAIN=auto go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
 COPY go.mod go.sum ./

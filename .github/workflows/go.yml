@@ -24,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25.x"
+          go-version: "1.26"
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
@@ -61,7 +61,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25.x"
+          go-version: "1.26"
       - name: Download static assets
         uses: actions/download-artifact@v4
         with:
