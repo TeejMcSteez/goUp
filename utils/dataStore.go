@@ -228,6 +228,31 @@ func UpsertTls(db *sql.DB, t TlsStatus) error {
 	return database.New(db).InsertTlsStatus(context.Background(), toTlsparams(t))
 }
 
+func PersistCycle(db *sql.DB, all []ServiceData, tls []TlsStatus) error {
+	ctx := context.Background()
+	opts := sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  false,
+	}
+	tx, err := db.BeginTx(ctx, &opts)
+	if err != nil {
+		return fmt.Errorf("begin cycle tx: %w", err)
+	}
+	q := database.New(tx)
+
+	for _, sd := range all {
+		if err := q.InsertData(ctx, toInsertParams(sd)); err != nil {
+			slog.Error("insert data", "svc", sd.ServiceName, "error", err)
+		}
+	}
+	for _, t := range tls {
+		if err := q.InsertTlsStatus(ctx, toTlsparams(t)); err != nil {
+			slog.Error("insert tls", "svc", t.ServiceName, "error", err)
+		}
+	}
+	return tx.Commit()
+}
+
 // Gets all service data
 func GetData(db *sql.DB) ([]ServiceData, error) {
 	rows, err := database.New(db).GetAllData(context.Background())
