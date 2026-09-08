@@ -19,6 +19,9 @@ type Scheduler struct {
 	fire  chan struct{}
 }
 
+type fetchResult struct{ hasFailed bool }
+
+// schedule next run based on the *current* Span/Interval
 func computeDuration(Span int, Interval string) time.Duration {
 	d := time.Duration(Span)
 	switch strings.ToLower(Interval)[0] {
@@ -58,39 +61,41 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 	return s
 }
 
-// stores failed state for fetchCycle
-var hasFailed bool = false
-
 // runFetchCycle fetches current service data, persists it, and fires any
 // triggers for newly-down services. Split out of StartScheduler's select loop
 // so it can run on its own goroutine — service checks can block for a while
 // (slow endpoints, retries), and the select loop must stay free to service
 // s.get/s.state/s.stop the whole time, or callers like GET/POST /api/schedule
 // would hang until the fetch finishes.
-func runFetchCycle(db *sql.DB) {
+func runFetchCycle(db *sql.DB, wasFailed bool) fetchResult {
 	data, err := utils.GetServiceData()
 	if err != nil {
 		slog.Error("Failed fetching service data in scheduler", "error", err)
-		return
+		return fetchResult{hasFailed: wasFailed}
 	}
+
 	for i := range data.AllServices {
 		if err := utils.InsertData(db, data.AllServices[i]); err != nil {
 			slog.Error("Failed to insert data", "error", err)
 		}
-	}
-	if len(data.DownServices) > 0 {
-		utils.Current_Config.Triggers.Fire(data.DownServices)
-		hasFailed = true
-	} else if hasFailed {
-		utils.Current_Config.Triggers.Clear()
-		hasFailed = false
 	}
 	for _, t := range data.TlsData {
 		if err := utils.UpsertTls(db, t); err != nil {
 			slog.Error("failed to insert TLS data", "error", err)
 		}
 	}
+
+	if len(data.DownServices) > 0 {
+		utils.Current_Config.Triggers.Fire(data.DownServices)
+		return fetchResult{hasFailed: true}
+	}
+	// Only fires on past errors with no new failures
+	if wasFailed {
+		utils.Current_Config.Triggers.Clear()
+	}
+
 	slog.Info("Scheduler fetched service data successfully")
+	return fetchResult{hasFailed: false}
 }
 
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
@@ -99,20 +104,24 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	dur := computeDuration(Span, Interval)
 	timer := time.NewTimer(dur)
 	fetching := false
-	// Buffered so runFetchCycle's completion signal never blocks, even if
-	// the scheduler has already returned (e.g. stopped mid-fetch).
-	fetchDone := make(chan struct{}, 1)
+	hasFailed := false
+	fetchDone := make(chan fetchResult, 1) // buffered goroutine never blocks on send
+	// starts fetchCycle
+	startFetch := func() {
+		if fetching {
+			slog.Info("Previous service data fetch still running, skipping this tick")
+			return
+		}
+		fetching = true
+		go func(db *sql.DB, wasFailed bool) {
+			fetchDone <- runFetchCycle(db, wasFailed)
+		}(db, hasFailed) // snapshot in
+	}
 
 	for {
 		select {
 		case <-s.stop:
-			// clean shutdown: stop timer and drain channel if needed
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			utils.DrainTimer(timer)
 			slog.Info("Scheduler stopped")
 			return
 
@@ -120,57 +129,23 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			// update schedule parameters
 			Span = upd.Span
 			Interval = upd.Interval
+			// compute new duration
 			dur = computeDuration(Span, Interval)
-
-			// interrupt current wait and restart with new duration
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			utils.DrainTimer(timer)
 			timer.Reset(dur)
 			slog.Info("Schedule updated", "span", Span, "interval", Interval)
 		case req := <-s.get:
 			req.res <- utils.ScheduleState{Span: Span, Interval: Interval}
-		case <-fetchDone:
+		case res := <-fetchDone:
 			fetching = false
+			hasFailed = res.hasFailed
 		case <-s.fire:
-			// Drain timer
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			// Set any fails to false for refresh
-			hasFailed = false
-			// time to fetch data
-			if fetching {
-				slog.Info("Previous service data fetch still running, skipping this tick")
-			} else {
-				fetching = true
-				go func(db *sql.DB) {
-					runFetchCycle(db)
-					fetchDone <- struct{}{}
-				}(db)
-			}
-			// schedule next run based on the *current* Span/Interval
+			utils.DrainTimer(timer)
+			startFetch()
 			dur = computeDuration(Span, Interval)
 			timer.Reset(dur)
 		case <-timer.C:
-			// time to fetch data
-			if fetching {
-				slog.Info("Previous service data fetch still running, skipping this tick")
-			} else {
-				fetching = true
-				go func(db *sql.DB) {
-					runFetchCycle(db)
-					fetchDone <- struct{}{}
-				}(db)
-			}
-
-			// schedule next run based on the *current* Span/Interval
+			startFetch()
 			dur = computeDuration(Span, Interval)
 			timer.Reset(dur)
 		}
