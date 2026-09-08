@@ -207,8 +207,7 @@ func (s *Scheduler) Update(state utils.ScheduleState) bool {
 }
 
 func (s *Scheduler) Fire() {
-	var c struct{}
-	s.fire <- c
+	s.fire <- struct{}{}
 }
 
 func (s *Scheduler) Get() utils.ScheduleState {
