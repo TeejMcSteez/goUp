@@ -141,6 +141,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 			hasFailed = res.hasFailed
 		case <-s.fire:
 			utils.DrainTimer(timer)
+			hasFailed = false
 			startFetch()
 			dur = computeDuration(Span, Interval)
 			timer.Reset(dur)
