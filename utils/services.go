@@ -149,7 +149,8 @@ func checkTls(svc_name string, state *tls.ConnectionState) (TlsStatus, error) {
 
 	soonest, c, ok := chainExpiry(state)
 	if !ok {
-		return status, fmt.Errorf("plain HTTP or empty chain") // plain HTTP or empty chain — nothing to record
+		slog.Info("plain HTTP or empty chain", "service", svc_name)
+		return status, nil // plain HTTP or empty chain — nothing to record
 	}
 	sum := sha256.Sum256(c.Raw)
 	now := time.Now()
