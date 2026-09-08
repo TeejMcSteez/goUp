@@ -59,6 +59,14 @@ func Setup(cfg *Config) error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 
+	return setupLocked(cfg)
+}
+
+// setupLocked is the body of Setup. It assumes the caller already holds
+// svcEndpoints.Mux, so callers that are themselves under the lock (e.g.
+// GetServiceData) can re-run setup without deadlocking on the non-reentrant
+// RWMutex.
+func setupLocked(cfg *Config) error {
 	Current_Config = cfg
 	slog.Info("Setting up triggers")
 	Current_Config.Triggers = *SetupTrigger(cfg)
@@ -240,7 +248,7 @@ func GetServiceData() (*ServiceResponse, error) {
 	defer svcEndpoints.Mux.Unlock()
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		slog.Info("No service endpoints found looking for config . . .")
-		if err := Setup(Current_Config); err != nil {
+		if err := setupLocked(Current_Config); err != nil {
 			slog.Error("Error setting up config while fetching service data", "error", err)
 			return nil, err
 		}
