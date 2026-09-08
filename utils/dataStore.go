@@ -187,13 +187,6 @@ func rowToTlsStatus(t database.TlsStatus) TlsStatus {
 	}
 }
 
-func boolToInt(b bool) int64 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
 func InsertData(db *sql.DB, sd ServiceData) error {
 	var rtNs int64
 	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
