@@ -187,14 +187,12 @@ func rowToTlsStatus(t database.TlsStatus) TlsStatus {
 	}
 }
 
-func InsertData(db *sql.DB, sd ServiceData) error {
+func toInsertParams(sd ServiceData) database.InsertDataParams {
 	var rtNs int64
 	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
 		rtNs = d.Nanoseconds()
 	}
-
-	q := database.New(db)
-	return q.InsertData(context.Background(), database.InsertDataParams{
+	return database.InsertDataParams{
 		ServiceUrl:          sql.NullString{String: sd.ServiceURL, Valid: true},
 		ServiceName:         sql.NullString{String: sd.ServiceName, Valid: true},
 		ServiceDescription:  sql.NullString{String: sd.ServiceDescription, Valid: true},
@@ -204,11 +202,11 @@ func InsertData(db *sql.DB, sd ServiceData) error {
 		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
 		Error:               boolToInt(sd.Error),
 		Active:              boolToInt(sd.Active),
-	})
+	}
 }
 
-func UpsertTls(db *sql.DB, t TlsStatus) error {
-	payload := database.InsertTlsStatusParams{
+func toTlsparams(t TlsStatus) database.InsertTlsStatusParams {
+	return database.InsertTlsStatusParams{
 		ServiceName: t.ServiceName,
 		Fingerprint: t.Fingerprint,
 		NotAfter:    t.Not_after.Unix(),
@@ -219,7 +217,15 @@ func UpsertTls(db *sql.DB, t TlsStatus) error {
 		FirstSeen:   t.First_seen.Format(time.RFC3339Nano),
 		LastChecked: t.Last_checked.Format(time.RFC3339Nano),
 	}
-	return database.New(db).InsertTlsStatus(context.Background(), payload)
+}
+
+func InsertData(db *sql.DB, sd ServiceData) error {
+	q := database.New(db)
+	return q.InsertData(context.Background(), toInsertParams(sd))
+}
+
+func UpsertTls(db *sql.DB, t TlsStatus) error {
+	return database.New(db).InsertTlsStatus(context.Background(), toTlsparams(t))
 }
 
 // Gets all service data
