@@ -236,6 +236,8 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 
 // GetServiceData fetches all service endpoints concurrently and returns the results.
 func GetServiceData() (*ServiceResponse, error) {
+	svcEndpoints.Mux.Lock()
+	defer svcEndpoints.Mux.Unlock()
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		slog.Info("No service endpoints found looking for config . . .")
 		if err := Setup(Current_Config); err != nil {
