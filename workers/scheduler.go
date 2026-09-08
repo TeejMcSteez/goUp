@@ -74,15 +74,8 @@ func runFetchCycle(db *sql.DB, wasFailed bool) fetchResult {
 		return fetchResult{hasFailed: wasFailed}
 	}
 
-	for i := range data.AllServices {
-		if err := utils.InsertData(db, data.AllServices[i]); err != nil {
-			slog.Error("Failed to insert data", "error", err)
-		}
-	}
-	for _, t := range data.TlsData {
-		if err := utils.UpsertTls(db, t); err != nil {
-			slog.Error("failed to insert TLS data", "error", err)
-		}
+	if err := utils.PersistCycle(db, data.AllServices, data.TlsData); err != nil {
+		slog.Error("failed to persist fetch cycle in database", "error", err)
 	}
 
 	if len(data.DownServices) > 0 {
