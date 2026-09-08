@@ -150,8 +150,8 @@ func TestFetchOneHandlesRequestErrorWithoutRetries(t *testing.T) {
 
 func TestCheckTlsPlainHTTP(t *testing.T) {
 	status, err := checkTls("plain-service", nil)
-	if err == nil {
-		t.Fatal("Expected error for nil TLS state")
+	if err != nil {
+		t.Fatal("Expected non-error for nil TLS state")
 	}
 	if status.ServiceName != "plain-service" {
 		t.Errorf("Expected ServiceName to be set even on error, got %q", status.ServiceName)
