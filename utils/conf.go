@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"regexp"
 	"strconv"
@@ -171,6 +172,8 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
+	configMu.Lock()
+	defer configMu.Unlock()
 	if conf.Services == nil {
 		conf.Services = make(map[string]Service)
 	}
@@ -181,6 +184,20 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 		return fmt.Errorf("no new endpoint added")
 	}
 	return writeConfig(conf)
+}
+
+// ServiceURLExists reports whether a service with the given URL is already
+// configured. Callers must not range over conf.Services directly since the
+// map can be mutated concurrently by the config HTTP handlers.
+func ServiceURLExists(conf *Config, url string) bool {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	for _, svc := range conf.Services {
+		if svc.URL == url {
+			return true
+		}
+	}
+	return false
 }
 
 func setTrigger[T comparable](conf *Config, field *T, newVal T, name string) error {
@@ -230,6 +247,8 @@ func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.
 	if conf == nil {
 		return fmt.Errorf("config is nil")
 	}
+	configMu.Lock()
+	defer configMu.Unlock()
 	if _, exists := conf.Services[oldName]; !exists {
 		return fmt.Errorf("service %q not found", oldName)
 	}
@@ -253,6 +272,8 @@ func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) er
 		return fmt.Errorf("failed to remove data from database: %v", err)
 	}
 
+	configMu.Lock()
+	defer configMu.Unlock()
 	org_size := len(config.Services)
 	delete(config.Services, serviceToDelete.Name)
 	new_size := len(config.Services)
@@ -354,8 +375,15 @@ func DeleteConfigDiscordTrigger(config *Config) error {
 	return writeConfig(config)
 }
 
+// ReadConfigServices returns a snapshot copy of the configured services.
+// It copies rather than returning the live map so callers can range over
+// the result without racing the config HTTP handlers' writes.
 func ReadConfigServices(config *Config) map[string]Service {
-	return config.Services
+	configMu.RLock()
+	defer configMu.RUnlock()
+	out := make(map[string]Service, len(config.Services))
+	maps.Copy(out, config.Services)
+	return out
 }
 
 func ReadConfigMQTT(config *Config) MQTTTrigger {
@@ -496,6 +524,8 @@ func ReadConfigService(conf *Config, service Service) (Service, error) {
 		return Service{}, fmt.Errorf("config is nil")
 	}
 
+	configMu.RLock()
+	defer configMu.RUnlock()
 	s, ok := conf.Services[service.Name]
 	if !ok {
 		slog.Error("invalid service", "service", service.Name)
@@ -509,6 +539,8 @@ func UpdateConfigServiceActive(conf *Config, service Service) error {
 		return fmt.Errorf("config is nil")
 	}
 
+	configMu.Lock()
+	defer configMu.Unlock()
 	s, ok := conf.Services[service.Name]
 	if !ok {
 		slog.Error("invalid service", "service", service.Name)

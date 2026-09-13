@@ -121,11 +121,9 @@ func (s *Server) configServicePost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	for _, svc := range utils.Current_Config.Services {
-		if svc.URL == service.URL {
-			http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
-			return
-		}
+	if utils.ServiceURLExists(utils.Current_Config, service.URL) {
+		http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
+		return
 	}
 	if err := utils.AddConfigService(utils.Current_Config, service); err != nil {
 		slog.Error("Error adding config service", "error", err)

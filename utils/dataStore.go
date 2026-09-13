@@ -7,7 +7,6 @@ import (
 	migrations "goUp/db/migrations"
 	database "goUp/internal/db"
 	"log/slog"
-	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -288,7 +287,7 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 	// the moment a service is toggled and stops being fetched.
 	liveServices := make(map[string]Service)
 	if Current_Config != nil {
-		maps.Copy(liveServices, Current_Config.Services)
+		liveServices = ReadConfigServices(Current_Config)
 	}
 
 	sd := []ServiceData{}
@@ -495,7 +494,9 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 	q := database.New(db)
 	ctx := context.Background()
 
-	if len(conf.Services) == 0 {
+	services := ReadConfigServices(conf)
+
+	if len(services) == 0 {
 		if err := q.ClearServiceData(ctx); err != nil {
 			return err
 		}
@@ -503,8 +504,8 @@ func DbGarbageCollect(db *sql.DB, conf *Config) error {
 		return nil
 	}
 
-	names := make([]sql.NullString, 0, len(conf.Services))
-	for name := range conf.Services {
+	names := make([]sql.NullString, 0, len(services))
+	for name := range services {
 		names = append(names, sql.NullString{String: name, Valid: true})
 	}
 

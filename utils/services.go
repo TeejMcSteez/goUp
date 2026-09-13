@@ -73,13 +73,16 @@ func setupLocked(cfg *Config) error {
 
 	var updatedEndpoints []Service
 	slog.Info("Setting up service endpoints")
+	configMu.RLock()
 	if cfg.Services != nil {
 		updatedEndpoints = append(updatedEndpoints, scanDeadEndpoints(cfg)...)
 
 		updatedEndpoints = append(updatedEndpoints, scanNewEndpoints(cfg, updatedEndpoints)...)
 	} else {
+		configMu.RUnlock()
 		return &NoServiceEndpointsError{"No service endpoints found in current configuration!"}
 	}
+	configMu.RUnlock()
 	svcEndpoints.ServiceEndpoint = updatedEndpoints
 	slog.Info("Service endpoints setup finished")
 	slog.Info("Configuration setup finished")
