@@ -8,12 +8,22 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 var Current_Config *Config
+
+// configMu guards Current_Config.Services. It's a separate lock from
+// writeConfig's file I/O because reads (Setup, the scheduler, TLS/GC
+// scans) and writes (the config HTTP handlers) both touch the map from
+// different goroutines, and Go maps panic on concurrent access. Bulk
+// edits from the UI fire one PUT per changed service via Promise.all,
+// so without this lock two of those goroutines racing on the same map
+// is enough to crash the process (fatal error: concurrent map writes).
+var configMu sync.RWMutex
 
 // programmaticWrite is signalled by writeConfig so the hot reloader can
 // distinguish program-initiated writes from external file edits.
