@@ -1,8 +1,10 @@
 package utils_test
 
 import (
+	"fmt"
 	"goUp/utils"
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -491,6 +493,71 @@ services:
 	err = utils.UpdateConfigService(conf, "does-not-exist", utils.Service{Name: "x", URL: "https://x.com"}, db)
 	if err == nil {
 		t.Fatal("Expected error for non-existent service, got nil")
+	}
+}
+
+// TestConcurrentBulkUpdateConfigService reproduces the bulk-edit panic: the
+// frontend fires one PUT per changed service via Promise.all, which lands as
+// concurrent goroutines calling UpdateConfigService on the same
+// conf.Services map. Before configMu, this was a fatal "concurrent map
+// writes" crash rather than a recoverable error. Run with -race to also
+// catch any lock-free access reintroduced around the map.
+func TestConcurrentBulkUpdateConfigService(t *testing.T) {
+	ymlContent := `db_path: "./test_data.db"
+services:
+  svc-0:
+    url: "https://example.com/0"
+  svc-1:
+    url: "https://example.com/1"
+  svc-2:
+    url: "https://example.com/2"
+  svc-3:
+    url: "https://example.com/3"
+  svc-4:
+    url: "https://example.com/4"
+`
+	cleanup := createTestYML(ymlContent, t)
+	defer cleanup()
+
+	conf, err := utils.LoadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	db, cleanupDB := setupTestDB(t)
+	defer cleanupDB()
+
+	const n = 5
+	var wg sync.WaitGroup
+	errs := make([]error, n)
+	for i := range n {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			name := fmt.Sprintf("svc-%d", i)
+			updated := utils.Service{Name: name, URL: fmt.Sprintf("https://updated.example.com/%d", i)}
+			errs[i] = utils.UpdateConfigService(conf, name, updated, db)
+		}(i)
+	}
+	wg.Wait()
+
+	for i, err := range errs {
+		if err != nil {
+			t.Errorf("UpdateConfigService(svc-%d) failed: %v", i, err)
+		}
+	}
+
+	for i := range n {
+		name := fmt.Sprintf("svc-%d", i)
+		svc, ok := conf.Services[name]
+		if !ok {
+			t.Errorf("service %q missing after concurrent bulk update", name)
+			continue
+		}
+		want := fmt.Sprintf("https://updated.example.com/%d", i)
+		if svc.URL != want {
+			t.Errorf("service %q URL = %q, want %q", name, svc.URL, want)
+		}
 	}
 }
 
