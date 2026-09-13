@@ -6,6 +6,7 @@ interface ServiceFormData {
   URL: string;
   Description: string;
   API_URL: string;
+  API_Key: string;
   Valid_Responses: string;
   Retry_Requests: string;
 }
@@ -33,6 +34,7 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
       URL: form.URL,
       ...(form.Description && { Description: form.Description }),
       ...(form.API_URL && { API_URL: form.API_URL }),
+      ...(form.API_URL && form.API_Key && { API_Key: form.API_Key }),
       ...(validResponses?.length && { Valid_Responses: validResponses.map(Number) }),
       ...(form.Retry_Requests && { Retry_Requests: parseInt(form.Retry_Requests) }),
     });
@@ -63,6 +65,12 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
           API URL (optional)
           <input className={inputClass} value={form.API_URL} onChange={set("API_URL")} placeholder="https://api.example.com" />
         </label>
+        {form.API_URL && (
+          <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
+            API Key (optional)
+            <input className={inputClass} type="password" value={form.API_Key} onChange={set("API_Key")} placeholder="API key" />
+          </label>
+        )}
         <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           Valid Responses (optional)
           <input className={inputClass} value={form.Valid_Responses} onChange={set("Valid_Responses")} placeholder="200, 201, 204" />

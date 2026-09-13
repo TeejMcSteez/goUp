@@ -10,6 +10,7 @@ interface ServiceFormData {
   URL: string;
   Description: string;
   API_URL: string;
+  API_Key: string;
   Valid_Responses: string;
   Retry_Requests: string;
 }
@@ -19,6 +20,7 @@ const EMPTY_FORM: ServiceFormData = {
   URL: "",
   Description: "",
   API_URL: "",
+  API_Key: "",
   Valid_Responses: "",
   Retry_Requests: "",
 };
@@ -29,6 +31,7 @@ function svcToForm(svc: ServiceConfig): ServiceFormData {
     URL: svc.URL ?? "",
     Description: svc.Description ?? "",
     API_URL: svc.API_URL ?? "",
+    API_Key: svc.API_Key ?? "",
     Valid_Responses: svc.Valid_Responses?.join(", ") ?? "",
     Retry_Requests:
       svc.Retry_Requests != null ? String(svc.Retry_Requests) : "",
