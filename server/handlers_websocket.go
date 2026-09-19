@@ -82,6 +82,12 @@ const (
 	_ = 512
 )
 
+// @Summary Start Websocket connection to receive data on every fetch
+// @Description Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle; the client sends nothing.
+// @Tags websocket
+// @Success 101 {object} utils.ServiceResponse "Switching Protocols; subsequent messages pushed to the client are utils.ServiceResponse JSON"
+// @Failure 500 {string} string "internal server error"
+// @Router /ws [get]
 func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 	conn, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
