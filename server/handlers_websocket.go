@@ -14,6 +14,51 @@ type wsConn struct {
 	send chan []byte
 	done chan struct{}
 	once sync.Once
+	hub  *Hub
+}
+
+// Hub owns the set of connected wsConns and is the only goroutine that
+// reads or writes that set, so no mutex is needed around it. Workers push
+// fresh data in via broadcast; wsConns come and go via register/unregister.
+type Hub struct {
+	clients    map[*wsConn]struct{}
+	broadcast  chan []byte
+	register   chan *wsConn
+	unregister chan *wsConn
+}
+
+func newHub() *Hub {
+	return &Hub{
+		clients:    make(map[*wsConn]struct{}),
+		broadcast:  make(chan []byte),
+		register:   make(chan *wsConn),
+		unregister: make(chan *wsConn),
+	}
+}
+
+func (h *Hub) run() {
+	for {
+		select {
+		case ws := <-h.register:
+			h.clients[ws] = struct{}{}
+		case ws := <-h.unregister:
+			if _, ok := h.clients[ws]; ok {
+				delete(h.clients, ws)
+				close(ws.send)
+			}
+		case b := <-h.broadcast:
+			for ws := range h.clients {
+				select {
+				case ws.send <- b:
+				default:
+					// client too slow to keep up, drop it rather than
+					// block delivery to everyone else
+					delete(h.clients, ws)
+					close(ws.send)
+				}
+			}
+		}
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -37,7 +82,8 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte)}
+	wsConn := &wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte), hub: s.hub}
+	s.hub.register <- wsConn
 	go wsConn.readLoop()
 	go wsConn.writeLoop()
 }
@@ -50,6 +96,7 @@ func (ws *wsConn) readLoop() {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				slog.Error("unexpected close error in websocket read loop", "error", err)
 			}
+			ws.stop()
 			return
 		}
 		slog.Info("read loop input", "info", msg)
@@ -73,6 +120,8 @@ func (ws *wsConn) writeLoop() {
 			err := ws.conn.WriteMessage(1, nil)
 			if err != nil {
 				slog.Error("error writing websocket message", "error", err)
+				ws.stop()
+				return
 			}
 		case b, ok := <-ws.send:
 			if !ok {
@@ -92,5 +141,8 @@ func (ws *wsConn) writeLoop() {
 }
 
 func (ws *wsConn) stop() {
-	ws.once.Do(func() { close(ws.done) })
+	ws.once.Do(func() {
+		close(ws.done)
+		ws.hub.unregister <- ws
+	})
 }

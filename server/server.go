@@ -17,6 +17,7 @@ type Server struct {
 	scd     *scheduler.Scheduler
 	serveUi bool
 	handler *GoupHandler
+	hub     *Hub
 }
 
 type GoupHandler struct {
@@ -43,7 +44,9 @@ var content embed.FS
 
 // Returns a new server instance
 func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler) *Server {
-	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler}
+	hub := newHub()
+	go hub.run()
+	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler, hub: hub}
 }
 
 // Starts server with all handler functions
