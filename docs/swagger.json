@@ -1384,6 +1384,29 @@
                     }
                 }
             }
+        },
+        "/ws": {
+            "get": {
+                "description": "Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle; the client sends nothing.",
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "Start Websocket connection to receive data on every fetch",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols; subsequent messages pushed to the client are utils.ServiceResponse JSON",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ServiceResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
