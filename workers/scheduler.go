@@ -2,6 +2,7 @@ package workers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"goUp/utils"
 	"log/slog"
 	"strings"
@@ -12,11 +13,20 @@ type GetState struct {
 	res chan utils.ScheduleState
 }
 
+// Broadcaster pushes fresh bytes out to connected subscribers (e.g. the
+// server's websocket hub). Declared here, the consumer, rather than in
+// server, so workers doesn't need to import it — anything with a matching
+// Broadcast method satisfies this interface.
+type Broadcaster interface {
+	Broadcast(b []byte)
+}
+
 type Scheduler struct {
 	state chan utils.ScheduleState
 	get   chan GetState
 	stop  chan struct{}
 	fire  chan struct{}
+	pub   Broadcaster
 }
 
 type fetchResult struct{ hasFailed bool }
@@ -40,7 +50,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
+func NewScheduler(db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
 	span := defaultSpan
 	interval := defaultInterval
 
@@ -54,6 +64,7 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 		get:   make(chan GetState),
 		stop:  make(chan struct{}),
 		fire:  make(chan struct{}),
+		pub:   pub,
 	}
 
 	go s.StartScheduler(db, span, interval)
@@ -67,7 +78,7 @@ func NewScheduler(db *sql.DB, cfg *utils.Config) *Scheduler {
 // (slow endpoints, retries), and the select loop must stay free to service
 // s.get/s.state/s.stop the whole time, or callers like GET/POST /api/schedule
 // would hang until the fetch finishes.
-func runFetchCycle(db *sql.DB, wasFailed bool) fetchResult {
+func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 	data, err := utils.GetServiceData()
 	if err != nil {
 		slog.Error("Failed fetching service data in scheduler", "error", err)
@@ -76,6 +87,15 @@ func runFetchCycle(db *sql.DB, wasFailed bool) fetchResult {
 
 	if err := utils.PersistCycle(db, data.AllServices, data.TlsData); err != nil {
 		slog.Error("failed to persist fetch cycle in database", "error", err)
+	}
+
+	if pub != nil {
+		b, err := json.Marshal(data)
+		if err != nil {
+			slog.Error("failed to marshal service data for broadcast", "error", err)
+		} else {
+			pub.Broadcast(b)
+		}
 	}
 
 	if len(data.DownServices) > 0 {
@@ -107,7 +127,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		}
 		fetching = true
 		go func(db *sql.DB, wasFailed bool) {
-			fetchDone <- runFetchCycle(db, wasFailed)
+			fetchDone <- runFetchCycle(db, wasFailed, s.pub)
 		}(db, hasFailed) // snapshot in
 	}
 

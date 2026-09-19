@@ -43,9 +43,7 @@ func (g *GoupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var content embed.FS
 
 // Returns a new server instance
-func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler) *Server {
-	hub := newHub()
-	go hub.run()
+func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler, hub *Hub) *Server {
 	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler, hub: hub}
 }
 

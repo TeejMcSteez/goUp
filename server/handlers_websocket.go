@@ -27,7 +27,7 @@ type Hub struct {
 	unregister chan *wsConn
 }
 
-func newHub() *Hub {
+func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[*wsConn]struct{}),
 		broadcast:  make(chan []byte),
@@ -36,7 +36,13 @@ func newHub() *Hub {
 	}
 }
 
-func (h *Hub) run() {
+// Broadcast satisfies workers.Broadcaster, letting the scheduler push fresh
+// data out to every connected client without importing the server package.
+func (h *Hub) Broadcast(b []byte) {
+	h.broadcast <- b
+}
+
+func (h *Hub) Run() {
 	for {
 		select {
 		case ws := <-h.register:

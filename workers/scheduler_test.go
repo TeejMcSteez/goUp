@@ -23,7 +23,7 @@ func newTestScheduler(t *testing.T) *workers.Scheduler {
 	cfg := &utils.Config{
 		Schedule: &utils.ScheduleState{Span: 60, Interval: "minutes"},
 	}
-	s := workers.NewScheduler(db, cfg)
+	s := workers.NewScheduler(db, cfg, nil)
 	return s
 }
 
@@ -284,7 +284,7 @@ func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
 	defer slog.SetDefault(prevLogger)
 
-	s := workers.NewScheduler(db, cfg)
+	s := workers.NewScheduler(db, cfg, nil)
 	defer s.Stop()
 
 	// Fire() blocks on the unbuffered s.fire channel until the select loop

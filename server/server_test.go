@@ -35,8 +35,10 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
 
-	scd := scheduler.NewScheduler(db, cfg)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{})
+	hub := server.NewHub()
+	go hub.Run()
+	scd := scheduler.NewScheduler(db, cfg, hub)
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
 
 	cleanup := func() {
 		scd.Stop()
@@ -387,8 +389,10 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
 
-	scd := scheduler.NewScheduler(db, cfg)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{})
+	hub := server.NewHub()
+	go hub.Run()
+	scd := scheduler.NewScheduler(db, cfg, hub)
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
 
 	cleanup := func() {
 		scd.Stop()

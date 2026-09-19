@@ -49,7 +49,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	// Starts all background workers
-	sch := workers.NewScheduler(db, cfg)
+	hub := server.NewHub()
+	go hub.Run()
+	sch := workers.NewScheduler(db, cfg, hub)
 	defer sch.Stop()
 	if garabgeCollectErr := utils.DbGarbageCollect(db, cfg); err != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
@@ -62,7 +64,7 @@ func main() {
 			Cors:   *cors,
 			Origin: origin,
 		}
-		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler).Start(); err != nil {
+		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler, hub).Start(); err != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
