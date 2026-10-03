@@ -11,6 +11,11 @@ interface ServiceFormData {
   Retry_Requests: string;
 }
 
+// Comma-separated list of HTTP status codes (100-599), e.g. "200, 201, 204"
+export const VALID_RESPONSES_PATTERN = "\\s*[1-5]\\d{2}(\\s*,\\s*[1-5]\\d{2})*\\s*";
+export const isValidResponses = (value: string) =>
+  value === "" || new RegExp(`^(?:${VALID_RESPONSES_PATTERN})$`).test(value);
+
 interface ServiceFormProps {
   initial: ServiceFormData;
   onSubmit: (payload: Partial<ServiceConfig>) => void;
@@ -73,7 +78,7 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
         )}
         <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           Valid Responses (optional)
-          <input className={inputClass} value={form.Valid_Responses} onChange={set("Valid_Responses")} placeholder="200, 201, 204" />
+          <input className={inputClass} value={form.Valid_Responses} onChange={set("Valid_Responses")} placeholder="200, 201, 204" pattern={VALID_RESPONSES_PATTERN} title="Comma-separated HTTP status codes (100-599), e.g. 200, 201, 204" />
         </label>
         <label className="flex flex-col gap-1 text-[0.85rem] font-medium text-muted">
           Retries (optional)
