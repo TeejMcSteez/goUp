@@ -25,6 +25,7 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *wsConn
 	unregister chan *wsConn
+	latest     []byte // last thing broadcast, only touched by Run()
 }
 
 func NewHub() *Hub {
@@ -47,12 +48,16 @@ func (h *Hub) Run() {
 		select {
 		case ws := <-h.register:
 			h.clients[ws] = struct{}{}
+			if h.latest != nil {
+				ws.send <- h.latest // fresh channel with buffer, won't block
+			}
 		case ws := <-h.unregister:
 			if _, ok := h.clients[ws]; ok {
 				delete(h.clients, ws)
 				close(ws.send)
 			}
 		case b := <-h.broadcast:
+			h.latest = b
 			for ws := range h.clients {
 				select {
 				case ws.send <- b:
@@ -94,24 +99,26 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := &wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte), hub: s.hub}
+	wsConn := &wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), hub: s.hub}
 	s.hub.register <- wsConn
 	go wsConn.readLoop()
 	go wsConn.writeLoop()
 }
 
 func (ws *wsConn) readLoop() {
+	defer ws.stop()
+	ws.conn.SetReadLimit(512)
+	_ = ws.conn.SetReadDeadline(time.Now().Add(pongWait))
+	ws.conn.SetPongHandler(func(string) error {
+		return ws.conn.SetReadDeadline(time.Now().Add(pongWait))
+	})
 	for {
-		_, msg, err := ws.conn.ReadMessage()
-		if err != nil {
-			slog.Error("error in websocket read loop", "error", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("unexpected close error in websocket read loop", "error", err)
+		if _, _, err := ws.conn.ReadMessage(); err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+				slog.Warn("websocket closed unexpectedly", "error", err)
 			}
-			ws.stop()
 			return
 		}
-		slog.Info("read loop input", "info", msg)
 	}
 }
 
@@ -129,9 +136,9 @@ func (ws *wsConn) writeLoop() {
 			if err := ws.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				slog.Error("error setting read deadline in websocket writeLoop", "error", err)
 			}
-			err := ws.conn.WriteMessage(1, nil)
+			err := ws.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait))
 			if err != nil {
-				slog.Error("error writing websocket message", "error", err)
+				slog.Error("error writing websocket control messsage", "error", err)
 				ws.stop()
 				return
 			}

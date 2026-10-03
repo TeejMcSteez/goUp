@@ -175,8 +175,12 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 			}
 
 			expected := 0.33
-			if *avg != expected {
-				t.Errorf("Expected average %.2f, but got %f", expected, *avg)
+			if avg != nil {
+				if *avg != expected {
+					t.Errorf("Expected average %.2f, but got %f", expected, *avg)
+				}
+			} else {
+				t.Error("Average is nil")
 			}
 		})
 
