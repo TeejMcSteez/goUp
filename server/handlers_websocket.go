@@ -129,9 +129,9 @@ func (ws *wsConn) writeLoop() {
 			if err := ws.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				slog.Error("error setting read deadline in websocket writeLoop", "error", err)
 			}
-			err := ws.conn.WriteMessage(1, nil)
+			err := ws.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait))
 			if err != nil {
-				slog.Error("error writing websocket message", "error", err)
+				slog.Error("error writing websocket control messsage", "error", err)
 				ws.stop()
 				return
 			}
