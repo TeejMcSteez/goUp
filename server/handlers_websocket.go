@@ -25,6 +25,7 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *wsConn
 	unregister chan *wsConn
+	latest     []byte // last thing broadcast, only touched by Run()
 }
 
 func NewHub() *Hub {
@@ -47,12 +48,16 @@ func (h *Hub) Run() {
 		select {
 		case ws := <-h.register:
 			h.clients[ws] = struct{}{}
+			if h.latest != nil {
+				ws.send <- h.latest // fresh channel with buffer, won't block
+			}
 		case ws := <-h.unregister:
 			if _, ok := h.clients[ws]; ok {
 				delete(h.clients, ws)
 				close(ws.send)
 			}
 		case b := <-h.broadcast:
+			h.latest = b
 			for ws := range h.clients {
 				select {
 				case ws.send <- b:
