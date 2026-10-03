@@ -101,17 +101,19 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 }
 
 func (ws *wsConn) readLoop() {
+	defer ws.stop()
+	ws.conn.SetReadLimit(512)
+	_ = ws.conn.SetReadDeadline(time.Now().Add(pongWait))
+	ws.conn.SetPongHandler(func(string) error {
+		return ws.conn.SetReadDeadline(time.Now().Add(pongWait))
+	})
 	for {
-		_, msg, err := ws.conn.ReadMessage()
-		if err != nil {
-			slog.Error("error in websocket read loop", "error", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("unexpected close error in websocket read loop", "error", err)
+		if _, _, err := ws.conn.ReadMessage(); err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
+				slog.Warn("websocket closed unexpectedly", "error", err)
 			}
-			ws.stop()
 			return
 		}
-		slog.Info("read loop input", "info", msg)
 	}
 }
 
