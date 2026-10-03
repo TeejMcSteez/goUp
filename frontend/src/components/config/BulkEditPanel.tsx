@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ServiceConfig } from "../../types";
+import { isValidResponses } from "./ServiceForm";
 
 interface RowData {
   key: string;
@@ -42,6 +43,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
     }))
   );
   const [saving, setSaving] = useState(false);
+  const hasInvalid = rows.some((r) => !isValidResponses(r.Valid_Responses));
 
   const setCell =
     (idx: number, field: keyof Omit<RowData, "key" | "SkipInsecure">) =>
@@ -65,7 +67,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
           ...(row.Description && { Description: row.Description }),
           ...(row.API_URL && { API_URL: row.API_URL }),
           ...(row.API_URL && row.API_Key && { API_Key: row.API_Key }),
-          ...(validResponses?.length ? { Valid_Responses: validResponses.map(Number) } : { Valid_Responses: undefined }),
+          ...(validResponses?.length ? { Valid_Responses: validResponses } : { Valid_Responses: undefined }),
           ...(row.Retry_Requests !== "" ? { Retry_Requests: parseInt(row.Retry_Requests) } : { Retry_Requests: undefined }),
           Active: services[row.key]?.Active,
           SkipInsecure: row.SkipInsecure,
@@ -115,7 +117,13 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
             </div>
             <div className="flex flex-col gap-1">
               <label className="sm:hidden text-muted text-[0.75rem] font-medium">Valid Responses</label>
-              <input className={inputClass} value={row.Valid_Responses} onChange={setCell(idx, "Valid_Responses")} placeholder="200, 201" />
+              <input
+                className={`${inputClass} ${isValidResponses(row.Valid_Responses) ? "" : "border-red-500 focus:border-red-500"}`}
+                value={row.Valid_Responses}
+                onChange={setCell(idx, "Valid_Responses")}
+                placeholder="200, 201"
+                title="Comma-separated HTTP status codes (100-599), e.g. 200, 201"
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="sm:hidden text-muted text-[0.75rem] font-medium">Retries</label>
@@ -138,7 +146,7 @@ export default function BulkEditPanel({ services, onSave, onCancel }: BulkEditPa
         <button
           className={`${btnBase} border-primary text-primary hover:bg-primary/10`}
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || hasInvalid}
         >
           {saving ? "Saving…" : "Save All"}
         </button>
