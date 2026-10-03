@@ -46,7 +46,7 @@ export interface ServiceConfig {
   Description?: string;
   API_URL?: string;
   API_Key?: string;
-  Valid_Responses?: number[];
+  Valid_Responses?: string[];
   Retry_Requests?: number;
   Active?: boolean;
   SkipInsecure?: boolean;

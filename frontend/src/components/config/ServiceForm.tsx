@@ -35,7 +35,7 @@ export default function ServiceForm({ initial, onSubmit, onCancel, submitLabel }
       ...(form.Description && { Description: form.Description }),
       ...(form.API_URL && { API_URL: form.API_URL }),
       ...(form.API_URL && form.API_Key && { API_Key: form.API_Key }),
-      ...(validResponses?.length && { Valid_Responses: validResponses.map(Number) }),
+      ...(validResponses?.length && { Valid_Responses: validResponses }),
       ...(form.Retry_Requests && { Retry_Requests: parseInt(form.Retry_Requests) }),
     });
   };
