@@ -1,6 +1,5 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { TlsStatus } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 async function fetchTlsData(): Promise<TlsStatus[]> {
   const res = await fetch("/api/tls");
@@ -12,6 +11,5 @@ async function fetchTlsData(): Promise<TlsStatus[]> {
 }
 
 export default function useTlsData() {
-  const { pollRate } = usePollRate();
-  return usePolling(["tls"], fetchTlsData, pollRate);
+  return useLiveQuery(["tls"], fetchTlsData);
 }

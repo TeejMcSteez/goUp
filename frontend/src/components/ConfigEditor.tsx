@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useConfigData } from "../hooks/useConfigData";
+import { refreshLiveQueries } from "../hooks/useLiveUpdates";
 import ServicesPanel from "./config/ServicesPanel";
 import DatabasePanel from "./config/DatabasePanel";
 import Triggers from "./config/Triggers";
@@ -18,6 +20,14 @@ const SECTIONS: Section[] = [
 export default function ConfigEditor() {
   const { config, loading, error, refresh } = useConfigData();
   const [activeSection, setActiveSection] = useState("services");
+  const queryClient = useQueryClient();
+
+  // service edits change what the service views show, so don't wait for
+  // the next scheduler push to refresh them
+  async function refreshServices() {
+    refreshLiveQueries(queryClient);
+    await refresh();
+  }
 
   if (loading)
     return <p className="text-muted text-[0.9rem]">Loading configuration…</p>;
@@ -47,7 +57,7 @@ export default function ConfigEditor() {
       </div>
       <div>
         {activeSection === "services" && (
-          <ServicesPanel services={config?.services} onRefresh={refresh} />
+          <ServicesPanel services={config?.services} onRefresh={refreshServices} />
         )}
         {activeSection === "triggers" && (
           <Triggers config={config} onRefresh={refresh} />

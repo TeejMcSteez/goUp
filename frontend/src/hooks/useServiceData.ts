@@ -1,6 +1,5 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { Service } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 async function fetchServices(): Promise<Service[]> {
   const res = await fetch("/api");
@@ -17,6 +16,5 @@ async function fetchServices(): Promise<Service[]> {
 }
 
 export default function useServiceData() {
-  const { pollRate } = usePollRate();
-  return usePolling(["services"], fetchServices, pollRate);
+  return useLiveQuery(["services"], fetchServices);
 }

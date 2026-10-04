@@ -6,6 +6,7 @@ import ServerDownBanner from "./ServerDownBanner";
 import WindowScrollButton from "./WindowScrollButton";
 import { VIEWS, KEY_MAP } from "./viewRegistry";
 import { useServerHealth } from "../../hooks/useServerHealth";
+import useLiveUpdates from "../../hooks/useLiveUpdates";
 import { useTabKeyboardNav } from "../../hooks/useTabKeyboardNav";
 
 const SPINNER = (
@@ -19,6 +20,7 @@ export default function AppLayout() {
     return localStorage.getItem("activeTab") ?? "overview";
   });
   const { serverDown, networkOnline } = useServerHealth();
+  useLiveUpdates();
 
   const handleTabChange = useCallback((tab: string) => {
     localStorage.setItem("activeTab", tab);

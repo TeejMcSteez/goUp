@@ -3,13 +3,11 @@ import fireManual from "../hooks/fireManual";
 
 export default function RefreshButton() {
   const [error, setError] = useState(null)
+  // fresh data arrives over the websocket once the fetch cycle finishes
   const fire = () => {
     fireManual().catch((e) => {
       setError(e)
     })
-    setTimeout(() => {
-      window.location.reload()
-    }, 750)
   }
 
   const link = (
