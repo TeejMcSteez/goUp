@@ -1,6 +1,5 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { UptimeItem, UptimeChartData } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 export type UptimeRange =
   | ""
@@ -42,6 +41,5 @@ async function fetchUptimeData(
 }
 
 export default function useUptimeData(range: UptimeRange = "") {
-  const { pollRate } = usePollRate();
-  return usePolling(["uptime", range], () => fetchUptimeData(range), pollRate);
+  return useLiveQuery(["uptime", range], () => fetchUptimeData(range));
 }

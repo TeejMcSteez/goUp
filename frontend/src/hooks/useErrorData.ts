@@ -1,10 +1,7 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { ErrorItem } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 export default function useErrorData(limit = 100, sortOrder = "desc") {
-  const { pollRate } = usePollRate();
-
   const fetchErrors = async (): Promise<ErrorItem[]> => {
     const res = await fetch(`/api/errors?limit=${limit}&sort=${sortOrder}`);
     if (!res.ok) {
@@ -14,5 +11,5 @@ export default function useErrorData(limit = 100, sortOrder = "desc") {
     return (data as ErrorItem[]) || [];
   };
 
-  return usePolling(["errors", limit, sortOrder], fetchErrors, pollRate);
+  return useLiveQuery(["errors", limit, sortOrder], fetchErrors);
 }

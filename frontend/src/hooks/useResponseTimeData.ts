@@ -1,6 +1,5 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { ResponseTimeEntry, UptimeChartData } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 // Parses Go duration strings (e.g. "12ms", "1.5s", "1m2.3s") to milliseconds.
 function parseDurationMs(d: string): number {
@@ -76,6 +75,5 @@ async function fetchData(): Promise<UptimeChartData | null> {
 }
 
 export default function useResponseTimeData() {
-  const { pollRate } = usePollRate();
-  return usePolling(["responseTime"], fetchData, pollRate);
+  return useLiveQuery(["responseTime"], fetchData);
 }

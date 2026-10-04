@@ -1,6 +1,5 @@
-import usePolling from "./usePolling";
+import useLiveQuery from "./useLiveQuery";
 import type { Service } from "../types";
-import { usePollRate } from "../context/PollRateContext";
 
 async function fetchQuickServices(): Promise<Service[]> {
   const res = await fetch("/api/status");
@@ -19,6 +18,5 @@ async function fetchQuickServices(): Promise<Service[]> {
 }
 
 export default function useQuickServices() {
-  const { pollRate } = usePollRate();
-  return usePolling(["status"], fetchQuickServices, pollRate);
+  return useLiveQuery(["status"], fetchQuickServices);
 }

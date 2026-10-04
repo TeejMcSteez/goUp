@@ -1,21 +1,21 @@
 import { useQuery, type QueryKey } from "@tanstack/react-query";
 
-interface PollingResult<T> {
+interface LiveQueryResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-export default function usePolling<T>(
+// Fetches once on mount, then refetches whenever useLiveUpdates invalidates
+// the key after a websocket push from the scheduler.
+export default function useLiveQuery<T>(
   queryKey: QueryKey,
   fetchFunction: () => Promise<T>,
-  interval = 5000,
-): PollingResult<T> {
+): LiveQueryResult<T> {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: fetchFunction,
-    refetchInterval: interval,
   });
 
   return {
