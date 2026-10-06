@@ -8,6 +8,7 @@ import (
 	database "goUp/internal/db"
 	"log/slog"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -306,6 +307,27 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 		}
 	}
 	return sd, nil
+}
+
+// GetLiveData builds the websocket broadcast from the same reads backing
+// /api, /api/status and /api/tls, so the frontend can write each field
+// straight into its query cache in place of refetching those endpoints.
+func GetLiveData(db *sql.DB) (*ServiceResponse, error) {
+	services, err := GetRecentData(db)
+	if err != nil {
+		return nil, err
+	}
+	// Check flags Error on the slice it's given; clone so services keeps
+	// the stored values exactly as /api returns them.
+	down, err := Check(slices.Clone(services))
+	if err != nil {
+		return nil, err
+	}
+	tls, err := GetExpiredTls(db)
+	if err != nil {
+		return nil, err
+	}
+	return &ServiceResponse{AllServices: services, DownServices: down, TlsData: tls}, nil
 }
 
 // Gets data for a specific service

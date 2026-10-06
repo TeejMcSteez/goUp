@@ -1,23 +1,31 @@
 import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import type { LiveData } from "../types";
 
-// Query keys backed by data the scheduler refreshes each fetch cycle.
-// The server pushes over /ws after every cycle, so these refetch once per
-// push instead of polling on a timer.
-const LIVE_QUERY_KEYS = [
-  ["services"],
-  ["status"],
-  ["tls"],
-  ["errors"],
-  ["uptime"],
-  ["responseTime"],
-];
+// Query keys whose data arrives in the /ws payload itself, so they're
+// written straight into the cache on each push without refetching.
+const PUSHED_QUERY_KEYS = [["services"], ["status"], ["tls"]];
+
+// Query keys backed by DB aggregates the payload doesn't carry (and some are
+// parameterised per view), so a push still invalidates them to refetch.
+const REFETCHED_QUERY_KEYS = [["errors"], ["uptime"], ["responseTime"]];
 
 const MIN_RECONNECT_MS = 1000;
 const MAX_RECONNECT_MS = 30000;
 
+// Refetches every live query, used where no payload is at hand (reconnect,
+// config changes).
 export function refreshLiveQueries(queryClient: QueryClient) {
-  for (const queryKey of LIVE_QUERY_KEYS) {
+  for (const queryKey of [...PUSHED_QUERY_KEYS, ...REFETCHED_QUERY_KEYS]) {
+    void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+function applyLiveData(queryClient: QueryClient, data: LiveData) {
+  queryClient.setQueryData(["services"], data.services ?? []);
+  queryClient.setQueryData(["status"], data.downed_services ?? []);
+  queryClient.setQueryData(["tls"], data.tls_status ?? []);
+  for (const queryKey of REFETCHED_QUERY_KEYS) {
     void queryClient.invalidateQueries({ queryKey });
   }
 }
@@ -45,8 +53,16 @@ export default function useLiveUpdates() {
         refreshLiveQueries(queryClient);
       };
 
-      socket.onmessage = () => {
-        refreshLiveQueries(queryClient);
+      socket.onmessage = (event: MessageEvent<string>) => {
+        let data: LiveData;
+        try {
+          data = JSON.parse(event.data) as LiveData;
+        } catch (err) {
+          console.error("Malformed /ws payload, refetching instead:", err);
+          refreshLiveQueries(queryClient);
+          return;
+        }
+        applyLiveData(queryClient, data);
       };
 
       socket.onclose = () => {
