@@ -1,7 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import AppLayout from "./layout/AppLayout";
-
-const queryClient = new QueryClient();
+import { queryClient } from "../queryClient";
 
 export default function Root() {
   return (

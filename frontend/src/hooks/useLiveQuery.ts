@@ -7,7 +7,7 @@ interface LiveQueryResult<T> {
   refetch: () => Promise<void>;
 }
 
-// Fetches once on mount, then refetches whenever useLiveUpdates invalidates
+// Fetches once on mount, then refetches whenever liveConnection invalidates
 // the key after a websocket push from the scheduler.
 export default function useLiveQuery<T>(
   queryKey: QueryKey,
