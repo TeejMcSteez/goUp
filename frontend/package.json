@@ -21,9 +21,11 @@
     "uplot-react": "^1.2.4"
   },
   "devDependencies": {
+    "@rolldown/plugin-babel": "^0.2.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "babel-plugin-react-compiler": "^1.0.0",
     "esbuild": "^0.28.2",
     "oxlint": "^1.85.0",
     "oxlint-tsgolint": "^7.0.2003",
