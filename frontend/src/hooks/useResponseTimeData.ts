@@ -2,7 +2,7 @@ import useLiveQuery from "./useLiveQuery";
 import type { ResponseTimeEntry, UptimeChartData } from "../types";
 
 // Parses Go duration strings (e.g. "12ms", "1.5s", "1m2.3s") to milliseconds.
-function parseDurationMs(d: string): number {
+export function parseDurationMs(d: string): number {
   if (!d) return 0;
   let total = 0;
   const re = /(\d+(?:\.\d+)?)(ns|µs|μs|ms|s|m|h)/g;

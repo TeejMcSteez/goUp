@@ -178,6 +178,7 @@ export interface ResponseTimeEntry {
     response: string;
     response_time: string;
     error: boolean;
+    timestamp: string;
   };
   response_time: string;
 }
