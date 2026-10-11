@@ -1,87 +1,75 @@
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import useResponseTimeData from "../hooks/useResponseTimeData";
+import { useMemo } from "react";
+import UplotReact from "uplot-react";
+import uPlot from "uplot";
+import "uplot/dist/uPlot.min.css";
+import useResponseTimeSeries from "../hooks/useResponseTimeSeries";
+import useElementWidth from "../hooks/useElementWidth";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-);
+const CHART_HEIGHT = 300;
 
-const OPTIONS = {
-  indexAxis: "y" as const,
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-    x: {
-      beginAtZero: true,
-      ticks: {
-        callback: (value: number | string) => `${value}ms`,
+const PALETTE = [
+  "rgb(167, 139, 250)",
+  "rgb(96, 165, 250)",
+  "rgb(52, 211, 153)",
+  "rgb(251, 191, 36)",
+  "rgb(248, 113, 113)",
+  "rgb(244, 114, 182)",
+  "rgb(45, 212, 191)",
+  "rgb(163, 230, 53)",
+];
+
+function buildOptions(names: string[], width: number): uPlot.Options {
+  return {
+    width,
+    height: CHART_HEIGHT,
+    scales: { x: { time: true } },
+    axes: [
+      { stroke: "#9ca3af" },
+      {
+        stroke: "#9ca3af",
+        size: 60,
+        values: (_u, splits) => splits.map((v) => `${v}ms`),
       },
-      title: {
-        display: true,
-        text: "Average Response Time (ms)",
-        color: "#9ca3af",
-      },
-    },
-    y: {
-      ticks: { color: "#e5e7eb" },
-    },
-  },
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      callbacks: {
-        label: (ctx: { parsed: { x: number | null } }) =>
-          ctx.parsed.x != null ? ` ${ctx.parsed.x}ms` : "",
-      },
-    },
-  },
-} as const;
+    ],
+    series: [
+      { label: "Time", value: "{YYYY}-{MM}-{DD} {h}:{mm}:{ss}{aa}" },
+      ...names.map((name, i) => ({
+        label: name,
+        stroke: PALETTE[i % PALETTE.length],
+        width: 1.5,
+        spanGaps: true,
+        value: (_u: uPlot, v: number | null) => (v == null ? "" : `${v}ms`),
+      })),
+    ],
+  };
+}
 
 export default function ResponseTimeChart() {
-  const { data: chartData, loading, error } = useResponseTimeData();
+  const { data: series, loading, error } = useResponseTimeSeries();
+  const [containerRef, width] = useElementWidth<HTMLDivElement>();
 
+  const options = useMemo(
+    () => (series ? buildOptions(series.names, width) : null),
+    [series, width],
+  );
+
+  let body;
   if (error) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-75">
-        <p className="text-error text-sm">Could not load chart: {error}</p>
-      </div>
-    );
+    body = <p className="text-error text-sm">Could not load chart: {error}</p>;
+  } else if (loading && !series) {
+    body = <p className="text-muted text-sm">Loading chart...</p>;
+  } else if (!series || !options) {
+    body = <p className="text-muted text-sm">No response time data yet</p>;
+  } else if (width > 0) {
+    body = <UplotReact options={options} data={series.data} />;
   }
-
-  if (loading && !chartData) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-75">
-        <p className="text-muted text-sm">Loading chart...</p>
-      </div>
-    );
-  }
-
-  if (!chartData) {
-    return (
-      <div className="w-full flex items-center justify-center p-4 min-h-75">
-        <p className="text-muted text-sm">No response time data yet</p>
-      </div>
-    );
-  }
-
-  const height = Math.max(300, chartData.labels.length * 48);
 
   return (
-    <div className="w-full p-4" style={{ height }}>
-      <Bar data={chartData} options={OPTIONS} />
+    <div
+      ref={containerRef}
+      className="w-full flex items-center justify-center p-4 min-h-75"
+    >
+      {body}
     </div>
   );
 }

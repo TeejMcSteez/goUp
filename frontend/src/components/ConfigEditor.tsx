@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConfigData } from "../hooks/useConfigData";
-import { refreshLiveQueries } from "../hooks/useLiveUpdates";
+import { refreshLiveQueries } from "../hooks/liveConnection";
 import ServicesPanel from "./config/ServicesPanel";
 import DatabasePanel from "./config/DatabasePanel";
 import Triggers from "./config/Triggers";

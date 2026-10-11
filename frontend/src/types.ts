@@ -178,6 +178,7 @@ export interface ResponseTimeEntry {
     response: string;
     response_time: string;
     error: boolean;
+    timestamp: string;
   };
   response_time: string;
 }
@@ -206,4 +207,11 @@ export interface TlsStatus {
   chain: string;
   first_seen: string;
   last_checked: string;
+}
+
+// Pushed over /ws after every fetch cycle. Go marshals empty slices as null.
+export interface LiveData {
+  services: Service[] | null;
+  downed_services: Service[] | null;
+  tls_status: TlsStatus[] | null;
 }

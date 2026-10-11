@@ -90,12 +90,7 @@ func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 	}
 
 	if pub != nil {
-		b, err := json.Marshal(data)
-		if err != nil {
-			slog.Error("failed to marshal service data for broadcast", "error", err)
-		} else {
-			pub.Broadcast(b)
-		}
+		broadcastLiveData(db, pub)
 	}
 
 	if len(data.DownServices) > 0 {
@@ -109,6 +104,23 @@ func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 
 	slog.Info("Scheduler fetched service data successfully")
 	return fetchResult{hasFailed: false}
+}
+
+// broadcastLiveData pushes the freshly persisted state read back from the DB
+// rather than the raw fetch result, so the payload matches what the REST
+// endpoints return (formatted response times, inactive services, stored TLS).
+func broadcastLiveData(db *sql.DB, pub Broadcaster) {
+	live, err := utils.GetLiveData(db)
+	if err != nil {
+		slog.Error("failed to read live data for broadcast", "error", err)
+		return
+	}
+	b, err := json.Marshal(live)
+	if err != nil {
+		slog.Error("failed to marshal service data for broadcast", "error", err)
+		return
+	}
+	pub.Broadcast(b)
 }
 
 func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {

@@ -5,7 +5,6 @@ import ChunkErrorBoundary from "./ChunkErrorBoundary";
 import ServerDownBanner from "./ServerDownBanner";
 import WindowScrollButton from "./WindowScrollButton";
 import { VIEWS, KEY_MAP } from "./viewRegistry";
-import { useServerHealth } from "../../hooks/useServerHealth";
 import useLiveUpdates from "../../hooks/useLiveUpdates";
 import { useTabKeyboardNav } from "../../hooks/useTabKeyboardNav";
 
@@ -19,8 +18,8 @@ export default function AppLayout() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("activeTab") ?? "overview";
   });
-  const { serverDown, networkOnline } = useServerHealth();
-  useLiveUpdates();
+  const serverDown = useLiveUpdates() === "closed";
+  const networkOnline = navigator.onLine;
 
   const handleTabChange = useCallback((tab: string) => {
     localStorage.setItem("activeTab", tab);
