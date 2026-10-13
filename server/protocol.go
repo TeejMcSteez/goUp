@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/binary"
 	"math"
+	"slices"
+	"strings"
 )
 
 const (
@@ -13,14 +15,19 @@ const (
 
 func align4(n int) int { return (n + 3) &^ 3 }
 
-func encodeFrame(typ byte, seq uint32, names []string, ts []uint32, cols [][]float32) []byte {
+func encodeFrame(typ byte, seq uint32, names []string, ts []uint32, cols [][]uint32) []byte {
 	rows := len(ts)
 
 	nameBytes := 0
 
 	if typ == FrameSnapshot {
-		for _, n := range names {
-			nameBytes += 1 + len(n)
+		names = slices.Clone(names)
+		for i, n := range names {
+			// Name length is a single byte
+			if len(n) > math.MaxUint8 {
+				names[i] = strings.ToValidUTF8(n[:math.MaxUint8], "")
+			}
+			nameBytes += 1 + len(names[i])
 		}
 	}
 	tableEnd := align4(headerSize + nameBytes)
@@ -50,7 +57,7 @@ func encodeFrame(typ byte, seq uint32, names []string, ts []uint32, cols [][]flo
 	}
 	for _, col := range cols {
 		for _, v := range col {
-			le.PutUint32(buf[o:], math.Float32bits(v))
+			le.PutUint32(buf[o:], v)
 			o += 4
 		}
 	}
