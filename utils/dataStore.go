@@ -7,6 +7,8 @@ import (
 	migrations "goUp/db/migrations"
 	database "goUp/internal/db"
 	"log/slog"
+	"maps"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -330,6 +332,66 @@ func GetLiveData(db *sql.DB) (*ServiceResponse, error) {
 	return &ServiceResponse{AllServices: services, DownServices: down, TlsData: tls}, nil
 }
 
+// BuildRtSnapshot aligns every service's response times onto one shared,
+// ascending unix-second time axis for the binary /api/rt frame.
+// Values are microseconds; 0 marks "no sample" for that service at that time.
+func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
+	rts, err := GetNanoSecondResponseTimes(db)
+	if err != nil {
+		return ResponseTimePayload{}, err
+	}
+
+	type sample struct {
+		ts uint32
+		us uint32
+	}
+	byName := make(map[string][]sample)
+	tsSet := make(map[uint32]struct{})
+	for _, rt := range rts {
+		if !rt.ServiceName.Valid || !rt.ServiceResponseTime.Valid || rt.ServiceResponseTime.Int64 <= 0 {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339Nano, rt.Timestamp.String)
+		if err != nil {
+			slog.Error("Error parsing response time timestamp", "error", err)
+			continue
+		}
+		us := rt.ServiceResponseTime.Int64 / int64(time.Microsecond)
+		// 0 is the "no sample" sentinel, so sub-microsecond responses round up
+		us = min(max(us, 1), math.MaxUint32)
+		ts := uint32(t.Unix())
+		byName[rt.ServiceName.String] = append(byName[rt.ServiceName.String], sample{ts, uint32(us)})
+		tsSet[ts] = struct{}{}
+	}
+
+	// Sorted names keep column order (and chart colours) stable across requests
+	names := slices.Sorted(maps.Keys(byName))
+	ts := slices.Sorted(maps.Keys(tsSet))
+	row := make(map[uint32]int, len(ts))
+	for i, t := range ts {
+		row[t] = i
+	}
+
+	cols := make([][]uint32, len(names))
+	for c, name := range names {
+		col := make([]uint32, len(ts))
+		// Multiple samples in the same second: the last one written wins
+		for _, s := range byName[name] {
+			col[row[s.ts]] = s.us
+		}
+		cols[c] = col
+	}
+
+	return ResponseTimePayload{
+		Typ:     FrameSnapshot,
+		Names:   names,
+		Ts:      ts,
+		Cols:    cols,
+		Seq:     1,
+		MaxRows: 15000,
+	}, nil
+}
+
 // Gets data for a specific service
 func GetDataForService(db *sql.DB, name string) ([]ServiceData, error) {
 	rows, err := database.New(db).GetDataForService(context.Background(), sql.NullString{String: name, Valid: true})
@@ -398,6 +460,15 @@ func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
 		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
 	}
 	return svcRespTimes, nil
+}
+
+func GetNanoSecondResponseTimes(db *sql.DB) ([]database.ServiceDatum, error) {
+	rows, err := database.New(db).GetAllData(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 func GetExpiredTls(db *sql.DB) ([]TlsStatus, error) {
