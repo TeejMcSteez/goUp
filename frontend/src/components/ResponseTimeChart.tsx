@@ -18,6 +18,10 @@ const PALETTE = [
   "rgb(163, 230, 53)",
 ];
 
+// Server sends nanosecond precision; show sub-ms detail only when it matters.
+const formatMs = (v: number) =>
+  `${v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v)}ms`;
+
 function buildOptions(names: string[], width: number): uPlot.Options {
   return {
     width,
@@ -28,7 +32,7 @@ function buildOptions(names: string[], width: number): uPlot.Options {
       {
         stroke: "#9ca3af",
         size: 60,
-        values: (_u, splits) => splits.map((v) => `${v}ms`),
+        values: (_u, splits) => splits.map(formatMs),
       },
     ],
     series: [
@@ -38,7 +42,7 @@ function buildOptions(names: string[], width: number): uPlot.Options {
         stroke: PALETTE[i % PALETTE.length],
         width: 1.5,
         spanGaps: true,
-        value: (_u: uPlot, v: number | null) => (v == null ? "" : `${v}ms`),
+        value: (_u: uPlot, v: number | null) => (v == null ? "" : formatMs(v)),
       })),
     ],
   };
