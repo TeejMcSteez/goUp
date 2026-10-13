@@ -247,3 +247,18 @@ type CertJSON struct {
 	NotAfter time.Time `json:"not_after"`
 	IsCA     bool      `json:"is_ca"`
 }
+
+type ResponseTimePayload struct {
+	Typ     byte
+	Names   []string
+	Ts      []uint32
+	Cols    [][]uint32
+	Seq     uint32
+	MaxRows int
+}
+
+const (
+	FrameSnapshot byte = 0
+	FrameAppend   byte = 1
+	headerSize         = 12
+)
