@@ -153,11 +153,9 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 		ServiceDescription:  d.ServiceDescription.String,
 		ServiceHTTPResponse: d.ServiceHttpResponse.String,
 		ServiceAPIResponse:  d.ServiceApiResponse.String,
+		ServiceResponseTime: d.ServiceResponseTime.Int64,
 		Error:               d.Error != 0,
 		Active:              d.Active != 0,
-	}
-	if d.ServiceResponseTime.Valid {
-		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
 	}
 	var err error
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, d.Timestamp.String)
@@ -190,17 +188,13 @@ func rowToTlsStatus(t database.TlsStatus) TlsStatus {
 }
 
 func toInsertParams(sd ServiceData) database.InsertDataParams {
-	var rtNs int64
-	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
-		rtNs = d.Nanoseconds()
-	}
 	return database.InsertDataParams{
 		ServiceUrl:          sql.NullString{String: sd.ServiceURL, Valid: true},
 		ServiceName:         sql.NullString{String: sd.ServiceName, Valid: true},
 		ServiceDescription:  sql.NullString{String: sd.ServiceDescription, Valid: true},
 		ServiceHttpResponse: sql.NullString{String: sd.ServiceHTTPResponse, Valid: true},
 		ServiceApiResponse:  sql.NullString{String: sd.ServiceAPIResponse, Valid: true},
-		ServiceResponseTime: sql.NullInt64{Int64: rtNs, Valid: true},
+		ServiceResponseTime: sql.NullInt64{Int64: sd.ServiceResponseTime, Valid: true},
 		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
 		Error:               boolToInt(sd.Error),
 		Active:              boolToInt(sd.Active),
@@ -457,7 +451,9 @@ func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
 		if err != nil {
 			return nil, err
 		}
-		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
+		// only format went requesting ServiceResponseTime struct
+		// backend/database logic operates off of nanoseconds
+		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: formatResponseTime(s.ServiceResponseTime)})
 	}
 	return svcRespTimes, nil
 }

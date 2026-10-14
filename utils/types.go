@@ -174,7 +174,7 @@ type ServiceData struct {
 	ServiceDescription  string    `json:"description"`
 	ServiceHTTPResponse string    `json:"response"`
 	ServiceAPIResponse  string    `json:"data"`
-	ServiceResponseTime string    `json:"response_time"`
+	ServiceResponseTime int64     `json:"response_time"`
 	Timestamp           time.Time `json:"timestamp"`
 	Error               bool      `json:"error"`
 	Active              bool      `json:"active"`
