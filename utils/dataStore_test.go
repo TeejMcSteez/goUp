@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -172,12 +173,15 @@ func TestGetResponseTimes(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	testData := []utils.ServiceData{
-		{ServiceName: "alpha", ServiceURL: "https://alpha.com", ServiceHTTPResponse: "200", ServiceResponseTime: "12ms"},
-		{ServiceName: "beta", ServiceURL: "https://beta.com", ServiceHTTPResponse: "503", ServiceResponseTime: "340ms"},
+	testData := []struct {
+		utils.ServiceData
+		want string
+	}{
+		{utils.ServiceData{ServiceName: "alpha", ServiceURL: "https://alpha.com", ServiceHTTPResponse: "200", ServiceResponseTime: (12 * time.Millisecond).Nanoseconds()}, "12ms"},
+		{utils.ServiceData{ServiceName: "beta", ServiceURL: "https://beta.com", ServiceHTTPResponse: "503", ServiceResponseTime: (340 * time.Millisecond).Nanoseconds()}, "340ms"},
 	}
 	for _, sd := range testData {
-		if err := utils.InsertData(db, sd); err != nil {
+		if err := utils.InsertData(db, sd.ServiceData); err != nil {
 			t.Fatalf("InsertData failed: %v", err)
 		}
 	}
@@ -201,9 +205,9 @@ func TestGetResponseTimes(t *testing.T) {
 			t.Errorf("Missing entry for service %q", td.ServiceName)
 			continue
 		}
-		if r.ResponseTime != td.ServiceResponseTime {
+		if r.ResponseTime != td.want {
 			t.Errorf("service %q: ResponseTime = %q, want %q (not the HTTP status %q)",
-				td.ServiceName, r.ResponseTime, td.ServiceResponseTime, td.ServiceHTTPResponse)
+				td.ServiceName, r.ResponseTime, td.want, td.ServiceHTTPResponse)
 		}
 		if r.Svc.ServiceURL != td.ServiceURL {
 			t.Errorf("service %q: URL = %q, want %q", td.ServiceName, r.Svc.ServiceURL, td.ServiceURL)

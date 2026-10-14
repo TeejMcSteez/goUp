@@ -423,11 +423,11 @@ func TestGetResponseTimes_ReturnsBinaryFrame(t *testing.T) {
 	t0 := time.Unix(1_700_000_000, 0)
 	t1 := t0.Add(time.Minute)
 	for _, sd := range []utils.ServiceData{
-		{ServiceName: "beta", ServiceResponseTime: "340ms", Timestamp: t0},
-		{ServiceName: "alpha", ServiceResponseTime: "12.5ms", Timestamp: t0},
-		{ServiceName: "alpha", ServiceResponseTime: "1.5s", Timestamp: t1},
+		{ServiceName: "beta", ServiceResponseTime: (340 * time.Millisecond).Nanoseconds(), Timestamp: t0},
+		{ServiceName: "alpha", ServiceResponseTime: (12500 * time.Microsecond).Nanoseconds(), Timestamp: t0},
+		{ServiceName: "alpha", ServiceResponseTime: (1500 * time.Millisecond).Nanoseconds(), Timestamp: t1},
 		// Exceeds the old uint32 nanosecond limit (~4.29s)
-		{ServiceName: "beta", ServiceResponseTime: "6s", Timestamp: t1.Add(time.Minute)},
+		{ServiceName: "beta", ServiceResponseTime: (6 * time.Second).Nanoseconds(), Timestamp: t1.Add(time.Minute)},
 	} {
 		if err := utils.InsertData(db, sd); err != nil {
 			t.Fatal(err)
