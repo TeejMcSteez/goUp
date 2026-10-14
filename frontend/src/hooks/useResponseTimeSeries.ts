@@ -75,7 +75,7 @@ export function decodeFrame(buf: ArrayBuffer) {
   for (let c = 0; c < colCount; c++) {
     const raw = u32View(buf, o, rows);
     o += rows * 4;
-    const ms = new Array<number | null>(rows);
+    const ms: Array<number | null> = Array.from({ length: rows });
     for (let i = 0; i < rows; i++) {
       const v = raw[i];
       ms[i] = v === 0 ? null : v / US_PER_MS;
