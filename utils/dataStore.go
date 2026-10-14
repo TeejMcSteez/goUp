@@ -342,7 +342,13 @@ func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 	byName := make(map[string][]sample)
 	tsSet := make(map[uint32]struct{})
 	for _, rt := range rts {
-		if !rt.ServiceName.Valid || !rt.ServiceResponseTime.Valid || rt.ServiceResponseTime.Int64 <= 0 {
+		if !rt.ServiceName.Valid ||
+			!rt.ServiceResponseTime.Valid ||
+			rt.ServiceResponseTime.Int64 <= 0 ||
+			// skip failed services for response time
+			// as only valid responses should be considered
+			// also to now majorly skew the graph because of timeouts
+			rt.Error == 1 {
 			continue
 		}
 		t, err := time.Parse(time.RFC3339Nano, rt.Timestamp.String)
@@ -350,6 +356,8 @@ func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 			slog.Error("Error parsing response time timestamp", "error", err)
 			continue
 		}
+		// If wanting to increase precision adjust division value to wanted time
+		// example: rt.ServiceResponseTime.Int64 / int64(time.Millisecond)
 		us := rt.ServiceResponseTime.Int64 / int64(time.Microsecond)
 		// 0 is the "no sample" sentinel, so sub-microsecond responses round up
 		us = min(max(us, 1), math.MaxUint32)
