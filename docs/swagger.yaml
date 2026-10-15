@@ -162,7 +162,7 @@ definitions:
       response:
         type: string
       response_time:
-        type: string
+        type: integer
       skip_insecure:
         type: boolean
       timestamp:
@@ -184,13 +184,6 @@ definitions:
         items:
           $ref: '#/definitions/utils.TlsStatus'
         type: array
-    type: object
-  utils.ServiceResponseTime:
-    properties:
-      response_time:
-        type: string
-      service_data:
-        $ref: '#/definitions/utils.ServiceData'
     type: object
   utils.SlackTrigger:
     properties:
@@ -1031,15 +1024,15 @@ paths:
       - data
   /api/rt:
     get:
+      description: Binary snapshot frame, see server/protocol.go encodeFrame for the
+        layout
       produces:
-      - application/json
+      - application/octet-stream
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/utils.ServiceResponseTime'
-            type: array
+            type: file
         "500":
           description: internal server error
           schema:

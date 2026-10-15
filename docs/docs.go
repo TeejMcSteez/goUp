@@ -1208,8 +1208,9 @@ const docTemplate = `{
         },
         "/api/rt": {
             "get": {
+                "description": "Binary snapshot frame, see server/protocol.go encodeFrame for the layout",
                 "produces": [
-                    "application/json"
+                    "application/octet-stream"
                 ],
                 "tags": [
                     "data"
@@ -1219,10 +1220,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/utils.ServiceResponseTime"
-                            }
+                            "type": "file"
                         }
                     },
                     "500": {
@@ -1653,7 +1651,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "response_time": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "skip_insecure": {
                     "type": "boolean"
@@ -1686,17 +1684,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/utils.TlsStatus"
                     }
-                }
-            }
-        },
-        "utils.ServiceResponseTime": {
-            "type": "object",
-            "properties": {
-                "response_time": {
-                    "type": "string"
-                },
-                "service_data": {
-                    "$ref": "#/definitions/utils.ServiceData"
                 }
             }
         },
