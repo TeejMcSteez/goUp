@@ -193,7 +193,7 @@ func ServiceURLExists(conf *Config, url string) bool {
 	configMu.RLock()
 	defer configMu.RUnlock()
 	for _, svc := range conf.Services {
-		if svc.URL == url {
+		if strings.TrimSuffix(svc.URL, "/") == strings.TrimSuffix(url, "/") {
 			return true
 		}
 	}
