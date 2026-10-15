@@ -48,3 +48,5 @@ services1.yml
 goUp
 perf
 __debug_*
+
+*.tsbuildinfo
