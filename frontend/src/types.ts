@@ -3,7 +3,7 @@ export interface Service {
   url: string;
   description?: string;
   response?: string;
-  response_time?: string;
+  response_time?: number;
   data?: string;
   error?: string;
   active: boolean;
