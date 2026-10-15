@@ -1,14 +1,8 @@
 import { useState, useEffect } from "react";
+import { normalizeName } from "../lib/formatters";
 
 const STORAGE_KEY = "goUp_prettify_names";
 const EVENT = "goUp:prettify-names-changed";
-
-function normalizeName(name: string): string {
-  return name
-    .replace(/^https?:\/\//i, "")
-    .replace(/_/g, " ")
-    .trim();
-}
 
 interface ServiceNameHook {
   formatName: (name: string) => string;
