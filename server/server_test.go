@@ -2,13 +2,16 @@ package server_test
 
 import (
 	"database/sql"
+	"encoding/binary"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"goUp/server"
 	"goUp/utils"
@@ -413,9 +416,23 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 
 // --- GetResponseTimes ---
 
-func TestGetResponseTimes_ReturnsJSON(t *testing.T) {
-	_, _, srv, cleanup := setupTestEnv(t)
+func TestGetResponseTimes_ReturnsBinaryFrame(t *testing.T) {
+	db, _, srv, cleanup := setupTestEnv(t)
 	defer cleanup()
+
+	t0 := time.Unix(1_700_000_000, 0)
+	t1 := t0.Add(time.Minute)
+	for _, sd := range []utils.ServiceData{
+		{ServiceName: "beta", ServiceResponseTime: (340 * time.Millisecond).Nanoseconds(), Timestamp: t0},
+		{ServiceName: "alpha", ServiceResponseTime: (12500 * time.Microsecond).Nanoseconds(), Timestamp: t0},
+		{ServiceName: "alpha", ServiceResponseTime: (1500 * time.Millisecond).Nanoseconds(), Timestamp: t1},
+		// Exceeds the old uint32 nanosecond limit (~4.29s)
+		{ServiceName: "beta", ServiceResponseTime: (6 * time.Second).Nanoseconds(), Timestamp: t1.Add(time.Minute)},
+	} {
+		if err := utils.InsertData(db, sd); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/rt", nil)
 	w := httptest.NewRecorder()
@@ -424,10 +441,57 @@ func TestGetResponseTimes_ReturnsJSON(t *testing.T) {
 
 	res := w.Result()
 	if res.StatusCode != http.StatusOK {
-		t.Errorf("Expected 200, got %d", res.StatusCode)
+		t.Fatalf("Expected 200, got %d", res.StatusCode)
 	}
-	if ct := res.Header.Get("Content-Type"); ct != "application/json" {
-		t.Errorf("Expected application/json, got %s", ct)
+	if ct := res.Header.Get("Content-Type"); ct != "application/octet-stream" {
+		t.Errorf("Expected application/octet-stream, got %s", ct)
+	}
+
+	buf := w.Body.Bytes()
+	le := binary.LittleEndian
+	if buf[0] != server.FrameSnapshot {
+		t.Fatalf("Expected snapshot frame, got type %d", buf[0])
+	}
+	cols := int(le.Uint16(buf[2:]))
+	rows := int(le.Uint32(buf[8:]))
+	if cols != 2 || rows != 3 {
+		t.Fatalf("Expected 2 cols x 3 rows, got %d x %d", cols, rows)
+	}
+
+	o := 12
+	var names []string
+	for range cols {
+		n := int(buf[o])
+		names = append(names, string(buf[o+1:o+1+n]))
+		o += 1 + n
+	}
+	if !slices.Equal(names, []string{"alpha", "beta"}) {
+		t.Errorf("Expected sorted names [alpha beta], got %v", names)
+	}
+	o = (o + 3) &^ 3
+
+	read := func() []uint32 {
+		out := make([]uint32, rows)
+		for i := range out {
+			out[i] = le.Uint32(buf[o:])
+			o += 4
+		}
+		return out
+	}
+	ts := read()
+	wantTs := []uint32{uint32(t0.Unix()), uint32(t1.Unix()), uint32(t1.Unix() + 60)}
+	if !slices.Equal(ts, wantTs) {
+		t.Errorf("Expected ts %v, got %v", wantTs, ts)
+	}
+	// Microseconds, 0 where the service has no sample at that time
+	if alpha := read(); !slices.Equal(alpha, []uint32{12_500, 1_500_000, 0}) {
+		t.Errorf("Unexpected alpha column %v", alpha)
+	}
+	if beta := read(); !slices.Equal(beta, []uint32{340_000, 0, 6_000_000}) {
+		t.Errorf("Unexpected beta column %v", beta)
+	}
+	if o != len(buf) {
+		t.Errorf("Expected frame length %d, got %d", o, len(buf))
 	}
 }
 

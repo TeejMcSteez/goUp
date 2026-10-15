@@ -67,10 +67,7 @@ func TestStress(t *testing.T) {
 	var minSvcTime = time.Duration(1<<63 - 1)
 	var maxSvcTime time.Duration
 	for _, sd := range resp.AllServices {
-		d, parseErr := time.ParseDuration(sd.ServiceResponseTime)
-		if parseErr != nil {
-			continue
-		}
+		d := time.Duration(sd.ServiceResponseTime)
 		totalSvcTime += d
 		if d < minSvcTime {
 			minSvcTime = d

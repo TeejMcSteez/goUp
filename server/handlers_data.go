@@ -253,23 +253,23 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 
 // @Summary Get response time history for all services
 // @Tags data
-// @Produce json
-// @Success 200 {array} utils.ServiceResponseTime
+// @Description Binary snapshot frame, see server/protocol.go encodeFrame for the layout
+// @Produce octet-stream
+// @Success 200 {file} binary
 // @Failure 500 {string} string "internal server error"
 // @Router /api/rt [get]
 func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	data, err := utils.GetResponseTimes(s.db)
+	data, err := utils.BuildRtSnapshot(s.db)
 	if err != nil {
 		slog.Error("Error occured getting response time data from database", "error", err)
-		if err := json.NewEncoder(w).Encode([]byte(err.Error())); err != nil {
-			http.Error(w, "Failed to encode error message to json", http.StatusInternalServerError)
-		}
+		http.Error(w, "Failed to get response time data", http.StatusInternalServerError)
 		return
 	}
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		slog.Error("Error encoding error data to json", "error", err)
-		http.Error(w, "Failed to encode data to json", http.StatusInternalServerError)
+	frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	// Headers are already sent once Write starts, so a failure can only be logged
+	if _, err := w.Write(frame); err != nil {
+		slog.Error("Error writing response time frame", "error", err)
 	}
 }
 

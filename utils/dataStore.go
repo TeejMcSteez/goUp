@@ -7,6 +7,8 @@ import (
 	migrations "goUp/db/migrations"
 	database "goUp/internal/db"
 	"log/slog"
+	"maps"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -151,11 +153,9 @@ func rowToServiceData(d database.ServiceDatum) (ServiceData, error) {
 		ServiceDescription:  d.ServiceDescription.String,
 		ServiceHTTPResponse: d.ServiceHttpResponse.String,
 		ServiceAPIResponse:  d.ServiceApiResponse.String,
+		ServiceResponseTime: d.ServiceResponseTime.Int64,
 		Error:               d.Error != 0,
 		Active:              d.Active != 0,
-	}
-	if d.ServiceResponseTime.Valid {
-		s.ServiceResponseTime = formatResponseTime(d.ServiceResponseTime.Int64)
 	}
 	var err error
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, d.Timestamp.String)
@@ -188,17 +188,13 @@ func rowToTlsStatus(t database.TlsStatus) TlsStatus {
 }
 
 func toInsertParams(sd ServiceData) database.InsertDataParams {
-	var rtNs int64
-	if d, err := time.ParseDuration(sd.ServiceResponseTime); err == nil {
-		rtNs = d.Nanoseconds()
-	}
 	return database.InsertDataParams{
 		ServiceUrl:          sql.NullString{String: sd.ServiceURL, Valid: true},
 		ServiceName:         sql.NullString{String: sd.ServiceName, Valid: true},
 		ServiceDescription:  sql.NullString{String: sd.ServiceDescription, Valid: true},
 		ServiceHttpResponse: sql.NullString{String: sd.ServiceHTTPResponse, Valid: true},
 		ServiceApiResponse:  sql.NullString{String: sd.ServiceAPIResponse, Valid: true},
-		ServiceResponseTime: sql.NullInt64{Int64: rtNs, Valid: true},
+		ServiceResponseTime: sql.NullInt64{Int64: sd.ServiceResponseTime, Valid: true},
 		Timestamp:           sql.NullString{String: sd.Timestamp.Format(time.RFC3339Nano), Valid: true},
 		Error:               boolToInt(sd.Error),
 		Active:              boolToInt(sd.Active),
@@ -330,6 +326,74 @@ func GetLiveData(db *sql.DB) (*ServiceResponse, error) {
 	return &ServiceResponse{AllServices: services, DownServices: down, TlsData: tls}, nil
 }
 
+// BuildRtSnapshot aligns every service's response times onto one shared,
+// ascending unix-second time axis for the binary /api/rt frame.
+// Values are microseconds; 0 marks "no sample" for that service at that time.
+func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
+	rts, err := GetNanoSecondResponseTimes(db)
+	if err != nil {
+		return ResponseTimePayload{}, err
+	}
+
+	type sample struct {
+		ts uint32
+		us uint32
+	}
+	byName := make(map[string][]sample)
+	tsSet := make(map[uint32]struct{})
+	for _, rt := range rts {
+		if !rt.ServiceName.Valid ||
+			!rt.ServiceResponseTime.Valid ||
+			rt.ServiceResponseTime.Int64 <= 0 ||
+			// skip failed services for response time
+			// as only valid responses should be considered
+			// also to now majorly skew the graph because of timeouts
+			rt.Error == 1 {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339Nano, rt.Timestamp.String)
+		if err != nil {
+			slog.Error("Error parsing response time timestamp", "error", err)
+			continue
+		}
+		// If wanting to increase precision adjust division value to wanted time
+		// example: rt.ServiceResponseTime.Int64 / int64(time.Millisecond)
+		us := rt.ServiceResponseTime.Int64 / int64(time.Microsecond)
+		// 0 is the "no sample" sentinel, so sub-microsecond responses round up
+		us = min(max(us, 1), math.MaxUint32)
+		ts := uint32(t.Unix())
+		byName[rt.ServiceName.String] = append(byName[rt.ServiceName.String], sample{ts, uint32(us)})
+		tsSet[ts] = struct{}{}
+	}
+
+	// Sorted names keep column order (and chart colours) stable across requests
+	names := slices.Sorted(maps.Keys(byName))
+	ts := slices.Sorted(maps.Keys(tsSet))
+	row := make(map[uint32]int, len(ts))
+	for i, t := range ts {
+		row[t] = i
+	}
+
+	cols := make([][]uint32, len(names))
+	for c, name := range names {
+		col := make([]uint32, len(ts))
+		// Multiple samples in the same second: the last one written wins
+		for _, s := range byName[name] {
+			col[row[s.ts]] = s.us
+		}
+		cols[c] = col
+	}
+
+	return ResponseTimePayload{
+		Typ:     FrameSnapshot,
+		Names:   names,
+		Ts:      ts,
+		Cols:    cols,
+		Seq:     1,
+		MaxRows: 15000,
+	}, nil
+}
+
 // Gets data for a specific service
 func GetDataForService(db *sql.DB, name string) ([]ServiceData, error) {
 	rows, err := database.New(db).GetDataForService(context.Background(), sql.NullString{String: name, Valid: true})
@@ -395,9 +459,20 @@ func GetResponseTimes(db *sql.DB) ([]ServiceResponseTime, error) {
 		if err != nil {
 			return nil, err
 		}
-		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: s.ServiceResponseTime})
+		// only format went requesting ServiceResponseTime struct
+		// backend/database logic operates off of nanoseconds
+		svcRespTimes = append(svcRespTimes, ServiceResponseTime{Svc: s, ResponseTime: formatResponseTime(s.ServiceResponseTime)})
 	}
 	return svcRespTimes, nil
+}
+
+func GetNanoSecondResponseTimes(db *sql.DB) ([]database.ServiceDatum, error) {
+	rows, err := database.New(db).GetAllData(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 func GetExpiredTls(db *sql.DB) ([]TlsStatus, error) {

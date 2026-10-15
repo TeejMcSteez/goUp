@@ -7,6 +7,9 @@ import useElementWidth from "../hooks/useElementWidth";
 import type { UptimeChartData } from "../types";
 
 const CHART_HEIGHT = 400;
+// Matches Tailwind's `sm` breakpoint; below this, x-axis labels get abbreviated
+const MOBILE_WIDTH = 640;
+const MOBILE_LABEL_LENGTH = 3;
 
 const RANGE_OPTIONS: { label: string; value: UptimeRange }[] = [
   { label: "All Time", value: "" },
@@ -24,6 +27,9 @@ function buildOptions(chartData: UptimeChartData, width: number): uPlot.Options 
   const { labels, datasets } = chartData;
   // x values are label indices; map them back to service names for display
   const labelAt = (i: number | null) => (i == null ? "" : (labels[i] ?? ""));
+  const isMobile = width < MOBILE_WIDTH;
+  const axisLabelAt = (i: number | null) =>
+    isMobile ? labelAt(i).slice(0, MOBILE_LABEL_LENGTH) : labelAt(i);
 
   return {
     width,
@@ -36,7 +42,7 @@ function buildOptions(chartData: UptimeChartData, width: number): uPlot.Options 
       {
         stroke: "#9ca3af",
         splits: () => labels.map((_, i) => i),
-        values: (_u, splits) => splits.map(labelAt),
+        values: (_u, splits) => splits.map(axisLabelAt),
         grid: { show: false },
       },
       {

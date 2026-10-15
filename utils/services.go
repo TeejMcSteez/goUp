@@ -209,7 +209,7 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 		if err != nil {
 			slog.Error("Error fetching endpoint", "url", endpoint.URL, "error", err)
 			sd.ServiceHTTPResponse = err.Error()
-			sd.ServiceResponseTime = time.Since(start).String()
+			sd.ServiceResponseTime = time.Since(start).Nanoseconds()
 			var state *tls.ConnectionState
 			if res != nil {
 				state = res.TLS
@@ -239,8 +239,10 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 			sd.ServiceAPIResponse = err.Error()
 		}
 	}
-	if sd.ServiceResponseTime == "" {
-		sd.ServiceResponseTime = time.Since(start).String()
+	// Go values are zeroed for init; this is a dumb nil check
+	// as a response could never happen in 0 seconds
+	if sd.ServiceResponseTime == 0 {
+		sd.ServiceResponseTime = time.Since(start).Nanoseconds()
 	}
 	return sd, tls
 }
@@ -329,7 +331,7 @@ func GetAPIData(endpoint Service, sd *ServiceData, start time.Time) error {
 	}
 	sd.ServiceAPIResponse = string(apiBody)
 	elapsed := time.Since(start)
-	sd.ServiceResponseTime = elapsed.String()
+	sd.ServiceResponseTime = elapsed.Nanoseconds()
 	slog.Info("Fetched API data successfully")
 	return nil
 }

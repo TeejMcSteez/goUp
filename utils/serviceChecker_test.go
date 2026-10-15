@@ -28,8 +28,8 @@ func TestServiceCheck(t *testing.T) {
 	}()
 
 	sd := []utils.ServiceData{
-		{ServiceName: "test1", ServiceHTTPResponse: "200", ServiceAPIResponse: "", ServiceResponseTime: ""},
-		{ServiceName: "test2", ServiceHTTPResponse: "303", ServiceAPIResponse: "", ServiceResponseTime: ""},
+		{ServiceName: "test1", ServiceHTTPResponse: "200", ServiceAPIResponse: "", ServiceResponseTime: 0},
+		{ServiceName: "test2", ServiceHTTPResponse: "303", ServiceAPIResponse: "", ServiceResponseTime: 0},
 	}
 	res, err := utils.Check(sd)
 

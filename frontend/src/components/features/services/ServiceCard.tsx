@@ -3,6 +3,7 @@ import useServiceName from "../../../hooks/useServiceName";
 import useTlsData from "../../../hooks/useTlsData";
 import { ServiceCardProps } from "../../../types.ts";
 import ServiceCardImage from "./ServiceCardImage.tsx";
+import { formatResponseTime } from "../../../lib/formatters.ts";
 
 export default function ServiceCard({ service }: ServiceCardProps) {
   const {
@@ -56,7 +57,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
               Response Time
             </span>
             <span className="text-sm font-semibold text-muted">
-              {response_time ?? "—"}
+              {formatResponseTime(response_time) ?? "—"}
             </span>
           </div>
           <div className="flex flex-col">
@@ -125,7 +126,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
             Response Time
           </span>
           <span className="text-sm font-semibold text-primary">
-            {response_time ?? "—"}
+            {formatResponseTime(response_time) ?? "—"}
           </span>
         </div>
         <div className="flex flex-col">

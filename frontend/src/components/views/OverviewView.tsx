@@ -2,6 +2,7 @@ import Island from "../layout/Island";
 import useServiceName from "../../hooks/useServiceName";
 import useServiceData from "../../hooks/useServiceData";
 import type { Service } from "../../types";
+import { parseNanoseconds, formatResponseTime } from "../../lib/formatters";
 
 interface QuickStatsProps {
   services: Service[];
@@ -44,14 +45,6 @@ interface MiniServiceGridProps {
   error: string | null;
 }
 
-function parseMs(rt?: string): number | null {
-  if (!rt) return null;
-  const match = rt.match(/([\d.]+)\s*(ms|s)/i);
-  if (!match) return null;
-  const val = parseFloat(match[1]);
-  return match[2].toLowerCase() === "s" ? val * 1000 : val;
-}
-
 function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
   const { formatName } = useServiceName();
 
@@ -67,7 +60,7 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
   const operational = services.filter((s) => !s.error);
 
   const timed = services
-    .map((s) => ({ service: s, ms: parseMs(s.response_time) }))
+    .map((s) => ({ service: s, ms: parseNanoseconds(s.response_time) }))
     .filter((x): x is { service: Service; ms: number } => x.ms !== null)
     .sort((a, b) => a.ms - b.ms);
 
@@ -119,7 +112,7 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
               </a>
             </p>
             <p className="text-sm font-semibold text-primary m-0">
-              {fastest.service.response_time}
+              {formatResponseTime(fastest.service.response_time)}
             </p>
           </div>
         )}
@@ -140,7 +133,7 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
               </a>
             </p>
             <p className="text-sm font-semibold text-secondary m-0">
-              {slowest.service.response_time}
+              {formatResponseTime(slowest.service.response_time)}
             </p>
           </div>
         )}
@@ -166,9 +159,9 @@ function MiniServiceGrid({ services, error }: MiniServiceGridProps) {
                   {formatName(s.name)}
                 </a>
                 <div className="flex items-center gap-3">
-                  {s.response_time && (
+                  {s.response_time != null && (
                     <span className="text-xs text-muted">
-                      {s.response_time}
+                      {formatResponseTime(s.response_time)}
                     </span>
                   )}
                   <a

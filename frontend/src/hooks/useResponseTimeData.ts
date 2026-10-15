@@ -1,38 +1,6 @@
 import useLiveQuery from "./useLiveQuery";
 import type { ResponseTimeEntry, UptimeChartData } from "../types";
-
-// Parses Go duration strings (e.g. "12ms", "1.5s", "1m2.3s") to milliseconds.
-export function parseDurationMs(d: string): number {
-  if (!d) return 0;
-  let total = 0;
-  const re = /(\d+(?:\.\d+)?)(ns|µs|μs|ms|s|m|h)/g;
-  let match;
-  while ((match = re.exec(d)) !== null) {
-    const val = parseFloat(match[1]);
-    switch (match[2]) {
-      case "ns":
-        total += val / 1_000_000;
-        break;
-      case "µs":
-      case "μs":
-        total += val / 1_000;
-        break;
-      case "ms":
-        total += val;
-        break;
-      case "s":
-        total += val * 1_000;
-        break;
-      case "m":
-        total += val * 60_000;
-        break;
-      case "h":
-        total += val * 3_600_000;
-        break;
-    }
-  }
-  return total;
-}
+import { parseDurationMs } from "../lib/formatters";
 
 async function fetchData(): Promise<UptimeChartData | null> {
   const res = await fetch("/api/rt");
