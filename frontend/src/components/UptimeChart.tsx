@@ -9,7 +9,7 @@ import type { UptimeChartData } from "../types";
 const CHART_HEIGHT = 400;
 // Matches Tailwind's `sm` breakpoint; below this, x-axis labels get abbreviated
 const MOBILE_WIDTH = 640;
-const MOBILE_LABEL_LENGTH = 3;
+const MOBILE_LABEL_LENGTH = 1;
 
 const RANGE_OPTIONS: { label: string; value: UptimeRange }[] = [
   { label: "All Time", value: "" },
