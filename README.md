@@ -2,7 +2,7 @@
 
 GoUp is a server monitor featuring a web interface and API routes to track server(s) information.
 
-The frontend is built with [React](https://react.dev/) and [Vite](https://vite.dev/), utilizing [Chart.js](https://www.chartjs.org/) for uptime visualization.
+The frontend is built with [React](https://react.dev/) and [Vite](https://vite.dev/), utilizing [μPlot](https://github.com/leeoniya/uplot) for uptime visualization.
 
 The entire frontend directory is embedded directly into the Go server using Go's [embed](https://pkg.go.dev/embed) package. 
 
@@ -169,7 +169,7 @@ Requires:
 - Node package manager (npm, pnpm, yarn, or bun) 
 - [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
 - [sqlc](https://sqlc.dev/) CLI, v1.31.1 (`go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1`)
-- [goose]() CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@v3.27.2`)
+- [goose](https://github.com/pressly/goose) CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@v3.27.2`)
 ### Development:
 - [golangci-lint](https://golangci-lint.run/)
 - [pprof](https://github.com/google/pprof) - for performance profiling
@@ -247,6 +247,6 @@ After listening to some talks from the creator of SQLite I was pushed to want mo
 With this in mind below are the current coverages of the code found by running `go test ./... -cover`
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 24.3% of statements
-- goUp/utils coverage: 66.3% of statements
-- goUp/workers coverage: 73.8% of statements
+- goUp/server coverage: 27.7% of statements
+- goUp/utils coverage: 64.0% of statements
+- goUp/workers coverage: 68.8% of statements
