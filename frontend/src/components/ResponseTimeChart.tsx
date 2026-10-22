@@ -19,8 +19,15 @@ const PALETTE = [
 ];
 
 // Server sends nanosecond precision; show sub-ms detail only when it matters.
-const formatMs = (v: number) =>
-  `${v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v)}ms`;
+// Switch to seconds past 1000ms so wide labels like "15000ms" don't overflow
+// the fixed-width y axis and get their leading digits clipped.
+const formatMs = (v: number) => {
+  if (v >= 1000) {
+    const s = v / 1000;
+    return `${s < 10 ? +s.toFixed(2) : s < 100 ? +s.toFixed(1) : Math.round(s)}s`;
+  }
+  return `${v < 10 ? v.toFixed(2) : v < 100 ? v.toFixed(1) : Math.round(v)}ms`;
+};
 
 function buildOptions(names: string[], width: number): uPlot.Options {
   return {
