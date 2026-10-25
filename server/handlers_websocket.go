@@ -83,8 +83,8 @@ const (
 	pongWait = 60 * time.Second
 
 	pingPeriod = (pongWait * 9) / 10
-	// max message size
-	_ = 512
+
+	readLimit = 512
 )
 
 // @Summary Start Websocket connection to receive data on every fetch
@@ -107,7 +107,7 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 
 func (ws *wsConn) readLoop() {
 	defer ws.stop()
-	ws.conn.SetReadLimit(512)
+	ws.conn.SetReadLimit(readLimit)
 	_ = ws.conn.SetReadDeadline(time.Now().Add(pongWait))
 	ws.conn.SetPongHandler(func(string) error {
 		return ws.conn.SetReadDeadline(time.Now().Add(pongWait))
