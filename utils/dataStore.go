@@ -356,7 +356,7 @@ func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 			slog.Error("Error parsing response time timestamp", "error", err)
 			continue
 		}
-		// If wanting to increase precision adjust division value to wanted time
+		// If wanting to increase/decrease precision adjust division value to duration
 		// example: rt.ServiceResponseTime.Int64 / int64(time.Millisecond)
 		us := rt.ServiceResponseTime.Int64 / int64(time.Microsecond)
 		// 0 is the "no sample" sentinel, so sub-microsecond responses round up
