@@ -17,6 +17,15 @@ definitions:
       service:
         $ref: '#/definitions/utils.Service'
     type: object
+  server.SnapshotData:
+    properties:
+      from:
+        example: 1793620800
+        type: integer
+      to:
+        example: 1793621100
+        type: integer
+    type: object
   utils.AverageData:
     properties:
       average:
@@ -1024,13 +1033,14 @@ paths:
       - data
   /api/rt:
     get:
-      description: Binary snapshot frame, see server/protocol.go encodeFrame for the
-        layout
+      description: |-
+        Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.
+        Binary layout is described by encodeFrame in server/protocol.go.
       produces:
       - application/octet-stream
       responses:
         "200":
-          description: OK
+          description: snapshot frame
           schema:
             type: file
         "500":
@@ -1038,6 +1048,37 @@ paths:
           schema:
             type: string
       summary: Get response time history for all services
+      tags:
+      - data
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Returns an append frame (type 1) with response time rows between `from` and `to`, used by the frontend to extend an existing snapshot without refetching it.
+        Append frames omit service names; columns follow the order of the original snapshot. Binary layout is described by encodeFrame in server/protocol.go.
+      parameters:
+      - description: Time window (unix seconds, inclusive; omit `to` for now)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/server.SnapshotData'
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: append frame
+          schema:
+            type: file
+        "400":
+          description: failed to parse request body
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get response times appended since a previous snapshot
       tags:
       - data
   /api/schedule:

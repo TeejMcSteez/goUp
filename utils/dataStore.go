@@ -332,6 +332,7 @@ func GetLiveData(db *sql.DB) (*ServiceResponse, error) {
 func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 	rts, err := GetNanoSecondResponseTimes(db)
 	if err != nil {
+		slog.Error("failed getting all data for response time snapshot", "error", err)
 		return ResponseTimePayload{}, err
 	}
 
@@ -342,6 +343,87 @@ func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 	byName := make(map[string][]sample)
 	tsSet := make(map[uint32]struct{})
 	for _, rt := range rts {
+		if !rt.ServiceName.Valid ||
+			!rt.ServiceResponseTime.Valid ||
+			rt.ServiceResponseTime.Int64 <= 0 ||
+			// skip failed services for response time
+			// as only valid responses should be considered
+			// also to now majorly skew the graph because of timeouts
+			rt.Error == 1 {
+			continue
+		}
+		t, err := time.Parse(time.RFC3339Nano, rt.Timestamp.String)
+		if err != nil {
+			slog.Error("Error parsing response time timestamp for response time snapshot", "error", err)
+			continue
+		}
+		// If wanting to increase/decrease precision adjust division value to duration
+		// example: rt.ServiceResponseTime.Int64 / int64(time.Millisecond)
+		us := rt.ServiceResponseTime.Int64 / int64(time.Microsecond)
+		// 0 is the "no sample" sentinel, so sub-microsecond responses round up
+		us = min(max(us, 1), math.MaxUint32)
+		ts := uint32(t.Unix())
+		byName[rt.ServiceName.String] = append(byName[rt.ServiceName.String], sample{ts, uint32(us)})
+		tsSet[ts] = struct{}{}
+	}
+
+	// Sorted names keep column order (and chart colours) stable across requests
+	names := slices.Sorted(maps.Keys(byName))
+	ts := slices.Sorted(maps.Keys(tsSet))
+	row := make(map[uint32]int, len(ts))
+	for i, t := range ts {
+		row[t] = i
+	}
+
+	cols := make([][]uint32, len(names))
+	for c, name := range names {
+		col := make([]uint32, len(ts))
+		// Multiple samples in the same second: the last one written wins
+		for _, s := range byName[name] {
+			col[row[s.ts]] = s.us
+		}
+		cols[c] = col
+	}
+
+	return ResponseTimePayload{
+		Typ:     FrameSnapshot,
+		Names:   names,
+		Ts:      ts,
+		Cols:    cols,
+		Seq:     0,
+		MaxRows: 15000,
+	}, nil
+}
+
+// Gets response time snapshot within range (inclusive)
+// Filtering happens in Go as SQLite has no inherit way to compare timestamps stored a strings
+func GetRtAppend(db *sql.DB, from time.Time, to time.Time) (ResponseTimePayload, error) {
+	rts, err := database.New(db).GetAllData(context.Background())
+	if err != nil {
+		slog.Error("failed getting all data for response time append", "error", err)
+		return ResponseTimePayload{}, err
+	}
+	filteredRts := []database.ServiceDatum{}
+	for _, rt := range rts {
+		if rt.Timestamp.Valid {
+			ts, err := time.Parse(time.RFC3339Nano, rt.Timestamp.String)
+			if err != nil {
+				slog.Error("error parsing response timestamp for snapshot append", "error", err)
+				return ResponseTimePayload{}, err
+			}
+			if ts.Compare(from) > -1 && ts.Compare(to) <= 0 {
+				filteredRts = append(filteredRts, rt)
+			}
+		}
+	}
+
+	type sample struct {
+		ts uint32
+		us uint32
+	}
+	byName := make(map[string][]sample)
+	tsSet := make(map[uint32]struct{})
+	for _, rt := range filteredRts {
 		if !rt.ServiceName.Valid ||
 			!rt.ServiceResponseTime.Valid ||
 			rt.ServiceResponseTime.Int64 <= 0 ||
@@ -385,7 +467,7 @@ func BuildRtSnapshot(db *sql.DB) (ResponseTimePayload, error) {
 	}
 
 	return ResponseTimePayload{
-		Typ:     FrameSnapshot,
+		Typ:     FrameAppend,
 		Names:   names,
 		Ts:      ts,
 		Cols:    cols,

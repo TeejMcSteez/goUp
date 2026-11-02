@@ -1,4 +1,5 @@
 import type { AlignedData } from "uplot";
+import { useQueryClient } from "@tanstack/react-query";
 import useLiveQuery from "./useLiveQuery";
 
 export interface ResponseTimeSeries {
@@ -86,7 +87,14 @@ export function decodeFrame(buf: ArrayBuffer) {
   return { typ, seq, names, ts, cols };
 }
 
-async function fetchSeries(): Promise<ResponseTimeSeries | null> {
+type Frame = ReturnType<typeof decodeFrame>;
+type SeriesColumns = [ArrayLike<number>, ...(number | null)[][]];
+
+// Nested under "responseTime" so websocket pushes invalidate it too.
+const QUERY_KEY = ["responseTime", "series"] as const;
+
+// GET /api/rt: the full history as a snapshot frame.
+async function fetchSnapshot(): Promise<ResponseTimeSeries | null> {
   const res = await fetch("/api/rt");
   if (!res.ok)
     throw new Error(`Error fetching response times: ${res.statusText}`);
@@ -103,7 +111,97 @@ async function fetchSeries(): Promise<ResponseTimeSeries | null> {
   };
 }
 
+// Maps each frame column to its column index in prev. Frames carrying a name
+// table are matched by name, since a window only holds the services that
+// reported in it. Nameless append frames follow the snapshot's column order.
+// Returns null when the frame can't be lined up (e.g. a new service), so the
+// caller falls back to a fresh snapshot.
+function mapColumns(prev: ResponseTimeSeries, frame: Frame): number[] | null {
+  if (frame.typ === FRAME_SNAPSHOT) {
+    const index = new Map(prev.names.map((name, i) => [name, i]));
+    const map = frame.names.map((name) => index.get(name) ?? -1);
+    return map.includes(-1) ? null : map;
+  }
+  if (frame.cols.length !== prev.names.length) return null;
+  return frame.cols.map((_, i) => i);
+}
+
+// Appends the frame's rows onto prev without mutating it. The window starts
+// at prev's last timestamp (inclusive), so a row at that same second merges
+// into prev's last row instead of duplicating it.
+function mergeFrame(
+  prev: ResponseTimeSeries,
+  frame: Frame,
+  colMap: number[],
+): ResponseTimeSeries {
+  const [prevTs, ...prevCols] = prev.data as unknown as SeriesColumns;
+  const prevLen = prevTs.length;
+  const lastTs = prevTs[prevLen - 1];
+
+  let start = 0;
+  while (start < frame.ts.length && frame.ts[start] <= lastTs) start++;
+  const added = frame.ts.length - start;
+
+  const ts = new Uint32Array(prevLen + added);
+  ts.set(prevTs);
+  ts.set(frame.ts.subarray(start), prevLen);
+
+  const pad: null[] = Array.from({ length: added }, () => null);
+  const cols = prevCols.map((col) => col.concat(pad));
+
+  frame.cols.forEach((col, c) => {
+    const target = cols[colMap[c]];
+    for (let i = 0; i < col.length; i++) {
+      const v = col[i];
+      if (v == null || frame.ts[i] < lastTs) continue;
+      target[i < start ? prevLen - 1 : prevLen + i - start] = v;
+    }
+  });
+
+  return {
+    // Same reference keeps chart options (built from names) stable.
+    names: prev.names,
+    seq: frame.seq,
+    data: [ts, ...cols] as AlignedData,
+  };
+}
+
+// POST /api/rt: only rows recorded since prev's newest timestamp.
+async function fetchAppend(
+  prev: ResponseTimeSeries,
+): Promise<ResponseTimeSeries | null> {
+  const prevTs = prev.data[0];
+  const lastTs = prevTs[prevTs.length - 1];
+
+  const res = await fetch("/api/rt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // Unix seconds, same unit as the frame; the server fills `to` with its
+    // own clock so browser clock skew can't hide fresh rows.
+    body: JSON.stringify({ from: lastTs }),
+  });
+  if (!res.ok)
+    throw new Error(`Error fetching response time update: ${res.statusText}`);
+
+  const frame = decodeFrame(await res.arrayBuffer());
+  if (frame.ts.length === 0) return prev;
+
+  const colMap = mapColumns(prev, frame);
+  if (!colMap) return fetchSnapshot();
+  return mergeFrame(prev, frame, colMap);
+}
+
 export default function useResponseTimeSeries() {
-  // Nested under "responseTime" so websocket pushes invalidate it too.
-  return useLiveQuery(["responseTime", "series"], fetchSeries);
+  const queryClient = useQueryClient();
+
+  // First fetch (or after the cache was dropped) pulls the full snapshot;
+  // every refetch after that only pulls the rows newer than what's cached.
+  const fetchSeries = () => {
+    const prev = queryClient.getQueryData<ResponseTimeSeries | null>(
+      QUERY_KEY,
+    );
+    return prev ? fetchAppend(prev) : fetchSnapshot();
+  };
+
+  return useLiveQuery(QUERY_KEY, fetchSeries);
 }
