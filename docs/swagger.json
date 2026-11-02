@@ -1205,7 +1205,7 @@
         },
         "/api/rt": {
             "get": {
-                "description": "Binary snapshot frame, see server/protocol.go encodeFrame for the layout",
+                "description": "Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.\nBinary layout is described by encodeFrame in server/protocol.go.",
                 "produces": [
                     "application/octet-stream"
                 ],
@@ -1215,9 +1215,53 @@
                 "summary": "Get response time history for all services",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "snapshot frame",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Returns an append frame (type 1) with response time rows between `from` and `to`, used by the frontend to extend an existing snapshot without refetching it.\nAppend frames omit service names; columns follow the order of the original snapshot. Binary layout is described by encodeFrame in server/protocol.go.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Get response times appended since a previous snapshot",
+                "parameters": [
+                    {
+                        "description": "Time window (unix seconds, inclusive; omit `to` for now)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.SnapshotData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "append frame",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "failed to parse request body",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
@@ -1432,6 +1476,19 @@
                 },
                 "service": {
                     "$ref": "#/definitions/utils.Service"
+                }
+            }
+        },
+        "server.SnapshotData": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "integer",
+                    "example": 1793620800
+                },
+                "to": {
+                    "type": "integer",
+                    "example": 1793621100
                 }
             }
         },
