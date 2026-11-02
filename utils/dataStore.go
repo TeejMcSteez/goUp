@@ -467,7 +467,7 @@ func GetRtAppend(db *sql.DB, from time.Time, to time.Time) (ResponseTimePayload,
 	}
 
 	return ResponseTimePayload{
-		Typ:     FrameSnapshot,
+		Typ:     FrameAppend,
 		Names:   names,
 		Ts:      ts,
 		Cols:    cols,
