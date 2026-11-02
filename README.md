@@ -240,13 +240,9 @@ Schema:
 
 - Debian x86_64 (AMD64)
 
-## Current Test Coverage (Dev)
-
-After listening to some talks from the creator of SQLite I was pushed to want more testing and overall test coverage in my code.
-
-With this in mind below are the current coverages of the code found by running `go test ./... -cover`
+## Current Test Coverage
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 27.7% of statements
-- goUp/utils coverage: 64.0% of statements
+- goUp/server coverage: 26.9% of statements
+- goUp/utils coverage: 62.2% of statements
 - goUp/workers coverage: 68.8% of statements
