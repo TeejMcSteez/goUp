@@ -1053,9 +1053,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: |-
-        Returns an append frame (type 1) with response time rows between `from` and `to`, used by the frontend to extend an existing snapshot without refetching it.
-        Append frames omit service names; columns follow the order of the original snapshot. Binary layout is described by encodeFrame in server/protocol.go.
+      description: Returns an append frame (type 1) with response time rows between
+        `from` and `to`, used by the frontend to extend an existing snapshot without
+        refetching it.
       parameters:
       - description: Time window (unix seconds, inclusive; omit `to` for now)
         in: body

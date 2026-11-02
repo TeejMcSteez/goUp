@@ -1232,7 +1232,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Returns an append frame (type 1) with response time rows between ` + "`" + `from` + "`" + ` and ` + "`" + `to` + "`" + `, used by the frontend to extend an existing snapshot without refetching it.\nAppend frames omit service names; columns follow the order of the original snapshot. Binary layout is described by encodeFrame in server/protocol.go.",
+                "description": "Returns an append frame (type 1) with response time rows between ` + "`" + `from` + "`" + ` and ` + "`" + `to` + "`" + `, used by the frontend to extend an existing snapshot without refetching it.",
                 "consumes": [
                     "application/json"
                 ],
