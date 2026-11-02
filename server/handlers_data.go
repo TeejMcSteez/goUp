@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // @Summary Get all recent service data
@@ -252,13 +253,14 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 }
 
 // @Summary Get response time history for all services
+// @Description Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.
+// @Description Binary layout is described by encodeFrame in server/protocol.go.
 // @Tags data
-// @Description Binary snapshot frame, see server/protocol.go encodeFrame for the layout
 // @Produce octet-stream
-// @Success 200 {file} binary
+// @Success 200 {file} binary "snapshot frame"
 // @Failure 500 {string} string "internal server error"
 // @Router /api/rt [get]
-func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
+func (s *Server) rtSnapshot(w http.ResponseWriter, _ *http.Request) {
 	data, err := utils.BuildRtSnapshot(s.db)
 	if err != nil {
 		slog.Error("Error occured getting response time data from database", "error", err)
@@ -271,6 +273,71 @@ func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
 	if _, err := w.Write(frame); err != nil {
 		slog.Error("Error writing response time frame", "error", err)
 	}
+}
+
+// SnapshotData is the request body for an append (diff) frame request.
+// Both fields are unix seconds, matching the frame's timestamp column, and
+// both ends are inclusive of their whole second. To = 0 means "now".
+type SnapshotData struct {
+	From int64 `json:"from" example:"1793620800"`
+	To   int64 `json:"to,omitempty" example:"1793621100"`
+}
+
+// @Summary Get response times appended since a previous snapshot
+// @Description Returns an append frame (type 1) with response time rows between `from` and `to`, used by the frontend to extend an existing snapshot without refetching it.
+// @Tags data
+// @Accept json
+// @Produce octet-stream
+// @Param body body SnapshotData true "Time window (unix seconds, inclusive; omit `to` for now)"
+// @Success 200 {file} binary "append frame"
+// @Failure 400 {string} string "failed to parse request body"
+// @Failure 500 {string} string "internal server error"
+// @Router /api/rt [post]
+func (s *Server) rtDiff(w http.ResponseWriter, req *http.Request) {
+	var data SnapshotData
+	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+		slog.Error("failed to decode request body", "error", err)
+		http.Error(w, "failed to parse response body", http.StatusBadRequest)
+		return
+	}
+	from := time.Unix(data.From, 0)
+	// Stored timestamps carry sub-second precision, so stretch `to` to the
+	// end of its second; otherwise rows later in that second are dropped.
+	to := time.Now()
+	if data.To != 0 {
+		to = time.Unix(data.To, 0).Add(time.Second - time.Nanosecond)
+	}
+	if data.From < 0 || from.After(to) {
+		http.Error(w, "'from' must be a unix timestamp at or before 'to'", http.StatusBadRequest)
+		return
+	}
+	payload, err := utils.GetRtAppend(s.db, from, to)
+	if err != nil {
+		slog.Error("failed to get append snapshot", "error", err)
+		http.Error(w, "failed to get payload append data", http.StatusInternalServerError)
+		return
+	}
+	frame := encodeFrame(payload.Typ, payload.Seq, payload.Names, payload.Ts, payload.Cols)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if _, err := w.Write(frame); err != nil {
+		slog.Error("error writing append time frame", "error", err)
+	}
+}
+
+// GetResponseTimes dispatches /api/rt by method: GET returns a full snapshot
+// frame (rtSnapshot), POST returns an append frame for a time window (rtDiff).
+// Swagger annotations live on rtSnapshot and rtDiff.
+func (s *Server) GetResponseTimes(w http.ResponseWriter, req *http.Request) {
+
+	switch req.Method {
+	case "POST":
+		s.rtDiff(w, req)
+	case "GET":
+		s.rtSnapshot(w, req)
+	default:
+		http.Error(w, "invalid request", http.StatusBadRequest)
+	}
+
 }
 
 // @Summary Manually trigger a service data fetch
