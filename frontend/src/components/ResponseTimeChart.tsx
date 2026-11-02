@@ -59,9 +59,12 @@ export default function ResponseTimeChart() {
   const { data: series, loading, error } = useResponseTimeSeries();
   const [containerRef, width] = useElementWidth<HTMLDivElement>();
 
+  // Keyed on names (kept by reference across appends) so new rows only
+  // update the data instead of rebuilding the whole chart.
+  const names = series?.names;
   const options = useMemo(
-    () => (series ? buildOptions(series.names, width) : null),
-    [series, width],
+    () => (names ? buildOptions(names, width) : null),
+    [names, width],
   );
 
   let body;
