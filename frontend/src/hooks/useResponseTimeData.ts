@@ -1,32 +1,33 @@
-import useLiveQuery from "./useLiveQuery";
-import type { ResponseTimeEntry, UptimeChartData } from "../types";
-import { parseDurationMs } from "../lib/formatters";
+import { useMemo } from "react";
+import type { UptimeChartData } from "../types";
+import useResponseTimeSeries, {
+  type ResponseTimeSeries,
+} from "./useResponseTimeSeries";
 
-async function fetchData(): Promise<UptimeChartData | null> {
-  const res = await fetch("/api/rt");
-  if (!res.ok)
-    throw new Error(`Error fetching response times: ${res.statusText}`);
+// Average response time per service, computed from the cached series so it
+// rides the same snapshot + append fetches instead of hitting /api/rt again.
+function toChartData(series: ResponseTimeSeries): UptimeChartData | null {
+  const [, ...cols] = series.data as unknown as [
+    unknown,
+    ...(number | null)[][],
+  ];
 
-  const json: unknown = await res.json();
-  if (!Array.isArray(json) || json.length === 0) return null;
-
-  const items = json as ResponseTimeEntry[];
-
-  // Average response time per service name.
-  const totals = new Map<string, { sum: number; count: number }>();
-  for (const item of items) {
-    const ms = parseDurationMs(item.response_time);
-    if (ms <= 0) continue;
-    const name = item.service_data.name;
-    const existing = totals.get(name) ?? { sum: 0, count: 0 };
-    totals.set(name, { sum: existing.sum + ms, count: existing.count + 1 });
-  }
-
-  const labels = [...totals.keys()];
-  const data = labels.map((name) => {
-    const { sum, count } = totals.get(name)!;
-    return Math.round(sum / count);
+  const labels: string[] = [];
+  const data: number[] = [];
+  cols.forEach((col, i) => {
+    let sum = 0;
+    let count = 0;
+    for (const ms of col) {
+      if (ms == null || ms <= 0) continue;
+      sum += ms;
+      count++;
+    }
+    if (count === 0) return;
+    labels.push(series.names[i]);
+    data.push(Math.round(sum / count));
   });
+
+  if (labels.length === 0) return null;
 
   return {
     labels,
@@ -43,5 +44,7 @@ async function fetchData(): Promise<UptimeChartData | null> {
 }
 
 export default function useResponseTimeData() {
-  return useLiveQuery(["responseTime"], fetchData);
+  const { data: series, ...rest } = useResponseTimeSeries();
+  const data = useMemo(() => (series ? toChartData(series) : null), [series]);
+  return { ...rest, data };
 }
