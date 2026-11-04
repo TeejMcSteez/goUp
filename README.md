@@ -243,6 +243,6 @@ Schema:
 ## Current Test Coverage
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 26.9% of statements
+- goUp/server coverage: 31.9% of statements
 - goUp/utils coverage: 62.2% of statements
 - goUp/workers coverage: 68.8% of statements
