@@ -25,7 +25,7 @@ All generated code was reviewed and modified by the author.
 
 ## Example services.yml
 
-The database path is specified by `db_path` as well as the `db_max_size` which is in the format <number><size> (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. 
+The database path is specified by `db_path` as well as the `db_max_size` which is in the format `<number><size>` (Ex: 1gb, 20mb, 40kb,etc.) the minimum size is rougly 64KB as the database writes in WAL mode so when running it uses a WAL, SHM, and DB file for operation. 
 
 When shrinking the database the system switches off WAL mode so the row deletion (and VACUUM) happens on disk then switches back into WAL mode for concurrent read/writes.
 
