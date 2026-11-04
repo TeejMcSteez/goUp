@@ -169,7 +169,7 @@ Requires:
 - Node package manager (npm, pnpm, yarn, or bun) 
 - [swag](https://github.com/swaggo/swag) CLI (`go install github.com/swaggo/swag/cmd/swag@latest`)
 - [sqlc](https://sqlc.dev/) CLI, v1.31.1 (`go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1`)
-- [goose](https://github.com/pressly/goose) CLI, v3.27.2 (`go install github.com/pressly/goose/v3/cmd/goose@v3.27.2`)
+- [goose](https://github.com/pressly/goose) CLI (`go install github.com/pressly/goose/v3/cmd/goose@latest`)
 ### Development:
 - [golangci-lint](https://golangci-lint.run/)
 - [pprof](https://github.com/google/pprof) - for performance profiling
