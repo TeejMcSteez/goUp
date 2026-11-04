@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -492,6 +493,59 @@ func TestGetResponseTimes_ReturnsBinaryFrame(t *testing.T) {
 	}
 	if o != len(buf) {
 		t.Errorf("Expected frame length %d, got %d", o, len(buf))
+	}
+}
+
+// A window only holds the services that reported in it, so an append frame
+// must name its columns for clients to line them up.
+func TestGetResponseTimes_AppendFrameNamesColumns(t *testing.T) {
+	db, _, srv, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	t0 := time.Unix(1_700_000_000, 0)
+	t1 := t0.Add(time.Minute)
+	for _, sd := range []utils.ServiceData{
+		{ServiceName: "alpha", ServiceResponseTime: (5 * time.Millisecond).Nanoseconds(), Timestamp: t0},
+		{ServiceName: "gamma", ServiceResponseTime: (7 * time.Millisecond).Nanoseconds(), Timestamp: t1},
+	} {
+		if err := utils.InsertData(db, sd); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	body := fmt.Sprintf(`{"from":%d}`, t1.Unix())
+	req := httptest.NewRequest(http.MethodPost, "/api/rt", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	srv.GetResponseTimes(w, req)
+
+	if code := w.Result().StatusCode; code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", code)
+	}
+	buf := w.Body.Bytes()
+	le := binary.LittleEndian
+	if buf[0] != server.FrameAppend {
+		t.Fatalf("Expected append frame, got type %d", buf[0])
+	}
+	cols := int(le.Uint16(buf[2:]))
+	rows := int(le.Uint32(buf[8:]))
+	if cols != 1 || rows != 1 {
+		t.Fatalf("Expected 1 col x 1 row, got %d x %d", cols, rows)
+	}
+
+	n := int(buf[12])
+	if name := string(buf[13 : 13+n]); name != "gamma" {
+		t.Errorf("Expected column name gamma, got %q", name)
+	}
+	o := (13 + n + 3) &^ 3
+	if ts := le.Uint32(buf[o:]); ts != uint32(t1.Unix()) {
+		t.Errorf("Expected ts %d, got %d", t1.Unix(), ts)
+	}
+	if us := le.Uint32(buf[o+4:]); us != 7_000 {
+		t.Errorf("Expected 7000us, got %d", us)
+	}
+	if o+8 != len(buf) {
+		t.Errorf("Expected frame length %d, got %d", o+8, len(buf))
 	}
 }
 

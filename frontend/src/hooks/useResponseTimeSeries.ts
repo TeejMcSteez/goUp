@@ -17,7 +17,7 @@ export interface ResponseTimeSeries {
 //   2  u16  column count
 //   4  u32  seq
 //   8  u32  row count
-//  12  name table, snapshot only: per column [u8 len][utf8 bytes],
+//  12  name table: per column [u8 len][utf8 bytes],
 //      padded to a 4 byte boundary
 //      ts:   rows x u32 unix seconds (ascending)
 //      cols: columns x rows x u32 response time in microseconds, 0 = no sample
@@ -55,14 +55,12 @@ export function decodeFrame(buf: ArrayBuffer) {
 
   const names: string[] = [];
   let o = HEADER_SIZE;
-  if (typ === FRAME_SNAPSHOT) {
-    const bytes = new Uint8Array(buf);
-    const decoder = new TextDecoder();
-    for (let c = 0; c < colCount; c++) {
-      const len = bytes[o++];
-      names.push(decoder.decode(bytes.subarray(o, o + len)));
-      o += len;
-    }
+  const bytes = new Uint8Array(buf);
+  const decoder = new TextDecoder();
+  for (let c = 0; c < colCount; c++) {
+    const len = bytes[o++];
+    names.push(decoder.decode(bytes.subarray(o, o + len)));
+    o += len;
   }
   o = align4(o);
 
@@ -111,19 +109,14 @@ async function fetchSnapshot(): Promise<ResponseTimeSeries | null> {
   };
 }
 
-// Maps each frame column to its column index in prev. Frames carrying a name
-// table are matched by name, since a window only holds the services that
-// reported in it. Nameless append frames follow the snapshot's column order.
-// Returns null when the frame can't be lined up (e.g. a new service), so the
-// caller falls back to a fresh snapshot.
+// Maps each frame column to its column index in prev by name, since a window
+// only holds the services that reported in it. Returns null when the frame
+// can't be lined up (e.g. a new service), so the caller falls back to a fresh
+// snapshot.
 function mapColumns(prev: ResponseTimeSeries, frame: Frame): number[] | null {
-  if (frame.typ === FRAME_SNAPSHOT) {
-    const index = new Map(prev.names.map((name, i) => [name, i]));
-    const map = frame.names.map((name) => index.get(name) ?? -1);
-    return map.includes(-1) ? null : map;
-  }
-  if (frame.cols.length !== prev.names.length) return null;
-  return frame.cols.map((_, i) => i);
+  const index = new Map(prev.names.map((name, i) => [name, i]));
+  const map = frame.names.map((name) => index.get(name) ?? -1);
+  return map.includes(-1) ? null : map;
 }
 
 // Appends the frame's rows onto prev without mutating it. The window starts

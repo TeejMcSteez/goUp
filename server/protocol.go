@@ -27,7 +27,7 @@ func align4(n int) int { return (n + 3) &^ 3 }
 //	 2  u16  column count
 //	 4  u32  seq
 //	 8  u32  row count
-//	12  name table, snapshot only: per column [u8 len][utf8 bytes],
+//	12  name table: per column [u8 len][utf8 bytes],
 //	    padded to a 4 byte boundary
 //	    ts:   rows x u32 unix seconds (ascending)
 //	    cols: columns x rows x u32 response time in microseconds, 0 = no sample
@@ -36,15 +36,13 @@ func encodeFrame(typ byte, seq uint32, names []string, ts []uint32, cols [][]uin
 
 	nameBytes := 0
 
-	if typ == FrameSnapshot {
-		names = slices.Clone(names)
-		for i, n := range names {
-			// Name length is a single byte
-			if len(n) > math.MaxUint8 {
-				names[i] = strings.ToValidUTF8(n[:math.MaxUint8], "")
-			}
-			nameBytes += 1 + len(names[i])
+	names = slices.Clone(names)
+	for i, n := range names {
+		// Name length is a single byte
+		if len(n) > math.MaxUint8 {
+			names[i] = strings.ToValidUTF8(n[:math.MaxUint8], "")
 		}
+		nameBytes += 1 + len(names[i])
 	}
 	tableEnd := align4(headerSize + nameBytes)
 	buf := make([]byte, tableEnd+rows*4*(1+len(cols)))
@@ -58,12 +56,10 @@ func encodeFrame(typ byte, seq uint32, names []string, ts []uint32, cols [][]uin
 
 	o := headerSize
 
-	if typ == FrameSnapshot {
-		for _, n := range names {
-			buf[o] = byte(len(n))
-			o++
-			o += copy(buf[o:], n)
-		}
+	for _, n := range names {
+		buf[o] = byte(len(n))
+		o++
+		o += copy(buf[o:], n)
 	}
 
 	o = tableEnd
