@@ -249,10 +249,13 @@ type CertJSON struct {
 }
 
 type ResponseTimePayload struct {
-	Typ     byte
-	Names   []string
-	Ts      []uint32
-	Cols    [][]uint32
+	Typ   byte
+	Names []string
+	Ts    []uint32
+	Cols  [][]uint32
+	// sequence is currently unused
+	// Keeping to allow for more effecient/smart
+	// indexing on payloads
 	Seq     uint32
 	MaxRows int
 }
