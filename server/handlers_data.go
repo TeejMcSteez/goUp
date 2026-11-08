@@ -254,14 +254,49 @@ func (s *Server) GetErrorData(w http.ResponseWriter, req *http.Request) {
 
 // @Summary Get response time history for all services
 // @Description Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.
+// @Description Optionally limited to a time window via `from`/`to` (unix seconds, inclusive).
 // @Description Binary layout is described by encodeFrame in server/protocol.go.
 // @Tags data
 // @Produce octet-stream
+// @Param from query int false "Start of window, unix seconds (inclusive). Omit for full history"
+// @Param to query int false "End of window, unix seconds (inclusive). Omit for now"
 // @Success 200 {file} binary "snapshot frame"
+// @Failure 400 {string} string "invalid from/to"
 // @Failure 500 {string} string "internal server error"
 // @Router /api/rt [get]
-func (s *Server) rtSnapshot(w http.ResponseWriter, _ *http.Request) {
-	data, err := utils.BuildRtSnapshot(s.db)
+func (s *Server) rtSnapshot(w http.ResponseWriter, r *http.Request) {
+	f := r.URL.Query().Get("from")
+	t := r.URL.Query().Get("to")
+
+	var data utils.ResponseTimePayload
+	var err error
+	if f == "" {
+		// No filter: send all data
+		data, err = utils.BuildRtSnapshot(s.db)
+	} else {
+		fromUnix, perr := strconv.ParseInt(f, 10, 64)
+		if perr != nil || fromUnix < 0 {
+			http.Error(w, "'from' must be a non-negative unix timestamp", http.StatusBadRequest)
+			return
+		}
+		from := time.Unix(fromUnix, 0)
+		to := time.Now()
+		if t != "" {
+			toUnix, perr := strconv.ParseInt(t, 10, 64)
+			if perr != nil {
+				http.Error(w, "'to' must be a unix timestamp", http.StatusBadRequest)
+				return
+			}
+			// Stored timestamps carry sub-second precision, so stretch `to` to the
+			// end of its second; otherwise rows later in that second are dropped.
+			to = time.Unix(toUnix, 0).Add(time.Second - time.Nanosecond)
+		}
+		if from.After(to) {
+			http.Error(w, "'from' must be at or before 'to'", http.StatusBadRequest)
+			return
+		}
+		data, err = utils.BuildRtSnapshotRange(s.db, from, to)
+	}
 	if err != nil {
 		slog.Error("Error occured getting response time data from database", "error", err)
 		http.Error(w, "Failed to get response time data", http.StatusInternalServerError)
