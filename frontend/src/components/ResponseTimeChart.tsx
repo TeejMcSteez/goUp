@@ -1,11 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import UplotReact from "uplot-react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import useResponseTimeSeries from "../hooks/useResponseTimeSeries";
+import useResponseTimeSeries, {
+  type ResponseTimeRange,
+} from "../hooks/useResponseTimeSeries";
 import useElementWidth from "../hooks/useElementWidth";
 
 const CHART_HEIGHT = 300;
+
+const RANGE_OPTIONS: { label: string; value: ResponseTimeRange }[] = [
+  { label: "All Time", value: "" },
+  { label: "1 Hour", value: "1hr" },
+  { label: "12 Hours", value: "12hr" },
+  { label: "Day", value: "day" },
+  { label: "Week", value: "week" },
+  { label: "Month", value: "month" },
+  { label: "Year", value: "year" },
+];
 
 const PALETTE = [
   "rgb(167, 139, 250)",
@@ -56,7 +68,8 @@ function buildOptions(names: string[], width: number): uPlot.Options {
 }
 
 export default function ResponseTimeChart() {
-  const { data: series, loading, error } = useResponseTimeSeries();
+  const [range, setRange] = useState<ResponseTimeRange>("");
+  const { data: series, loading, error } = useResponseTimeSeries(range);
   const [containerRef, width] = useElementWidth<HTMLDivElement>();
 
   // Keyed on names (kept by reference across appends) so new rows only
@@ -67,23 +80,44 @@ export default function ResponseTimeChart() {
     [names, width],
   );
 
+  const rangeSelector = (
+    <select
+      className="border rounded px-2 py-1 text-sm"
+      value={range}
+      onChange={(e) => setRange(e.target.value as ResponseTimeRange)}
+    >
+      {RANGE_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+
   let body;
   if (error) {
     body = <p className="text-error text-sm">Could not load chart: {error}</p>;
   } else if (loading && !series) {
     body = <p className="text-muted text-sm">Loading chart...</p>;
   } else if (!series || !options) {
-    body = <p className="text-muted text-sm">No response time data yet</p>;
+    body = (
+      <p className="text-muted text-sm">
+        {range ? "No response time data in this range" : "No response time data yet"}
+      </p>
+    );
   } else if (width > 0) {
     body = <UplotReact options={options} data={series.data} />;
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full flex items-center justify-center p-4 min-h-75"
-    >
-      {body}
+    <div className="w-full flex flex-col items-center justify-center p-4 min-h-75">
+      <div className="w-full flex justify-end mb-2">{rangeSelector}</div>
+      <div
+        ref={containerRef}
+        className="w-full flex-1 flex items-center justify-center"
+      >
+        {body}
+      </div>
     </div>
   );
 }

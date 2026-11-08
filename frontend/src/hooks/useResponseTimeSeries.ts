@@ -88,12 +88,43 @@ export function decodeFrame(buf: ArrayBuffer) {
 type Frame = ReturnType<typeof decodeFrame>;
 type SeriesColumns = [ArrayLike<number>, ...(number | null)[][]];
 
-// Nested under "responseTime" so websocket pushes invalidate it too.
-const QUERY_KEY = ["responseTime", "series"] as const;
+export type ResponseTimeRange =
+  | ""
+  | "1hr"
+  | "12hr"
+  | "day"
+  | "week"
+  | "month"
+  | "year";
 
-// GET /api/rt: the full history as a snapshot frame.
-async function fetchSnapshot(): Promise<ResponseTimeSeries | null> {
-  const res = await fetch("/api/rt");
+const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
+
+// Window length in seconds; "" (all time) has no window.
+const RANGE_SECONDS: Record<ResponseTimeRange, number | null> = {
+  "": null,
+  "1hr": HOUR,
+  "12hr": 12 * HOUR,
+  day: DAY,
+  week: 7 * DAY,
+  month: 30 * DAY,
+  year: 365 * DAY,
+};
+
+// Nested under "responseTime" so websocket pushes invalidate it too.
+const queryKey = (range: ResponseTimeRange) =>
+  ["responseTime", "series", range] as const;
+
+// GET /api/rt: the full history (or the trailing window) as a snapshot frame.
+async function fetchSnapshot(
+  range: ResponseTimeRange,
+): Promise<ResponseTimeSeries | null> {
+  const windowSecs = RANGE_SECONDS[range];
+  const url =
+    windowSecs == null
+      ? "/api/rt"
+      : `/api/rt?from=${Math.floor(Date.now() / 1000) - windowSecs}`;
+  const res = await fetch(url);
   if (!res.ok)
     throw new Error(`Error fetching response times: ${res.statusText}`);
 
@@ -159,9 +190,32 @@ function mergeFrame(
   };
 }
 
+// Drops leading rows older than cutoff so a windowed series keeps sliding
+// instead of growing with every append. Names (and so columns) are kept,
+// even if a service no longer has samples in the window.
+function trimBefore(
+  series: ResponseTimeSeries,
+  cutoff: number,
+): ResponseTimeSeries {
+  const [ts, ...cols] = series.data as unknown as SeriesColumns;
+  let start = 0;
+  while (start < ts.length && ts[start] < cutoff) start++;
+  if (start === 0) return series;
+
+  return {
+    names: series.names,
+    seq: series.seq,
+    data: [
+      Uint32Array.from(ts).subarray(start),
+      ...cols.map((col) => col.slice(start)),
+    ] as AlignedData,
+  };
+}
+
 // POST /api/rt: only rows recorded since prev's newest timestamp.
 async function fetchAppend(
   prev: ResponseTimeSeries,
+  range: ResponseTimeRange,
 ): Promise<ResponseTimeSeries | null> {
   const prevTs = prev.data[0];
   const lastTs = prevTs[prevTs.length - 1];
@@ -180,21 +234,26 @@ async function fetchAppend(
   if (frame.ts.length === 0) return prev;
 
   const colMap = mapColumns(prev, frame);
-  if (!colMap) return fetchSnapshot();
-  return mergeFrame(prev, frame, colMap);
+  if (!colMap) return fetchSnapshot(range);
+  const merged = mergeFrame(prev, frame, colMap);
+
+  const windowSecs = RANGE_SECONDS[range];
+  if (windowSecs == null) return merged;
+  // Cut relative to the newest (server-stamped) row, not the browser clock
+  const mergedTs = merged.data[0];
+  return trimBefore(merged, mergedTs[mergedTs.length - 1] - windowSecs);
 }
 
-export default function useResponseTimeSeries() {
+export default function useResponseTimeSeries(range: ResponseTimeRange = "") {
   const queryClient = useQueryClient();
+  const key = queryKey(range);
 
   // First fetch (or after the cache was dropped) pulls the full snapshot;
   // every refetch after that only pulls the rows newer than what's cached.
   const fetchSeries = () => {
-    const prev = queryClient.getQueryData<ResponseTimeSeries | null>(
-      QUERY_KEY,
-    );
-    return prev ? fetchAppend(prev) : fetchSnapshot();
+    const prev = queryClient.getQueryData<ResponseTimeSeries | null>(key);
+    return prev ? fetchAppend(prev, range) : fetchSnapshot(range);
   };
 
-  return useLiveQuery(QUERY_KEY, fetchSeries);
+  return useLiveQuery(key, fetchSeries);
 }
