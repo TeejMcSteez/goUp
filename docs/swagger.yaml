@@ -1035,7 +1035,17 @@ paths:
     get:
       description: |-
         Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.
+        Optionally limited to a time window via `from`/`to` (unix seconds, inclusive).
         Binary layout is described by encodeFrame in server/protocol.go.
+      parameters:
+      - description: Start of window, unix seconds (inclusive). Omit for full history
+        in: query
+        name: from
+        type: integer
+      - description: End of window, unix seconds (inclusive). Omit for now
+        in: query
+        name: to
+        type: integer
       produces:
       - application/octet-stream
       responses:
@@ -1043,6 +1053,10 @@ paths:
           description: snapshot frame
           schema:
             type: file
+        "400":
+          description: invalid from/to
+          schema:
+            type: string
         "500":
           description: internal server error
           schema:

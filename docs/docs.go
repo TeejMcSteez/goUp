@@ -1208,7 +1208,7 @@ const docTemplate = `{
         },
         "/api/rt": {
             "get": {
-                "description": "Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.\nBinary layout is described by encodeFrame in server/protocol.go.",
+                "description": "Returns a full snapshot frame (type 0) containing service names, timestamps and per-service response time columns.\nOptionally limited to a time window via ` + "`" + `from` + "`" + `/` + "`" + `to` + "`" + ` (unix seconds, inclusive).\nBinary layout is described by encodeFrame in server/protocol.go.",
                 "produces": [
                     "application/octet-stream"
                 ],
@@ -1216,11 +1216,31 @@ const docTemplate = `{
                     "data"
                 ],
                 "summary": "Get response time history for all services",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Start of window, unix seconds (inclusive). Omit for full history",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "End of window, unix seconds (inclusive). Omit for now",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "snapshot frame",
                         "schema": {
                             "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "invalid from/to",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
