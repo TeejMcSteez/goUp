@@ -156,7 +156,7 @@ func servicesText(services []ServiceData) string {
 	return text.String()
 }
 
-func (w *WebhookTrigger) Send(m Message) error {
+func (w *WebhookTrigger) Send(ctx context.Context, m Message) error {
 	if !w.IsConfigured() {
 		return errors.New("webhook trigger is not configured")
 	}
@@ -195,7 +195,7 @@ func (w *WebhookTrigger) Send(m Message) error {
 	return postJSON(context.Background(), *w.Webhook_url, payload, opts...)
 }
 
-func (g *GotifyTrigger) Send(m Message) error {
+func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 	if !g.IsConfigured() {
 		return errors.New("gotify trigger is not configured")
 	}
@@ -244,7 +244,7 @@ func (g *GotifyTrigger) Send(m Message) error {
 	}, header("X-Gotify-Key", *g.Gotify_Token), expectStatus(200))
 }
 
-func (s *SlackTrigger) Send(m Message) error {
+func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
 	if !s.IsConfigured() {
 		return errors.New("slack trigger is not configured")
 	}
@@ -284,7 +284,7 @@ func (s *SlackTrigger) Send(m Message) error {
 	}, header("Authorization", "Bearer "+*s.Slack_Token), expectOkField())
 }
 
-func (t *TelegramTrigger) Send(m Message) error {
+func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
 	if !t.IsConfigured() {
 		return errors.New("telegram trigger is not configured")
 	}
@@ -318,7 +318,7 @@ func (t *TelegramTrigger) Send(m Message) error {
 	}, expectOkField())
 }
 
-func (h *HATrigger) Send(m Message) error {
+func (h *HATrigger) Send(ctx context.Context, m Message) error {
 	if !h.IsConfigured() {
 		return errors.New("home assistant trigger is not configured")
 	}
@@ -352,7 +352,7 @@ func (h *HATrigger) Send(m Message) error {
 }
 
 // TODO: Handle chunked messages for discord 2000 char limit on API content
-func (d *DiscordTrigger) Send(m Message) error {
+func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 	if !d.IsConfigured() {
 		return errors.New("discord trigger is not configured")
 	}
