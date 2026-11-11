@@ -130,10 +130,10 @@ func postJSON(ctx context.Context, url string, payload any, opts ...reqOption) e
 	return nil
 }
 
-// SetupTrigger copies Trigger config from cfg and registers configured handlers.
+// SetupTrigger copies Trigger config from cfg and registers configured notifiers.
 func SetupTrigger(cfg *Config) *Trigger {
 	t := &cfg.Triggers
-	t.handlers = nil
+	t.notifiers = nil
 
 	if cfg.Triggers.Backoff_Period != nil && *cfg.Triggers.Backoff_Period != "" {
 		dur, err := time.ParseDuration(*cfg.Triggers.Backoff_Period)
@@ -158,30 +158,30 @@ func SetupTrigger(cfg *Config) *Trigger {
 	t.Discord.backoffDuration = resolveBackoff("Discord", t.Discord.Backoff_Period, t.backoffDuration)
 
 	if t.MQTT.IsConfigured() {
-		t.handlers = append(t.handlers, &t.MQTT)
+		t.notifiers = append(t.notifiers, &t.MQTT)
 	}
 	if t.Webhook.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Webhook)
+		t.notifiers = append(t.notifiers, &t.Webhook)
 	}
 	if t.SMTP.IsConfigured() {
-		t.handlers = append(t.handlers, &t.SMTP)
+		t.notifiers = append(t.notifiers, &t.SMTP)
 	}
 	if t.Gotify.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Gotify)
+		t.notifiers = append(t.notifiers, &t.Gotify)
 	}
 	if t.Slack.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Slack)
+		t.notifiers = append(t.notifiers, &t.Slack)
 	}
 	if t.Telegram.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Telegram)
+		t.notifiers = append(t.notifiers, &t.Telegram)
 	}
 	if t.HA.IsConfigured() {
-		t.handlers = append(t.handlers, &t.HA)
+		t.notifiers = append(t.notifiers, &t.HA)
 	}
 	if t.Discord.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Discord)
+		t.notifiers = append(t.notifiers, &t.Discord)
 	}
-	if len(t.handlers) == 0 {
+	if len(t.notifiers) == 0 {
 		slog.Info("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
 	}
@@ -190,29 +190,21 @@ func SetupTrigger(cfg *Config) *Trigger {
 	return t
 }
 
-// Fire dispatches service data to all configured trigger handlers.
-func (t *Trigger) Fire(data []ServiceData) {
-	if len(t.handlers) == 0 {
-		return
+func (t *Trigger) Send(ctx context.Context, m Message) error {
+	if len(t.notifiers) == 0 {
+		return fmt.Errorf("there are no triggers")
 	}
 
 	if shouldBackoff("Trigger", t.lastFired, t.backoffDuration) {
-		return
+		return fmt.Errorf("triggers are in backoff waiting for: %s", t.lastFired.Add(t.backoffDuration).String())
 	}
 
-	for _, h := range t.handlers {
-		go h.Fire(data)
+	for _, n := range t.notifiers {
+		err := n.Send(context.Background(), m)
+		if err != nil {
+			// return error to handle network requests
+			return err
+		}
 	}
-
-	t.lastFired = time.Now()
-}
-
-func (t *Trigger) Clear() {
-	if len(t.handlers) == 0 {
-		return
-	}
-
-	for _, h := range t.handlers {
-		go h.Clear()
-	}
+	return nil
 }
