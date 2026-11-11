@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"goUp/utils"
@@ -94,12 +95,22 @@ func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 	}
 
 	if len(data.DownServices) > 0 {
-		utils.Current_Config.Triggers.Fire(data.DownServices)
+		utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+			Kind:     utils.KindAlert,
+			Title:    "Services are down",
+			Body:     "",
+			Services: data.DownServices,
+		})
 		return fetchResult{hasFailed: true}
 	}
 	// Only fires on past errors with no new failures
 	if wasFailed {
-		utils.Current_Config.Triggers.Clear()
+		utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+			Kind:     utils.KindClear,
+			Title:    "Services have recovered",
+			Body:     "All services are back online",
+			Services: data.AllServices,
+		})
 	}
 
 	slog.Info("Scheduler fetched service data successfully")
