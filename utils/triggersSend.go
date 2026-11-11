@@ -26,6 +26,16 @@ func (w *WebhookTrigger) buildPayload(data []ServiceData) (any, error) {
 	return customData, nil
 }
 
+// reconnectedText builds the reconnect message, appending m.Body as extra
+// detail (e.g. "offline at x, online at y") when the caller provides one.
+func reconnectedText(body string) string {
+	const msg = "Host went offline and is back online"
+	if body == "" {
+		return msg
+	}
+	return msg + "\n" + body
+}
+
 func (e *SMTPTrigger) Send(m Message) error {
 	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
 		return fmt.Errorf("SMTP is currently in backoff period for: %s", e.backoffDuration.String())
@@ -48,6 +58,12 @@ func (e *SMTPTrigger) Send(m Message) error {
 		}
 	case KindInfo:
 		msg = fmt.Appendf(msg, "Body: %s\r\n", m.Body)
+	case KindClear:
+		msg = fmt.Appendf(msg, "All services recovered\r\n")
+	case KindOffline:
+		msg = fmt.Append(msg, "Host is offline\r\n")
+	case KindReconnected:
+		msg = fmt.Append(msg, strings.ReplaceAll(reconnectedText(m.Body), "\n", "\r\n"))
 	default:
 		msg = fmt.Append(msg, "No Kind in message")
 	}
@@ -85,8 +101,14 @@ func (w *WebhookTrigger) Send(m Message) error {
 		payload = p
 	case KindInfo:
 		payload = map[string]any{"message": m.Body}
+	case KindClear:
+		payload = map[string]any{"message": "All services recovered"}
+	case KindOffline:
+		payload = map[string]any{"message": "Host is offline"}
+	case KindReconnected:
+		payload = map[string]any{"message": reconnectedText(m.Body)}
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
@@ -119,8 +141,14 @@ func (g *GotifyTrigger) Send(m Message) error {
 		message = body.String()
 	case KindInfo:
 		message = m.Body
+	case KindClear:
+		message = "All services recovered"
+	case KindOffline:
+		message = "Host is offline"
+	case KindReconnected:
+		message = reconnectedText(m.Body)
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
@@ -157,8 +185,14 @@ func (s *SlackTrigger) Send(m Message) error {
 		text = servicesText(m.Services)
 	case KindInfo:
 		text = m.Body
+	case KindClear:
+		text = "All services recovered"
+	case KindOffline:
+		text = "Host is offline"
+	case KindReconnected:
+		text = reconnectedText(m.Body)
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
@@ -191,8 +225,14 @@ func (t *TelegramTrigger) Send(m Message) error {
 		text = servicesText(m.Services)
 	case KindInfo:
 		text = m.Body
+	case KindClear:
+		text = "All services recovered"
+	case KindOffline:
+		text = "Host is offline"
+	case KindReconnected:
+		text = reconnectedText(m.Body)
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
@@ -219,8 +259,14 @@ func (h *HATrigger) Send(m Message) error {
 		details = servicesText(m.Services)
 	case KindInfo:
 		details = m.Body
+	case KindClear:
+		details = "All services recovered"
+	case KindOffline:
+		details = "Host is offline"
+	case KindReconnected:
+		details = reconnectedText(m.Body)
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
@@ -251,8 +297,14 @@ func (d *DiscordTrigger) Send(m Message) error {
 		content = "**Server Error Detected**\n" + text.String()
 	case KindInfo:
 		content = m.Body
+	case KindClear:
+		content = "All services recovered"
+	case KindOffline:
+		content = "Host is offline"
+	case KindReconnected:
+		content = reconnectedText(m.Body)
 	default:
-		// Other kinds not handled yet
+
 		return nil
 	}
 
