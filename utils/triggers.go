@@ -1,7 +1,15 @@
 package utils
 
 import (
+	"bytes"
+	"cmp"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"slices"
 	"time"
 )
 
@@ -27,6 +35,99 @@ func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Durati
 		return true
 	}
 	return false
+}
+
+type resCheck func(res *http.Response, body []byte) error
+
+type reqConfig struct {
+	headers map[string]string
+	checks  []resCheck
+}
+
+type reqOption func(*reqConfig)
+
+func header(k, v string) reqOption {
+	return func(c *reqConfig) { c.headers[k] = v }
+}
+
+func expectStatus(codes ...int) reqOption {
+	return func(c *reqConfig) {
+		c.checks = append(c.checks, func(res *http.Response, _ []byte) error {
+			if slices.Contains(codes, res.StatusCode) {
+				return nil
+			}
+			return fmt.Errorf("unexpected status: %d", res.StatusCode)
+		})
+	}
+}
+
+func expect2xx(res *http.Response, _ []byte) error {
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return fmt.Errorf("unexpected status: %d", res.StatusCode)
+	}
+	return nil
+}
+
+func expectOkField() reqOption {
+	return func(c *reqConfig) {
+		c.checks = append(c.checks, func(_ *http.Response, body []byte) error {
+			var r struct {
+				OK          bool   `json:"ok"`
+				Error       string `json:"error"`
+				Description string `json:"description"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				return fmt.Errorf("decoding ok-field response: %w", err)
+			}
+			if !r.OK {
+				return fmt.Errorf("api error: %s", cmp.Or(r.Error, r.Description, "ok=false"))
+			}
+			return nil
+		})
+	}
+}
+
+// handles posting all data via JSON to triggers
+func postJSON(ctx context.Context, url string, payload any, opts ...reqOption) error {
+	cfg := reqConfig{headers: map[string]string{"Content-Type": "application/json"}}
+
+	for _, o := range opts {
+		o(&cfg)
+	}
+
+	if len(cfg.checks) == 0 {
+		cfg.checks = []resCheck{expect2xx}
+	}
+
+	b, err := json.Marshal(payload)
+
+	if err != nil {
+		return fmt.Errorf("marshal payload: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	for k, v := range cfg.headers {
+		req.Header.Set(k, v)
+	}
+
+	res, err := httpClient.Do(req) // a client with a Timeout, not DefaultClient
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+	for _, check := range cfg.checks {
+		if err := check(res, body); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetupTrigger copies Trigger config from cfg and registers configured handlers.

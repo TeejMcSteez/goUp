@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -33,6 +34,29 @@ type ConfigData struct {
 	HA             HATrigger          `json:"ha"`
 	Discord        DiscordTrigger     `json:"discord"`
 	Backoff_Period string             `json:"backoff_period"`
+}
+
+type Kind string
+
+const (
+	KindAlert       Kind = "alert"
+	KindClear       Kind = "clear"
+	KindOffline     Kind = "offline"
+	KindReconnected Kind = "reconnected"
+	KindInfo        Kind = "info" // arbitrary
+)
+
+type Message struct {
+	Kind     Kind
+	Title    string
+	Body     string
+	Services []ServiceData
+}
+
+type Notifier interface {
+	Name() string
+	IsConfigured() bool
+	Send(ctx context.Context, m Message) error
 }
 
 // Endpoints and data for triggers
