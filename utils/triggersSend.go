@@ -10,6 +10,8 @@ import (
 	"net/smtp"
 	"strings"
 	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 // buildPayload is buildMessage for postJSON: returns the value to marshal
@@ -36,7 +38,75 @@ func reconnectedText(body string) string {
 	return msg + "\n" + body
 }
 
-func (e *SMTPTrigger) Send(m Message) error {
+func buildMqtt(m Message) any {
+	switch m.Kind {
+	case KindAlert:
+		return m.Services
+	case KindClear:
+		return "services has recovered"
+	case KindOffline:
+		return "host is offline"
+	case KindReconnected:
+		return "host is online"
+	case KindInfo:
+		return map[string]any{
+			"Title": m.Title,
+			"Body":  m.Body,
+		}
+	default:
+		return "invalid Kind provided to MQTT message"
+	}
+}
+
+func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
+	if shouldBackoff("MQTT", m.lastFired, m.backoffDuration) {
+		return fmt.Errorf("MQTT is currently in back off for: %s", m.lastFired.Add(m.backoffDuration))
+	}
+	m.lastFired = time.Now()
+
+	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
+		slog.Info("Connected to MQTT broker")
+	}
+
+	var lostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
+		slog.Error("MQTT connection lost", "error", err)
+	}
+
+	opts := mqtt.NewClientOptions()
+	opts.AddBroker(*m.Mqtt_broker)
+	opts.SetClientID("goUp MQTT")
+	opts.OnConnect = connectHandler
+	opts.OnConnectionLost = lostHandler
+	if m.Mqtt_username != nil || m.Mqtt_key != nil {
+		opts.SetUsername(*m.Mqtt_username)
+		opts.SetPassword(*m.Mqtt_key)
+	}
+
+	client := mqtt.NewClient(opts)
+
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		slog.Error("Error pushing to MQTT client", "error", token.Error())
+		return token.Error()
+	}
+
+	if jsonData, err := json.Marshal(buildMqtt(msg)); err != nil {
+		slog.Error("Error formatting service data into JSON", "error", err)
+		return err
+	} else {
+		// Keep retain to true to store last known good message
+		token := client.Publish("goup_status", 0, true, jsonData)
+		token.Done()
+
+		if err := token.Error(); err != nil {
+			slog.Error("Error with MQTT token", "error", err)
+			return err
+		}
+		slog.Info("Disconnecting from MQTT broker, sent message complete")
+	}
+	return nil
+}
+
+func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
 	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
 		return fmt.Errorf("SMTP is currently in backoff period for: %s", e.backoffDuration.String())
 	}
