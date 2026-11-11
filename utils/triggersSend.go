@@ -1,0 +1,268 @@
+package utils
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/smtp"
+	"strings"
+	"time"
+)
+
+// buildPayload is buildMessage for postJSON: returns the value to marshal
+// instead of an encoded reader, applying any custom message template.
+func (w *WebhookTrigger) buildPayload(data []ServiceData) (any, error) {
+	if w.Custom_message == nil {
+		return data, nil
+	}
+	var customData map[string]any
+	if err := json.Unmarshal([]byte(*w.Custom_message), &customData); err != nil {
+		return nil, err
+	}
+	customData["services"] = data
+	return customData, nil
+}
+
+func (e *SMTPTrigger) Send(m Message) error {
+	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
+		return fmt.Errorf("SMTP is currently in backoff period for: %s", e.backoffDuration.String())
+	}
+	e.lastFired = time.Now()
+
+	host, _, err := net.SplitHostPort(*e.SMTPServer)
+	if err != nil {
+		host = *e.SMTPServer
+	}
+
+	var header []byte
+	header = fmt.Appendf(header, "To: %s\r\nSubject: %s\r\n\r\n", *e.Email, m.Title)
+	var msg []byte
+	switch m.Kind {
+	case KindAlert:
+		for _, entry := range m.Services {
+			msg = fmt.Appendf(msg, "Service: %s\r\nMessage: %s\r\nAPI Response: %s\r\n",
+				entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+		}
+	case KindInfo:
+		msg = fmt.Appendf(msg, "Body: %s\r\n", m.Body)
+	default:
+		msg = fmt.Append(msg, "No Kind in message")
+	}
+
+	email := append(header, msg...)
+	if err := smtp.SendMail(*e.SMTPServer, smtp.PlainAuth("", *e.Email, *e.App_Password, host), *e.Email, []string{*e.Email}, email); err != nil {
+		slog.Error("Error SMTP request", "error", err)
+		return err
+	}
+	slog.Info("SMTP message sent")
+	return nil
+}
+
+// servicesText formats downed services for plain-text chat triggers.
+func servicesText(services []ServiceData) string {
+	var text strings.Builder
+	for _, entry := range services {
+		fmt.Fprintf(&text, "Service: %s\nResponse: %s\nAPI Response: %s\n\n", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+	}
+	return text.String()
+}
+
+func (w *WebhookTrigger) Send(m Message) error {
+	if !w.IsConfigured() {
+		return errors.New("webhook trigger is not configured")
+	}
+
+	var payload any
+	switch m.Kind {
+	case KindAlert:
+		p, err := w.buildPayload(m.Services)
+		if err != nil {
+			return fmt.Errorf("building webhook payload: %w", err)
+		}
+		payload = p
+	case KindInfo:
+		payload = map[string]any{"message": m.Body}
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Webhook", w.lastFired, w.backoffDuration) {
+		return fmt.Errorf("webhook is in backoff period for: %s", w.backoffDuration)
+	}
+	w.lastFired = time.Now()
+
+	var opts []reqOption
+	if w.Webhook_key_string != nil {
+		opts = append(opts, header("Authorization", *w.Webhook_key_string))
+	}
+	// No expect option: any 2xx is success, since webhook receivers vary (200, 202, 204...)
+	return postJSON(context.Background(), *w.Webhook_url, payload, opts...)
+}
+
+func (g *GotifyTrigger) Send(m Message) error {
+	if !g.IsConfigured() {
+		return errors.New("gotify trigger is not configured")
+	}
+
+	var message string
+	switch m.Kind {
+	case KindAlert:
+		var body strings.Builder
+		for _, entry := range m.Services {
+			fmt.Fprintf(&body, "Service: %s\nMessage: %s\nAPI Response: %s\n\n",
+				entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+		}
+		message = body.String()
+	case KindInfo:
+		message = m.Body
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Gotify", g.lastFired, g.backoffDuration) {
+		return fmt.Errorf("gotify is in backoff period for: %s", g.backoffDuration)
+	}
+	g.lastFired = time.Now()
+
+	title := "GoUp Alert"
+	if g.Gotify_Title != nil {
+		title = *g.Gotify_Title
+	}
+	priority := 5
+	if g.Gotify_Priority != nil {
+		priority = *g.Gotify_Priority
+	}
+
+	url := strings.TrimRight(*g.Gotify_Server, "/") + "/message"
+	return postJSON(context.Background(), url, map[string]any{
+		"title":    title,
+		"message":  message,
+		"priority": priority,
+	}, header("X-Gotify-Key", *g.Gotify_Token), expectStatus(200))
+}
+
+func (s *SlackTrigger) Send(m Message) error {
+	if !s.IsConfigured() {
+		return errors.New("slack trigger is not configured")
+	}
+
+	var text string
+	switch m.Kind {
+	case KindAlert:
+		text = servicesText(m.Services)
+	case KindInfo:
+		text = m.Body
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Slack", s.lastFired, s.backoffDuration) {
+		return fmt.Errorf("slack is in backoff period for: %s", s.backoffDuration)
+	}
+	s.lastFired = time.Now()
+
+	username := "GoUp Bot"
+	if s.Bot_Username != nil {
+		username = *s.Bot_Username
+	}
+
+	// Slack returns 200 even on failure; the real result is in the "ok" field
+	return postJSON(context.Background(), "https://slack.com/api/chat.postMessage", map[string]any{
+		"channel":  *s.Slack_Channel,
+		"username": username,
+		"text":     text,
+	}, header("Authorization", "Bearer "+*s.Slack_Token), expectOkField())
+}
+
+func (t *TelegramTrigger) Send(m Message) error {
+	if !t.IsConfigured() {
+		return errors.New("telegram trigger is not configured")
+	}
+
+	var text string
+	switch m.Kind {
+	case KindAlert:
+		text = servicesText(m.Services)
+	case KindInfo:
+		text = m.Body
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Telegram", t.lastFired, t.backoffDuration) {
+		return fmt.Errorf("telegram is in backoff period for: %s", t.backoffDuration)
+	}
+	t.lastFired = time.Now()
+
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
+	return postJSON(context.Background(), url, map[string]any{
+		"chat_id": *t.Telegram_Channel_Id,
+		"text":    text,
+	}, expectOkField())
+}
+
+func (h *HATrigger) Send(m Message) error {
+	if !h.IsConfigured() {
+		return errors.New("home assistant trigger is not configured")
+	}
+
+	var details string
+	switch m.Kind {
+	case KindAlert:
+		details = servicesText(m.Services)
+	case KindInfo:
+		details = m.Body
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Home Assistant", h.lastFired, h.backoffDuration) {
+		return fmt.Errorf("home assistant is in backoff period for: %s", h.backoffDuration)
+	}
+	h.lastFired = time.Now()
+
+	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
+	return postJSON(context.Background(), url, map[string]any{
+		"details": details,
+	}, header("Authorization", "Bearer "+*h.HA_Token), expectStatus(200, 201))
+}
+
+// TODO: Handle chunked messages for discord 2000 char limit on API content
+func (d *DiscordTrigger) Send(m Message) error {
+	if !d.IsConfigured() {
+		return errors.New("discord trigger is not configured")
+	}
+
+	var content string
+	switch m.Kind {
+	case KindAlert:
+		var text strings.Builder
+		for _, entry := range m.Services {
+			fmt.Fprintf(&text, "\nService: %s\nResponse: %s\nAPI Response: %s", entry.ServiceName, entry.ServiceHTTPResponse, entry.ServiceAPIResponse)
+		}
+		content = "**Server Error Detected**\n" + text.String()
+	case KindInfo:
+		content = m.Body
+	default:
+		// Other kinds not handled yet
+		return nil
+	}
+
+	if shouldBackoff("Discord", d.lastFired, d.backoffDuration) {
+		return fmt.Errorf("discord is in backoff period for: %s", d.backoffDuration)
+	}
+	d.lastFired = time.Now()
+
+	url := fmt.Sprintf("https://discord.com/api/channels/%s/messages", *d.Discord_Channel)
+	return postJSON(context.Background(), url, map[string]any{
+		"content": content,
+	}, header("Authorization", *d.Discord_Auth), expectStatus(200))
+}
