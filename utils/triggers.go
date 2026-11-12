@@ -119,9 +119,9 @@ func postJSON(ctx context.Context, url string, payload any, opts ...reqOption) e
 		req.Header.Set(k, v)
 	}
 
-	res, err := httpClient.Do(req) // a client with a Timeout, not DefaultClient
+	res, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w %s", url, ErrNetwork, err.Error())
 	}
 	defer func(res *http.Response) {
 		if err := res.Body.Close(); err != nil {
