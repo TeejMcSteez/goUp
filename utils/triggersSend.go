@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrBackoff = errors.New("in backoff")
+	ErrNetwork = errors.New("network error")
 )
 
 // buildPayload is buildMessage for postJSON: returns the value to marshal
@@ -103,7 +104,7 @@ func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 
 		if err := token.Error(); err != nil {
 			slog.Error("Error with MQTT token", "error", err)
-			return err
+			return fmt.Errorf("MQTT: %s %w", token.Error().Error(), ErrNetwork)
 		}
 		slog.Info("Disconnecting from MQTT broker, sent message complete")
 	}
@@ -145,7 +146,7 @@ func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
 	email := append(header, msg...)
 	if err := smtp.SendMail(*e.SMTPServer, smtp.PlainAuth("", *e.Email, *e.App_Password, host), *e.Email, []string{*e.Email}, email); err != nil {
 		slog.Error("Error SMTP request", "error", err)
-		return err
+		return fmt.Errorf("SMTP: %s %w", err.Error(), ErrNetwork)
 	}
 	slog.Info("SMTP message sent")
 	return nil
