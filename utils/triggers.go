@@ -195,10 +195,7 @@ func (t *Trigger) Send(ctx context.Context, m Message) error {
 		return fmt.Errorf("there are no triggers")
 	}
 
-	if shouldBackoff("Trigger", t.lastFired, t.backoffDuration) {
-		return fmt.Errorf("triggers are in backoff waiting for: %s", t.lastFired.Add(t.backoffDuration).String())
-	}
-
+	// Backoff is enforced per notifier in each Send implementation.`
 	for _, n := range t.notifiers {
 		err := n.Send(context.Background(), m)
 		if err != nil {
