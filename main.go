@@ -51,7 +51,7 @@ func main() {
 	// Starts all background workers
 	hub := server.NewHub()
 	go hub.Run()
-	sch := workers.NewScheduler(db, cfg, hub)
+	sch := workers.NewScheduler(ctx, db, cfg, hub)
 	defer sch.Stop()
 	if garabgeCollectErr := utils.DbGarbageCollect(db, cfg); err != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
