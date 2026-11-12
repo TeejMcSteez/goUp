@@ -100,22 +100,32 @@ func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 	}
 
 	if len(data.DownServices) > 0 {
-		utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+		// TODO: refactor for Send returning error was to log
+		// levels of failures (host network, service down, etc.)
+		// allowing for more intelligent logging/logic
+		if err := utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
 			Kind:     utils.KindAlert,
 			Title:    "Services are down",
 			Body:     "",
 			Services: data.DownServices,
-		})
+		}); err != nil {
+			slog.Error("error sending notification for failured", "ERROR", err)
+		}
 		return fetchResult{hasFailed: true}
 	}
 	// Only fires on past errors with no new failures
 	if wasFailed {
-		utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+		// TODO: refactor for Send returning error was to log
+		// levels of failures (host network, service down, etc.)
+		// allowing for more intelligent logging/logic
+		if err := utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
 			Kind:     utils.KindClear,
 			Title:    "Services have recovered",
 			Body:     "All services are back online",
 			Services: data.AllServices,
-		})
+		}); err != nil {
+			slog.Error("error sending notification for recovery", "ERROR", err)
+		}
 	}
 
 	slog.Info("Scheduler fetched service data successfully")
