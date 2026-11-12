@@ -192,7 +192,7 @@ func (w *WebhookTrigger) Send(ctx context.Context, m Message) error {
 		opts = append(opts, header("Authorization", *w.Webhook_key_string))
 	}
 	// No expect option: any 2xx is success, since webhook receivers vary (200, 202, 204...)
-	return postJSON(context.Background(), *w.Webhook_url, payload, opts...)
+	return postJSON(ctx, *w.Webhook_url, payload, opts...)
 }
 
 func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
@@ -237,7 +237,7 @@ func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	url := strings.TrimRight(*g.Gotify_Server, "/") + "/message"
-	return postJSON(context.Background(), url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"title":    title,
 		"message":  message,
 		"priority": priority,
@@ -277,7 +277,7 @@ func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	// Slack returns 200 even on failure; the real result is in the "ok" field
-	return postJSON(context.Background(), "https://slack.com/api/chat.postMessage", map[string]any{
+	return postJSON(ctx, "https://slack.com/api/chat.postMessage", map[string]any{
 		"channel":  *s.Slack_Channel,
 		"username": username,
 		"text":     text,
@@ -312,7 +312,7 @@ func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
 	t.lastFired = time.Now()
 
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
-	return postJSON(context.Background(), url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"chat_id": *t.Telegram_Channel_Id,
 		"text":    text,
 	}, expectOkField())
@@ -346,7 +346,7 @@ func (h *HATrigger) Send(ctx context.Context, m Message) error {
 	h.lastFired = time.Now()
 
 	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
-	return postJSON(context.Background(), url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"details": details,
 	}, header("Authorization", "Bearer "+*h.HA_Token), expectStatus(200, 201))
 }
@@ -384,7 +384,7 @@ func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 	d.lastFired = time.Now()
 
 	url := fmt.Sprintf("https://discord.com/api/channels/%s/messages", *d.Discord_Channel)
-	return postJSON(context.Background(), url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"content": content,
 	}, header("Authorization", *d.Discord_Auth), expectStatus(200))
 }
