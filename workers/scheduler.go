@@ -78,6 +78,18 @@ func NewScheduler(ctx context.Context, db *sql.DB, cfg *utils.Config, pub Broadc
 	return s
 }
 
+func hostOnline(ctx context.Context) bool {
+	d := net.Dialer{Timeout: 3 * time.Second}
+	conn, err := d.DialContext(ctx, "tcp", "1.1.1.1:53")
+	if err != nil {
+		return false
+	}
+	if err := conn.Close(); err != nil {
+		slog.Error("error closing connection testing host network", "ERROR", err)
+	}
+	return true
+}
+
 // runFetchCycle fetches current service data, persists it, and fires any
 // triggers for newly-down services. Split out of StartScheduler's select loop
 // so it can run on its own goroutine — service checks can block for a while
