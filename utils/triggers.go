@@ -198,7 +198,10 @@ func (t *Trigger) Send(ctx context.Context, m Message) error {
 	var ers []error
 	// Backoff is enforced per notifier in each Send implementation.
 	for _, n := range t.notifiers {
-		if err := n.Send(context.Background(), m); err != nil {
+		nctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		err := n.Send(nctx, m)
+		cancel()
+		if err != nil {
 			ers = append(ers, err)
 		}
 
