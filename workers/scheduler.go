@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"goUp/utils"
 	"log/slog"
+	"net"
 	"strings"
 	"time"
 )
@@ -113,38 +114,40 @@ func runFetchCycle(db *sql.DB, wasFailed bool, pub Broadcaster) fetchResult {
 	if pub != nil {
 		broadcastLiveData(db, pub)
 	}
-
+	// Fire when services are down
 	if len(data.DownServices) > 0 {
 		// TODO: refactor for Send returning error was to log
 		// levels of failures (host network, service down, etc.)
 		// allowing for more intelligent logging/logic
-		if err := utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+		if err := utils.Current_Config.Triggers.Send(context.TODO(), utils.Message{
 			Kind:     utils.KindAlert,
 			Title:    "Services are down",
 			Body:     "",
 			Services: data.DownServices,
 		}); err != nil {
-			slog.Error("error sending notification for failured", "ERROR", err)
+			slog.Error("error sending notification for failure", "ERROR", err)
+			return fetchResult{hasFailed: true, offline: !hostOnline(context.TODO())}
 		}
-		return fetchResult{hasFailed: true}
+		return fetchResult{hasFailed: true, offline: false}
 	}
 	// Only fires on past errors with no new failures
 	if wasFailed {
 		// TODO: refactor for Send returning error was to log
 		// levels of failures (host network, service down, etc.)
 		// allowing for more intelligent logging/logic
-		if err := utils.Current_Config.Triggers.Send(context.Background(), utils.Message{
+		if err := utils.Current_Config.Triggers.Send(context.TODO(), utils.Message{
 			Kind:     utils.KindClear,
 			Title:    "Services have recovered",
 			Body:     "All services are back online",
 			Services: data.AllServices,
 		}); err != nil {
 			slog.Error("error sending notification for recovery", "ERROR", err)
+			return fetchResult{hasFailed: true, offline: !hostOnline(context.TODO())}
 		}
 	}
 
 	slog.Info("Scheduler fetched service data successfully")
-	return fetchResult{hasFailed: false}
+	return fetchResult{hasFailed: false, offline: false}
 }
 
 // broadcastLiveData pushes the freshly persisted state read back from the DB
@@ -171,6 +174,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 	timer := time.NewTimer(dur)
 	fetching := false
 	hasFailed := false
+	var offlineSince time.Time
 	fetchDone := make(chan fetchResult, 1) // buffered goroutine never blocks on send
 	// starts fetchCycle
 	startFetch := func() {
@@ -205,6 +209,14 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		case res := <-fetchDone:
 			fetching = false
 			hasFailed = res.hasFailed
+			switch {
+			case res.offline && offlineSince.IsZero():
+				offlineSince = time.Now()
+				slog.Warn("host appears offline", "since", offlineSince)
+			case !res.offline && !offlineSince.IsZero():
+				slog.Info("host back online", "down for", time.Since(offlineSince))
+				offlineSince = time.Time{}
+			}
 		case <-s.fire:
 			utils.DrainTimer(timer)
 			hasFailed = false
