@@ -229,20 +229,6 @@ type AverageData struct {
 	Average float64 `json:"average"`
 }
 
-// Types come from: https://sqlite.org/dbstat.html
-type DatabaseStatistic struct {
-	Name       string
-	Path       string
-	Pageno     int
-	Pagetype   string
-	Ncell      int
-	Payload    int
-	Unused     int
-	Mx_payload int
-	Pgoffset   int
-	Pgsize     int
-}
-
 type DatabaseSizePayload struct {
 	Size int64 `json:"size_string"`
 }
