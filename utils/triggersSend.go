@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	ErrBackoff = errors.New("in backoff")
-	ErrNetwork = errors.New("network error")
+	ErrBackoff    = errors.New("in backoff")
+	ErrNetwork    = errors.New("network error")
+	ErrNoTriggers = errors.New("no triggers")
 )
 
 // buildPayload is buildMessage for postJSON: returns the value to marshal

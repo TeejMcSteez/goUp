@@ -204,7 +204,7 @@ func SetupTrigger(cfg *Config) *Trigger {
 func (t *Trigger) Send(ctx context.Context, m Message) error {
 
 	if len(t.notifiers) == 0 {
-		return fmt.Errorf("there are no triggers")
+		return ErrNoTriggers
 	}
 	var ers []error
 	// Backoff is enforced per notifier in each Send implementation.
