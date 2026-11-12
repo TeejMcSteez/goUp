@@ -71,8 +71,8 @@ type Trigger struct {
 	Discord        DiscordTrigger  `yaml:"discord"`
 	Backoff_Period *string         `yaml:"backoff"`
 
+	// fallback backoff for notifiers without their own; each notifier tracks its own lastFired
 	backoffDuration time.Duration
-	lastFired       time.Time
 	notifiers       []Notifier
 }
 
