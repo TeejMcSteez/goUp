@@ -14,6 +14,10 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+var (
+	ErrBackoff = errors.New("in backoff")
+)
+
 // buildPayload is buildMessage for postJSON: returns the value to marshal
 // instead of an encoded reader, applying any custom message template.
 func (w *WebhookTrigger) buildPayload(data []ServiceData) (any, error) {
@@ -60,7 +64,7 @@ func buildMqtt(m Message) any {
 
 func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 	if shouldBackoff("MQTT", m.lastFired, m.backoffDuration) {
-		return fmt.Errorf("MQTT is currently in back off for: %s", m.lastFired.Add(m.backoffDuration))
+		return backoffErr("MQTT", m.lastFired, m.backoffDuration)
 	}
 	m.lastFired = time.Now()
 
@@ -108,7 +112,7 @@ func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 
 func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
 	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
-		return fmt.Errorf("SMTP is currently in backoff period for: %s", e.backoffDuration.String())
+		return backoffErr("SMTP", e.lastFired, e.backoffDuration)
 	}
 	e.lastFired = time.Now()
 
@@ -183,7 +187,7 @@ func (w *WebhookTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Webhook", w.lastFired, w.backoffDuration) {
-		return fmt.Errorf("webhook is in backoff period for: %s", w.backoffDuration)
+		return backoffErr("Webhook", w.lastFired, w.backoffDuration)
 	}
 	w.lastFired = time.Now()
 
@@ -223,7 +227,7 @@ func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Gotify", g.lastFired, g.backoffDuration) {
-		return fmt.Errorf("gotify is in backoff period for: %s", g.backoffDuration)
+		return backoffErr("Gotify", g.lastFired, g.backoffDuration)
 	}
 	g.lastFired = time.Now()
 
@@ -267,7 +271,7 @@ func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Slack", s.lastFired, s.backoffDuration) {
-		return fmt.Errorf("slack is in backoff period for: %s", s.backoffDuration)
+		return backoffErr("Slack", s.lastFired, s.backoffDuration)
 	}
 	s.lastFired = time.Now()
 
@@ -307,7 +311,7 @@ func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Telegram", t.lastFired, t.backoffDuration) {
-		return fmt.Errorf("telegram is in backoff period for: %s", t.backoffDuration)
+		return backoffErr("Telegram", t.lastFired, t.backoffDuration)
 	}
 	t.lastFired = time.Now()
 
@@ -341,7 +345,7 @@ func (h *HATrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Home Assistant", h.lastFired, h.backoffDuration) {
-		return fmt.Errorf("home assistant is in backoff period for: %s", h.backoffDuration)
+		return backoffErr("Home Assistant", h.lastFired, h.backoffDuration)
 	}
 	h.lastFired = time.Now()
 
@@ -379,7 +383,7 @@ func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	if shouldBackoff("Discord", d.lastFired, d.backoffDuration) {
-		return fmt.Errorf("discord is in backoff period for: %s", d.backoffDuration)
+		return backoffErr("Discord", d.lastFired, d.backoffDuration)
 	}
 	d.lastFired = time.Now()
 

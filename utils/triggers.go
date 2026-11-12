@@ -1,4 +1,4 @@
-package utils
+/*  */ package utils
 
 import (
 	"bytes"
@@ -36,6 +36,12 @@ func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Durati
 		return true
 	}
 	return false
+}
+
+// backoffErr wraps ErrBackoff with how long until the trigger can fire again.
+func backoffErr(name string, lastFired time.Time, backoffDuration time.Duration) error {
+	remaining := (backoffDuration - time.Since(lastFired)).Round(time.Millisecond)
+	return fmt.Errorf("%s: %w (%s remaining)", name, ErrBackoff, remaining)
 }
 
 type resCheck func(res *http.Response, body []byte) error
@@ -192,15 +198,22 @@ func SetupTrigger(cfg *Config) *Trigger {
 }
 
 func (t *Trigger) Send(ctx context.Context, m Message) error {
+
 	if len(t.notifiers) == 0 {
 		return fmt.Errorf("there are no triggers")
 	}
 	var ers []error
 	// Backoff is enforced per notifier in each Send implementation.
+	// TODO: Figure out if I want to log backoff as error or have error logged as info with Error type check
 	for _, n := range t.notifiers {
 		nctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		err := n.Send(nctx, m)
 		cancel()
+		// If if is in backoff ignore
+		if errors.Is(err, ErrBackoff) {
+			slog.Info("backoff is active", "INFO", err)
+			continue
+		}
 		if err != nil {
 			ers = append(ers, err)
 		}
