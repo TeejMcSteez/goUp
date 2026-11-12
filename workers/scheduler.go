@@ -23,11 +23,13 @@ type Broadcaster interface {
 }
 
 type Scheduler struct {
-	state chan utils.ScheduleState
-	get   chan GetState
-	stop  chan struct{}
-	fire  chan struct{}
-	pub   Broadcaster
+	ctx    context.Context
+	cancel context.CancelFunc
+	state  chan utils.ScheduleState
+	get    chan GetState
+	stop   chan struct{}
+	fire   chan struct{}
+	pub    Broadcaster
 }
 
 type fetchResult struct{ hasFailed bool }
@@ -51,7 +53,8 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
+	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
 
@@ -61,11 +64,13 @@ func NewScheduler(db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
 	}
 
 	s := &Scheduler{
-		state: make(chan utils.ScheduleState),
-		get:   make(chan GetState),
-		stop:  make(chan struct{}),
-		fire:  make(chan struct{}),
-		pub:   pub,
+		ctx:    ctx,
+		cancel: cancel,
+		state:  make(chan utils.ScheduleState),
+		get:    make(chan GetState),
+		stop:   make(chan struct{}),
+		fire:   make(chan struct{}),
+		pub:    pub,
 	}
 
 	go s.StartScheduler(db, span, interval)
@@ -229,5 +234,6 @@ func (s *Scheduler) Get() utils.ScheduleState {
 }
 
 func (s *Scheduler) Stop() {
+	s.cancel()
 	close(s.stop)
 }
