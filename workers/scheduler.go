@@ -32,7 +32,10 @@ type Scheduler struct {
 	pub    Broadcaster
 }
 
-type fetchResult struct{ hasFailed bool }
+type fetchResult struct {
+	hasFailed bool
+	offline   bool
+}
 
 // schedule next run based on the *current* Span/Interval
 func computeDuration(Span int, Interval string) time.Duration {
