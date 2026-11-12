@@ -5,6 +5,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -194,14 +195,13 @@ func (t *Trigger) Send(ctx context.Context, m Message) error {
 	if len(t.notifiers) == 0 {
 		return fmt.Errorf("there are no triggers")
 	}
-
-	// Backoff is enforced per notifier in each Send implementation.`
+	var ers []error
+	// Backoff is enforced per notifier in each Send implementation.
 	for _, n := range t.notifiers {
-		err := n.Send(context.Background(), m)
-		if err != nil {
-			// return error to handle network requests
-			return err
+		if err := n.Send(context.Background(), m); err != nil {
+			ers = append(ers, err)
 		}
+
 	}
-	return nil
+	return errors.Join(ers...)
 }
