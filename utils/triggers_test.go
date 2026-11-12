@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"goUp/utils"
 	"io"
 	"net"
@@ -843,9 +844,14 @@ func TestFireWithBackoff(t *testing.T) {
 		t.Fatal("first Send() never reached webhook")
 	}
 
-	// Immediate second send must be suppressed by backoff.
-	if err := trigger.Send(ctx, msg); err == nil {
-		t.Error("second Send() should have returned a backoff error")
+	// Immediate second send must be suppressed by backoff. Backoff is not a
+	// failure, so Trigger.Send skips it and reports no error.
+	if err := trigger.Send(ctx, msg); err != nil {
+		t.Errorf("second Send() should treat backoff as a skip, got error: %v", err)
+	}
+	// The notifier itself reports the skip as ErrBackoff.
+	if err := trigger.Webhook.Send(ctx, msg); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("expected webhook Send() to return ErrBackoff, got %v", err)
 	}
 	select {
 	case <-hits:
