@@ -123,7 +123,11 @@ func postJSON(ctx context.Context, url string, payload any, opts ...reqOption) e
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func(res *http.Response) {
+		if err := res.Body.Close(); err != nil {
+			slog.Error("error closing response body posting JSON: %v", "ERROR", err)
+		}
+	}(res)
 
 	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if err != nil {
