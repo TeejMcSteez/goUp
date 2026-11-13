@@ -208,7 +208,6 @@ func (t *Trigger) Send(ctx context.Context, m Message) error {
 	}
 	var ers []error
 	// Backoff is enforced per notifier in each Send implementation.
-	// TODO: Figure out if I want to log backoff as error or have error logged as info with Error type check
 	for _, n := range t.notifiers {
 		nctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		err := n.Send(nctx, m)
