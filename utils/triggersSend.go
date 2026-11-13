@@ -89,27 +89,33 @@ func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 	}
 
 	client := mqtt.NewClient(opts)
+	defer client.Disconnect(250)
 
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		slog.Error("Error pushing to MQTT client", "error", token.Error())
-		return token.Error()
+	if err := waitToken(ctx, client.Connect()); err != nil {
+		return fmt.Errorf("MQTT connect: %w: %w", ErrNetwork, err)
 	}
 
-	if jsonData, err := json.Marshal(buildMqtt(msg)); err != nil {
-		slog.Error("Error formatting service data into JSON", "error", err)
-		return err
-	} else {
-		// Keep retain to true to store last known good message
-		token := client.Publish("goup_status", 0, true, jsonData)
-		token.Done()
-
-		if err := token.Error(); err != nil {
-			slog.Error("Error with MQTT token", "error", err)
-			return fmt.Errorf("MQTT: %s %w", token.Error().Error(), ErrNetwork)
-		}
-		slog.Info("Disconnecting from MQTT broker, sent message complete")
+	jsonData, err := json.Marshal(buildMqtt(msg))
+	if err != nil {
+		return fmt.Errorf("MQTT marshal: %w", err)
 	}
+	// Keep retain to true to store last known good message
+	if err := waitToken(ctx, client.Publish("goup_status", 0, true, jsonData)); err != nil {
+		return fmt.Errorf("MQTT publish: %w: %w", ErrNetwork, err)
+	}
+	slog.Info("MQTT message sent")
 	return nil
+}
+
+// waitToken blocks until the token completes or ctx ends. paho has no
+// context-aware API, so this lets the caller's deadline bound connect/publish.
+func waitToken(ctx context.Context, t mqtt.Token) error {
+	select {
+	case <-t.Done():
+		return t.Error()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
