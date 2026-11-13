@@ -151,7 +151,15 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 		slog.Error("Failed fetching service data in scheduler", "error", err)
 		// probe instead of defaulting offline to false, which would clear
 		// offlineSince and log a false "host back online"
-		return fetchResult{hasFailed: wasFailed, offline: !hostOnline(ctx), owedOffline: owedOffline}
+		online := hostOnline(ctx)
+		// Host came back but the fetch failed, so the restored notice below
+		// won't run this cycle. StartScheduler clears offlineSince on
+		// offline=false, so roll this outage into owedOffline or it's lost;
+		// the owed retry at the top of the next cycle sends it.
+		if online && !offlineSince.IsZero() {
+			owedOffline += time.Since(offlineSince)
+		}
+		return fetchResult{hasFailed: wasFailed, offline: !online, owedOffline: owedOffline}
 	}
 
 	// Down services + no host network means the outage is ours, not theirs.
