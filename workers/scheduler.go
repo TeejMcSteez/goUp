@@ -47,6 +47,9 @@ type fetchResult struct {
 //
 // returns true for Go errors false for programmatic errors (ErrBackoff/ErrNoTriggers)
 func handleSendErr(err error) bool {
+	if err == nil {
+		return false
+	}
 	if errors.Is(err, utils.ErrBackoff) {
 		return false
 	}
