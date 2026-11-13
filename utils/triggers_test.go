@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -922,5 +923,48 @@ func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
 	// The alert window is still active: a second alert is suppressed.
 	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
 		t.Errorf("second alert: expected ErrBackoff, got %v", err)
+	}
+}
+
+// A failed alert must not start the backoff window, or the retry next cycle
+// would be suppressed. Only a delivered alert starts it.
+func TestFailedAlertDoesNotStartBackoff(t *testing.T) {
+	var fail atomic.Bool
+	fail.Store(true)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	backoff := "1h"
+	cfg := &utils.Config{
+		Triggers: utils.Trigger{
+			Backoff_Period: &backoff,
+			Webhook: utils.WebhookTrigger{
+				Webhook_url: &server.URL,
+			},
+		},
+	}
+	trigger := utils.SetupTrigger(cfg)
+	ctx := context.Background()
+
+	err := trigger.Webhook.Send(ctx, alert(nil))
+	if err == nil || errors.Is(err, utils.ErrBackoff) {
+		t.Fatalf("first alert: expected delivery error, got %v", err)
+	}
+
+	// Retry must be attempted (not backed off) and now succeeds.
+	fail.Store(false)
+	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+		t.Fatalf("retry alert: expected success, got %v", err)
+	}
+
+	// The delivered alert started the window.
+	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("third alert: expected ErrBackoff, got %v", err)
 	}
 }
