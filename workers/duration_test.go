@@ -23,8 +23,10 @@ func TestComputeDuration(t *testing.T) {
 		{"negative span", -1, "minutes", fallback},
 		{"empty interval", 5, "", fallback},
 		{"unknown interval", 5, "days", fallback},
-		{"at cap", 24, "hours", maxScheduleDuration},
-		{"over cap", 25, "hours", maxScheduleDuration},
+		// derived from the cap so retuning maxScheduleDuration doesn't break these
+		{"at cap", int(maxScheduleDuration / time.Hour), "hours", maxScheduleDuration},
+		{"over cap", int(maxScheduleDuration/time.Hour) + 1, "hours", maxScheduleDuration},
+		{"over cap in minutes", int(maxScheduleDuration/time.Minute) + 1, "minutes", maxScheduleDuration},
 		{"overflowing span", math.MaxInt, "hours", maxScheduleDuration},
 	}
 	for _, tc := range tests {
