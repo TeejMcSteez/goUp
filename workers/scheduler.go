@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"goUp/utils"
 	"log/slog"
@@ -40,6 +41,20 @@ type fetchResult struct {
 	// owedOffline is offline time not yet reported by a restored notice
 	// (0 = nothing owed). Accumulates across outages whose notice failed.
 	owedOffline time.Duration
+}
+
+// handles send err return checking for non-fatal errors
+//
+// returns true for Go errors false for programmatic errors (ErrBackoff/ErrNoTriggers)
+func handleSendErr(err error) bool {
+	if errors.Is(err, utils.ErrBackoff) {
+		return false
+	}
+	if errors.Is(err, utils.ErrNoTriggers) {
+		return false
+	}
+	// if is network error or anything else return true
+	return true
 }
 
 func restoredNotice(offlineFor time.Duration) utils.Message {
@@ -122,7 +137,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 	// before the notice went out, so the owed time rolls into the next
 	// restored notice below instead.
 	if owedOffline > 0 && offlineSince.IsZero() {
-		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(owedOffline)); err != nil {
+		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(owedOffline)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 		} else {
 			owedOffline = 0
@@ -151,7 +166,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 	// unreported ones; on failure the running total stays owed.
 	if !offlineSince.IsZero() {
 		total := owedOffline + time.Since(offlineSince)
-		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(total)); err != nil {
+		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(total)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 			owedOffline = total
 		} else {
@@ -175,7 +190,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 			Services: data.DownServices,
 		}); err != nil {
 			slog.Error("error sending notification for failure", "ERROR", err)
-			return fetchResult{hasFailed: true, offline: !hostOnline(ctx), owedOffline: owedOffline}
+			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx), owedOffline: owedOffline}
 		}
 		return fetchResult{hasFailed: true, offline: false, owedOffline: owedOffline}
 	}
@@ -188,7 +203,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 			Services: data.AllServices,
 		}); err != nil {
 			slog.Error("error sending notification for recovery", "ERROR", err)
-			return fetchResult{hasFailed: true, offline: !hostOnline(ctx), owedOffline: owedOffline}
+			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx), owedOffline: owedOffline}
 		}
 	}
 
