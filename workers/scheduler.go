@@ -68,21 +68,41 @@ func restoredNotice(offlineFor time.Duration) utils.Message {
 	}
 }
 
-// schedule next run based on the *current* Span/Interval
-// FIX: #103
+// maxScheduleDuration caps the fetch interval; also prevents Span*unit overflow.
+const maxScheduleDuration = 60 * time.Hour
+
+// computeDuration schedules the next run from the *current* Span/Interval.
+// Interval is matched on its first letter (s/m/h), so "seconds", "min" and
+// "h" all work. Invalid input falls back to 60s rather than producing a
+// zero/negative timer or panicking on an empty string.
 func computeDuration(Span int, Interval string) time.Duration {
-	d := time.Duration(Span)
+	const fallback = 60 * time.Second
+	if Span <= 0 {
+		slog.Warn("invalid span, defaulting to 60 seconds", "span", Span)
+		return fallback
+	}
+	if Interval == "" {
+		slog.Warn("empty interval, defaulting to 60 seconds")
+		return fallback
+	}
+	var unit time.Duration
 	switch strings.ToLower(Interval)[0] {
 	case 's':
-		return d * time.Second
+		unit = time.Second
 	case 'm':
-		return d * time.Minute
+		unit = time.Minute
 	case 'h':
-		return d * time.Hour
+		unit = time.Hour
 	default:
-		slog.Warn("Invalid interval, defaulting to 60 second fetch interval", "span", Span, "interval", Interval)
-		return 60 * time.Second
+		slog.Warn("invalid interval, defaulting to 60 seconds", "span", Span, "interval", Interval)
+		return fallback
 	}
+	// compare before multiplying so a huge Span can't overflow
+	if Span > int(maxScheduleDuration/unit) {
+		slog.Warn("schedule too long, capping", "span", Span, "interval", Interval, "max", maxScheduleDuration)
+		return maxScheduleDuration
+	}
+	return time.Duration(Span) * unit
 }
 
 const defaultSpan = 30
