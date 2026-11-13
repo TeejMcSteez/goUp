@@ -870,3 +870,57 @@ func TestFireWithBackoff(t *testing.T) {
 		t.Fatal("third Send() never reached webhook after backoff expired")
 	}
 }
+
+// Only alerts are rate-limited: a clear inside the alert's backoff window
+// must still go out, and must not start a window that blocks the next alert.
+func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
+	hits := make(chan struct{}, 10)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits <- struct{}{}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	backoff := "1h"
+	cfg := &utils.Config{
+		Triggers: utils.Trigger{
+			Backoff_Period: &backoff,
+			Webhook: utils.WebhookTrigger{
+				Webhook_url: &server.URL,
+			},
+		},
+	}
+	trigger := utils.SetupTrigger(cfg)
+	ctx := context.Background()
+
+	expectHit := func(what string) {
+		t.Helper()
+		select {
+		case <-hits:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("%s never reached webhook", what)
+		}
+	}
+
+	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+		t.Fatalf("alert Send() returned error: %v", err)
+	}
+	expectHit("alert")
+
+	for _, m := range []utils.Message{
+		clearMsg,
+		{Kind: utils.KindInfo, Body: "restored"},
+		{Kind: utils.KindOffline},
+		{Kind: utils.KindReconnected},
+	} {
+		if err := trigger.Webhook.Send(ctx, m); err != nil {
+			t.Fatalf("%s Send() inside alert backoff returned error: %v", m.Kind, err)
+		}
+		expectHit(string(m.Kind))
+	}
+
+	// The alert window is still active: a second alert is suppressed.
+	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("second alert: expected ErrBackoff, got %v", err)
+	}
+}
