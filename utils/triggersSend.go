@@ -81,8 +81,12 @@ func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 	opts.SetClientID("goUp MQTT")
 	opts.OnConnect = connectHandler
 	opts.OnConnectionLost = lostHandler
-	if m.Mqtt_username != nil || m.Mqtt_key != nil {
+	// Set each independently: either may be configured alone (e.g. a
+	// token-as-username broker), and dereferencing the unset one would panic.
+	if m.Mqtt_username != nil {
 		opts.SetUsername(*m.Mqtt_username)
+	}
+	if m.Mqtt_key != nil {
 		opts.SetPassword(*m.Mqtt_key)
 	}
 
