@@ -41,16 +41,25 @@ func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Durati
 // checkBackoff gates a send on the notifier's backoff window. Only alerts are
 // rate-limited: recovery/info/offline/reconnected messages always go out and
 // don't start a window, so a short outage still gets its "recovered" notice.
-// On an allowed alert it stamps *lastFired.
-func checkBackoff(name string, kind Kind, lastFired *time.Time, backoffDuration time.Duration) error {
+// It does not stamp lastFired; pair it with markFired after the send.
+func checkBackoff(name string, kind Kind, lastFired time.Time, backoffDuration time.Duration) error {
 	if kind != KindAlert {
 		return nil
 	}
-	if shouldBackoff(name, *lastFired, backoffDuration) {
-		return backoffErr(name, *lastFired, backoffDuration)
+	if shouldBackoff(name, lastFired, backoffDuration) {
+		return backoffErr(name, lastFired, backoffDuration)
 	}
-	*lastFired = time.Now()
 	return nil
+}
+
+// markFired starts the backoff window only once an alert was actually
+// delivered, so a failed send is retried next cycle instead of being
+// suppressed by a window it never earned. Returns err unchanged.
+func markFired(kind Kind, lastFired *time.Time, err error) error {
+	if err == nil && kind == KindAlert {
+		*lastFired = time.Now()
+	}
+	return err
 }
 
 // backoffErr wraps ErrBackoff with how long until the trigger can fire again.
