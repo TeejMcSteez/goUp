@@ -38,6 +38,21 @@ func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Durati
 	return false
 }
 
+// checkBackoff gates a send on the notifier's backoff window. Only alerts are
+// rate-limited: recovery/info/offline/reconnected messages always go out and
+// don't start a window, so a short outage still gets its "recovered" notice.
+// On an allowed alert it stamps *lastFired.
+func checkBackoff(name string, kind Kind, lastFired *time.Time, backoffDuration time.Duration) error {
+	if kind != KindAlert {
+		return nil
+	}
+	if shouldBackoff(name, *lastFired, backoffDuration) {
+		return backoffErr(name, *lastFired, backoffDuration)
+	}
+	*lastFired = time.Now()
+	return nil
+}
+
 // backoffErr wraps ErrBackoff with how long until the trigger can fire again.
 func backoffErr(name string, lastFired time.Time, backoffDuration time.Duration) error {
 	remaining := (backoffDuration - time.Since(lastFired)).Round(time.Millisecond)

@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/smtp"
 	"strings"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -65,10 +64,9 @@ func buildMqtt(m Message) any {
 }
 
 func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
-	if shouldBackoff("MQTT", m.lastFired, m.backoffDuration) {
-		return backoffErr("MQTT", m.lastFired, m.backoffDuration)
+	if err := checkBackoff("MQTT", msg.Kind, &m.lastFired, m.backoffDuration); err != nil {
+		return err
 	}
-	m.lastFired = time.Now()
 
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 		slog.Info("Connected to MQTT broker")
@@ -119,10 +117,9 @@ func waitToken(ctx context.Context, t mqtt.Token) error {
 }
 
 func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
-	if shouldBackoff("SMTP", e.lastFired, e.backoffDuration) {
-		return backoffErr("SMTP", e.lastFired, e.backoffDuration)
+	if err := checkBackoff("SMTP", m.Kind, &e.lastFired, e.backoffDuration); err != nil {
+		return err
 	}
-	e.lastFired = time.Now()
 
 	host, _, err := net.SplitHostPort(*e.SMTPServer)
 	if err != nil {
@@ -194,10 +191,9 @@ func (w *WebhookTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Webhook", w.lastFired, w.backoffDuration) {
-		return backoffErr("Webhook", w.lastFired, w.backoffDuration)
+	if err := checkBackoff("Webhook", m.Kind, &w.lastFired, w.backoffDuration); err != nil {
+		return err
 	}
-	w.lastFired = time.Now()
 
 	var opts []reqOption
 	if w.Webhook_key_string != nil {
@@ -234,10 +230,9 @@ func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Gotify", g.lastFired, g.backoffDuration) {
-		return backoffErr("Gotify", g.lastFired, g.backoffDuration)
+	if err := checkBackoff("Gotify", m.Kind, &g.lastFired, g.backoffDuration); err != nil {
+		return err
 	}
-	g.lastFired = time.Now()
 
 	title := "GoUp Alert"
 	if g.Gotify_Title != nil {
@@ -278,10 +273,9 @@ func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Slack", s.lastFired, s.backoffDuration) {
-		return backoffErr("Slack", s.lastFired, s.backoffDuration)
+	if err := checkBackoff("Slack", m.Kind, &s.lastFired, s.backoffDuration); err != nil {
+		return err
 	}
-	s.lastFired = time.Now()
 
 	username := "GoUp Bot"
 	if s.Bot_Username != nil {
@@ -318,10 +312,9 @@ func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Telegram", t.lastFired, t.backoffDuration) {
-		return backoffErr("Telegram", t.lastFired, t.backoffDuration)
+	if err := checkBackoff("Telegram", m.Kind, &t.lastFired, t.backoffDuration); err != nil {
+		return err
 	}
-	t.lastFired = time.Now()
 
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
 	return postJSON(ctx, url, map[string]any{
@@ -352,10 +345,9 @@ func (h *HATrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Home Assistant", h.lastFired, h.backoffDuration) {
-		return backoffErr("Home Assistant", h.lastFired, h.backoffDuration)
+	if err := checkBackoff("Home Assistant", m.Kind, &h.lastFired, h.backoffDuration); err != nil {
+		return err
 	}
-	h.lastFired = time.Now()
 
 	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
 	return postJSON(ctx, url, map[string]any{
@@ -390,10 +382,9 @@ func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if shouldBackoff("Discord", d.lastFired, d.backoffDuration) {
-		return backoffErr("Discord", d.lastFired, d.backoffDuration)
+	if err := checkBackoff("Discord", m.Kind, &d.lastFired, d.backoffDuration); err != nil {
+		return err
 	}
-	d.lastFired = time.Now()
 
 	url := fmt.Sprintf("https://discord.com/api/channels/%s/messages", *d.Discord_Channel)
 	return postJSON(ctx, url, map[string]any{
