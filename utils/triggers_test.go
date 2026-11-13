@@ -4,33 +4,48 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"goUp/utils"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
-// interceptTLS creates a TLS test server and redirects http.DefaultTransport so all
-// outbound connections (including HTTPS to hardcoded external hosts) go to it instead.
-// The returned cleanup function restores the original transport and closes the server.
+// interceptTLS creates a TLS test server and redirects the notifier HTTP client's
+// transport so all outbound connections (including HTTPS to hardcoded external hosts)
+// go to it instead. The returned cleanup function restores the transport and closes the server.
 func interceptTLS(t *testing.T, handler http.HandlerFunc) (*httptest.Server, func()) {
 	t.Helper()
 	server := httptest.NewTLSServer(handler)
-	old := http.DefaultTransport
-	http.DefaultTransport = &http.Transport{
+	restore := utils.SetHTTPClientTransport(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return net.Dial("tcp", server.Listener.Addr().String())
 		},
-	}
+	})
 	return server, func() {
-		http.DefaultTransport = old
+		restore()
 		server.Close()
 	}
 }
+
+// send delivers m through n and fails the test on error.
+func send(t *testing.T, n utils.Notifier, m utils.Message) {
+	t.Helper()
+	if err := n.Send(context.Background(), m); err != nil {
+		t.Fatalf("%s Send(%s) failed: %v", n.Name(), m.Kind, err)
+	}
+}
+
+func alert(data []utils.ServiceData) utils.Message {
+	return utils.Message{Kind: utils.KindAlert, Services: data}
+}
+
+var clearMsg = utils.Message{Kind: utils.KindClear}
 
 func TestSetupTrigger(t *testing.T) {
 	broker := "tcp://localhost:1883"
@@ -102,7 +117,7 @@ func TestFireWebhook(t *testing.T) {
 		{ServiceName: "down_service", ServiceHTTPResponse: "503", Error: true},
 	}
 
-	trigger.Webhook.Fire(testData)
+	send(t, &trigger.Webhook, alert(testData))
 
 	if len(receivedData) != 1 {
 		t.Fatalf("Expected to receive 1 service data object, got %d", len(receivedData))
@@ -140,7 +155,7 @@ func TestWebhookCustomMessage(t *testing.T) {
 	defer server.Close()
 
 	trigger.Webhook.Webhook_url = &server.URL
-	trigger.Webhook.Fire(testData)
+	send(t, &trigger.Webhook, alert(testData))
 
 	if msg, ok := receivedPayload["message"]; !ok || msg != "Services are down!" {
 		t.Errorf("Expected custom message 'Services are down!', got '%v'", msg)
@@ -252,7 +267,7 @@ func TestFireGotify(t *testing.T) {
 	data := []utils.ServiceData{
 		{ServiceName: "api", ServiceHTTPResponse: "500", ServiceAPIResponse: "error"},
 	}
-	g.Fire(data)
+	send(t, &g, alert(data))
 
 	if gotPath != "/message" {
 		t.Errorf("expected path /message, got %s", gotPath)
@@ -289,7 +304,7 @@ func TestFireGotifyDefaults(t *testing.T) {
 		Gotify_Server: &server.URL,
 		Gotify_Token:  &token,
 	}
-	g.Fire([]utils.ServiceData{{ServiceName: "svc"}})
+	send(t, &g, alert([]utils.ServiceData{{ServiceName: "svc"}}))
 
 	var payload map[string]any
 	if err := json.Unmarshal(gotBody, &payload); err != nil {
@@ -343,7 +358,7 @@ func TestFireSlack(t *testing.T) {
 	data := []utils.ServiceData{
 		{ServiceName: "db", ServiceHTTPResponse: "503"},
 	}
-	s.Fire(data)
+	send(t, &s, alert(data))
 
 	if gotAuth != "Bearer "+tok {
 		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
@@ -384,7 +399,7 @@ func TestFireSlackCustomUsername(t *testing.T) {
 		Slack_Channel: &ch,
 		Bot_Username:  &name,
 	}
-	s.Fire([]utils.ServiceData{{ServiceName: "svc"}})
+	send(t, &s, alert([]utils.ServiceData{{ServiceName: "svc"}}))
 
 	var payload map[string]any
 	if err := json.Unmarshal([]byte(gotBody), &payload); err != nil {
@@ -433,7 +448,7 @@ func TestFireTelegram(t *testing.T) {
 	data := []utils.ServiceData{
 		{ServiceName: "cache", ServiceHTTPResponse: "500"},
 	}
-	tg.Fire(data)
+	send(t, &tg, alert(data))
 
 	var payload map[string]any
 	if err := json.Unmarshal(gotBody, &payload); err != nil {
@@ -485,7 +500,7 @@ func TestFireHA(t *testing.T) {
 	data := []utils.ServiceData{
 		{ServiceName: "lights", ServiceHTTPResponse: "503"},
 	}
-	h.Fire(data)
+	send(t, &h, alert(data))
 
 	if gotPath != "/api/events/goup_alert" {
 		t.Errorf("expected path /api/events/goup_alert, got %s", gotPath)
@@ -541,7 +556,7 @@ func TestFireDiscord(t *testing.T) {
 	data := []utils.ServiceData{
 		{ServiceName: "api", ServiceHTTPResponse: "500"},
 	}
-	d.Fire(data)
+	send(t, &d, alert(data))
 
 	if gotAuth != auth {
 		t.Errorf("expected Authorization %q, got %q", auth, gotAuth)
@@ -579,7 +594,7 @@ func TestWebhookClear(t *testing.T) {
 		Webhook_url:        &server.URL,
 		Webhook_key_string: &key,
 	}
-	w.Clear()
+	send(t, &w, clearMsg)
 
 	if gotAuth != key {
 		t.Errorf("expected Authorization %q, got %q", key, gotAuth)
@@ -589,11 +604,8 @@ func TestWebhookClear(t *testing.T) {
 	if err := json.Unmarshal(gotBody, &payload); err != nil {
 		t.Fatalf("failed to unmarshal webhook clear payload: %v", err)
 	}
-	if payload["status"] != "clear" {
-		t.Errorf("expected status 'clear', got %v", payload["status"])
-	}
-	if payload["message"] == "" {
-		t.Error("expected non-empty message in webhook clear payload")
+	if payload["message"] != "All services recovered" {
+		t.Errorf("expected message 'All services recovered', got %v", payload["message"])
 	}
 }
 
@@ -616,7 +628,7 @@ func TestFireGotifyClear(t *testing.T) {
 		Gotify_Token:  &token,
 		Gotify_Title:  &title,
 	}
-	g.Clear()
+	send(t, &g, clearMsg)
 
 	if gotPath != "/message" {
 		t.Errorf("expected path /message, got %s", gotPath)
@@ -650,7 +662,7 @@ func TestFireGotifyClearDefaultTitle(t *testing.T) {
 		Gotify_Server: &server.URL,
 		Gotify_Token:  &token,
 	}
-	g.Clear()
+	send(t, &g, clearMsg)
 
 	var payload map[string]any
 	if err := json.Unmarshal(gotBody, &payload); err != nil {
@@ -680,7 +692,7 @@ func TestFireSlackClear(t *testing.T) {
 		Slack_Token:   &tok,
 		Slack_Channel: &ch,
 	}
-	s.Clear()
+	send(t, &s, clearMsg)
 
 	if gotAuth != "Bearer "+tok {
 		t.Errorf("expected Authorization 'Bearer %s', got %q", tok, gotAuth)
@@ -718,7 +730,7 @@ func TestFireTelegramClear(t *testing.T) {
 		Telegram_Token:      &tok,
 		Telegram_Channel_Id: &ch,
 	}
-	tg.Clear()
+	send(t, &tg, clearMsg)
 
 	var payload map[string]any
 	if err := json.Unmarshal(gotBody, &payload); err != nil {
@@ -749,7 +761,7 @@ func TestFireHAClear(t *testing.T) {
 		HA_URL:   &server.URL,
 		HA_Token: &tok,
 	}
-	h.Clear()
+	send(t, &h, clearMsg)
 
 	if gotPath != "/api/events/goup_alert" {
 		t.Errorf("expected path /api/events/goup_alert, got %s", gotPath)
@@ -784,7 +796,7 @@ func TestFireDiscordClear(t *testing.T) {
 		Discord_Auth:    &auth,
 		Discord_Channel: &ch,
 	}
-	d.Clear()
+	send(t, &d, clearMsg)
 
 	if gotAuth != auth {
 		t.Errorf("expected Authorization %q, got %q", auth, gotAuth)
@@ -820,28 +832,139 @@ func TestFireWithBackoff(t *testing.T) {
 	trigger := utils.SetupTrigger(cfg)
 	data := []utils.ServiceData{{ServiceName: "svc", ServiceHTTPResponse: "200"}}
 
-	// First fire must reach the server.
-	trigger.Fire(data)
+	ctx := context.Background()
+	msg := alert(data)
+
+	// First send must reach the server.
+	if err := trigger.Send(ctx, msg); err != nil {
+		t.Fatalf("first Send() returned error: %v", err)
+	}
 	select {
 	case <-hits:
 	case <-time.After(2 * time.Second):
-		t.Fatal("first Fire() never reached webhook")
+		t.Fatal("first Send() never reached webhook")
 	}
 
-	// Immediate second fire must be suppressed by backoff.
-	trigger.Fire(data)
+	// Immediate second send must be suppressed by backoff. Backoff is not a
+	// failure, so Trigger.Send skips it and reports no error.
+	if err := trigger.Send(ctx, msg); err != nil {
+		t.Errorf("second Send() should treat backoff as a skip, got error: %v", err)
+	}
+	// The notifier itself reports the skip as ErrBackoff.
+	if err := trigger.Webhook.Send(ctx, msg); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("expected webhook Send() to return ErrBackoff, got %v", err)
+	}
 	select {
 	case <-hits:
-		t.Error("second Fire() should have been blocked by backoff but reached webhook")
+		t.Error("second Send() should have been blocked by backoff but reached webhook")
 	case <-time.After(100 * time.Millisecond):
 		// correct — nothing received within backoff window
 	}
 
-	// After the 100 ms wait above the 50 ms backoff has expired; fire again.
-	trigger.Fire(data)
+	// After the 100 ms wait above the 50 ms backoff has expired; send again.
+	if err := trigger.Send(ctx, msg); err != nil {
+		t.Fatalf("third Send() returned error: %v", err)
+	}
 	select {
 	case <-hits:
 	case <-time.After(2 * time.Second):
-		t.Fatal("third Fire() never reached webhook after backoff expired")
+		t.Fatal("third Send() never reached webhook after backoff expired")
+	}
+}
+
+// Only alerts are rate-limited: a clear inside the alert's backoff window
+// must still go out, and must not start a window that blocks the next alert.
+func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
+	hits := make(chan struct{}, 10)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits <- struct{}{}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	backoff := "1h"
+	cfg := &utils.Config{
+		Triggers: utils.Trigger{
+			Backoff_Period: &backoff,
+			Webhook: utils.WebhookTrigger{
+				Webhook_url: &server.URL,
+			},
+		},
+	}
+	trigger := utils.SetupTrigger(cfg)
+	ctx := context.Background()
+
+	expectHit := func(what string) {
+		t.Helper()
+		select {
+		case <-hits:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("%s never reached webhook", what)
+		}
+	}
+
+	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+		t.Fatalf("alert Send() returned error: %v", err)
+	}
+	expectHit("alert")
+
+	for _, m := range []utils.Message{
+		clearMsg,
+		{Kind: utils.KindInfo, Body: "restored"},
+		{Kind: utils.KindOffline},
+		{Kind: utils.KindReconnected},
+	} {
+		if err := trigger.Webhook.Send(ctx, m); err != nil {
+			t.Fatalf("%s Send() inside alert backoff returned error: %v", m.Kind, err)
+		}
+		expectHit(string(m.Kind))
+	}
+
+	// The alert window is still active: a second alert is suppressed.
+	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("second alert: expected ErrBackoff, got %v", err)
+	}
+}
+
+// A failed alert must not start the backoff window, or the retry next cycle
+// would be suppressed. Only a delivered alert starts it.
+func TestFailedAlertDoesNotStartBackoff(t *testing.T) {
+	var fail atomic.Bool
+	fail.Store(true)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	backoff := "1h"
+	cfg := &utils.Config{
+		Triggers: utils.Trigger{
+			Backoff_Period: &backoff,
+			Webhook: utils.WebhookTrigger{
+				Webhook_url: &server.URL,
+			},
+		},
+	}
+	trigger := utils.SetupTrigger(cfg)
+	ctx := context.Background()
+
+	err := trigger.Webhook.Send(ctx, alert(nil))
+	if err == nil || errors.Is(err, utils.ErrBackoff) {
+		t.Fatalf("first alert: expected delivery error, got %v", err)
+	}
+
+	// Retry must be attempted (not backed off) and now succeeds.
+	fail.Store(false)
+	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+		t.Fatalf("retry alert: expected success, got %v", err)
+	}
+
+	// The delivered alert started the window.
+	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
+		t.Errorf("third alert: expected ErrBackoff, got %v", err)
 	}
 }

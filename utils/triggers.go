@@ -1,7 +1,16 @@
-package utils
+/*  */ package utils
 
 import (
+	"bytes"
+	"cmp"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"slices"
 	"time"
 )
 
@@ -29,10 +38,137 @@ func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Durati
 	return false
 }
 
-// SetupTrigger copies Trigger config from cfg and registers configured handlers.
+// checkBackoff gates a send on the notifier's backoff window. Only alerts are
+// rate-limited: recovery/info/offline/reconnected messages always go out and
+// don't start a window, so a short outage still gets its "recovered" notice.
+// It does not stamp lastFired; pair it with markFired after the send.
+func checkBackoff(name string, kind Kind, lastFired time.Time, backoffDuration time.Duration) error {
+	if kind != KindAlert {
+		return nil
+	}
+	if shouldBackoff(name, lastFired, backoffDuration) {
+		return backoffErr(name, lastFired, backoffDuration)
+	}
+	return nil
+}
+
+// markFired starts the backoff window only once an alert was actually
+// delivered, so a failed send is retried next cycle instead of being
+// suppressed by a window it never earned. Returns err unchanged.
+func markFired(kind Kind, lastFired *time.Time, err error) error {
+	if err == nil && kind == KindAlert {
+		*lastFired = time.Now()
+	}
+	return err
+}
+
+// backoffErr wraps ErrBackoff with how long until the trigger can fire again.
+func backoffErr(name string, lastFired time.Time, backoffDuration time.Duration) error {
+	remaining := (backoffDuration - time.Since(lastFired)).Round(time.Millisecond)
+	return fmt.Errorf("%s: %w (%s remaining)", name, ErrBackoff, remaining)
+}
+
+type resCheck func(res *http.Response, body []byte) error
+
+type reqConfig struct {
+	headers map[string]string
+	checks  []resCheck
+}
+
+type reqOption func(*reqConfig)
+
+func header(k, v string) reqOption {
+	return func(c *reqConfig) { c.headers[k] = v }
+}
+
+func expectStatus(codes ...int) reqOption {
+	return func(c *reqConfig) {
+		c.checks = append(c.checks, func(res *http.Response, _ []byte) error {
+			if slices.Contains(codes, res.StatusCode) {
+				return nil
+			}
+			return fmt.Errorf("unexpected status: %d", res.StatusCode)
+		})
+	}
+}
+
+func expect2xx(res *http.Response, _ []byte) error {
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		return fmt.Errorf("unexpected status: %d", res.StatusCode)
+	}
+	return nil
+}
+
+func expectOkField() reqOption {
+	return func(c *reqConfig) {
+		c.checks = append(c.checks, func(_ *http.Response, body []byte) error {
+			var r struct {
+				OK          bool   `json:"ok"`
+				Error       string `json:"error"`
+				Description string `json:"description"`
+			}
+			if err := json.Unmarshal(body, &r); err != nil {
+				return fmt.Errorf("decoding ok-field response: %w", err)
+			}
+			if !r.OK {
+				return fmt.Errorf("api error: %s", cmp.Or(r.Error, r.Description, "ok=false"))
+			}
+			return nil
+		})
+	}
+}
+
+// handles posting all data via JSON to triggers
+func postJSON(ctx context.Context, url string, payload any, opts ...reqOption) error {
+	cfg := reqConfig{headers: map[string]string{"Content-Type": "application/json"}}
+
+	for _, o := range opts {
+		o(&cfg)
+	}
+
+	if len(cfg.checks) == 0 {
+		cfg.checks = []resCheck{expect2xx}
+	}
+
+	b, err := json.Marshal(payload)
+
+	if err != nil {
+		return fmt.Errorf("marshal payload: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	for k, v := range cfg.headers {
+		req.Header.Set(k, v)
+	}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("%s: %w %s", url, ErrNetwork, err.Error())
+	}
+	defer func(res *http.Response) {
+		if err := res.Body.Close(); err != nil {
+			slog.Error("error closing response body posting JSON: %v", "ERROR", err)
+		}
+	}(res)
+
+	body, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+	for _, check := range cfg.checks {
+		if err := check(res, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SetupTrigger copies Trigger config from cfg and registers configured notifiers.
 func SetupTrigger(cfg *Config) *Trigger {
 	t := &cfg.Triggers
-	t.handlers = nil
+	t.notifiers = nil
 
 	if cfg.Triggers.Backoff_Period != nil && *cfg.Triggers.Backoff_Period != "" {
 		dur, err := time.ParseDuration(*cfg.Triggers.Backoff_Period)
@@ -57,30 +193,30 @@ func SetupTrigger(cfg *Config) *Trigger {
 	t.Discord.backoffDuration = resolveBackoff("Discord", t.Discord.Backoff_Period, t.backoffDuration)
 
 	if t.MQTT.IsConfigured() {
-		t.handlers = append(t.handlers, &t.MQTT)
+		t.notifiers = append(t.notifiers, &t.MQTT)
 	}
 	if t.Webhook.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Webhook)
+		t.notifiers = append(t.notifiers, &t.Webhook)
 	}
 	if t.SMTP.IsConfigured() {
-		t.handlers = append(t.handlers, &t.SMTP)
+		t.notifiers = append(t.notifiers, &t.SMTP)
 	}
 	if t.Gotify.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Gotify)
+		t.notifiers = append(t.notifiers, &t.Gotify)
 	}
 	if t.Slack.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Slack)
+		t.notifiers = append(t.notifiers, &t.Slack)
 	}
 	if t.Telegram.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Telegram)
+		t.notifiers = append(t.notifiers, &t.Telegram)
 	}
 	if t.HA.IsConfigured() {
-		t.handlers = append(t.handlers, &t.HA)
+		t.notifiers = append(t.notifiers, &t.HA)
 	}
 	if t.Discord.IsConfigured() {
-		t.handlers = append(t.handlers, &t.Discord)
+		t.notifiers = append(t.notifiers, &t.Discord)
 	}
-	if len(t.handlers) == 0 {
+	if len(t.notifiers) == 0 {
 		slog.Info("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
 		return t
 	}
@@ -89,29 +225,26 @@ func SetupTrigger(cfg *Config) *Trigger {
 	return t
 }
 
-// Fire dispatches service data to all configured trigger handlers.
-func (t *Trigger) Fire(data []ServiceData) {
-	if len(t.handlers) == 0 {
-		return
-	}
+func (t *Trigger) Send(ctx context.Context, m Message) error {
 
-	if shouldBackoff("Trigger", t.lastFired, t.backoffDuration) {
-		return
+	if len(t.notifiers) == 0 {
+		return ErrNoTriggers
 	}
+	var ers []error
+	// Backoff is enforced per notifier in each Send implementation.
+	for _, n := range t.notifiers {
+		nctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		err := n.Send(nctx, m)
+		cancel()
+		// If if is in backoff ignore
+		if errors.Is(err, ErrBackoff) {
+			slog.Info("backoff is active", "INFO", err)
+			continue
+		}
+		if err != nil {
+			ers = append(ers, err)
+		}
 
-	for _, h := range t.handlers {
-		go h.Fire(data)
 	}
-
-	t.lastFired = time.Now()
-}
-
-func (t *Trigger) Clear() {
-	if len(t.handlers) == 0 {
-		return
-	}
-
-	for _, h := range t.handlers {
-		go h.Clear()
-	}
+	return errors.Join(ers...)
 }

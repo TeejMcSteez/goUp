@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -35,6 +36,29 @@ type ConfigData struct {
 	Backoff_Period string             `json:"backoff_period"`
 }
 
+type Kind string
+
+const (
+	KindAlert       Kind = "alert"
+	KindClear       Kind = "clear"
+	KindOffline     Kind = "offline"
+	KindReconnected Kind = "reconnected"
+	KindInfo        Kind = "info" // arbitrary
+)
+
+type Message struct {
+	Kind     Kind
+	Title    string
+	Body     string
+	Services []ServiceData
+}
+
+type Notifier interface {
+	Name() string
+	IsConfigured() bool
+	Send(ctx context.Context, m Message) error
+}
+
 // Endpoints and data for triggers
 type Trigger struct {
 	MQTT           MQTTTrigger     `yaml:"mqtt"`
@@ -47,15 +71,9 @@ type Trigger struct {
 	Discord        DiscordTrigger  `yaml:"discord"`
 	Backoff_Period *string         `yaml:"backoff"`
 
+	// fallback backoff for notifiers without their own; each notifier tracks its own lastFired
 	backoffDuration time.Duration
-	lastFired       time.Time
-	handlers        []TriggerHandler
-}
-
-type TriggerHandler interface {
-	Fire(data []ServiceData)
-	IsConfigured() bool
-	Clear()
+	notifiers       []Notifier
 }
 
 type MQTTTrigger struct {
@@ -209,20 +227,6 @@ type ScheduleState struct {
 type AverageData struct {
 	Name    string  `json:"name"`
 	Average float64 `json:"average"`
-}
-
-// Types come from: https://sqlite.org/dbstat.html
-type DatabaseStatistic struct {
-	Name       string
-	Path       string
-	Pageno     int
-	Pagetype   string
-	Ncell      int
-	Payload    int
-	Unused     int
-	Mx_payload int
-	Pgoffset   int
-	Pgsize     int
 }
 
 type DatabaseSizePayload struct {
