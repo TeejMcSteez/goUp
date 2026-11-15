@@ -36,6 +36,10 @@ fmt:
 
 lint:
 	cd frontend && $(PM) lint && cd ../
+	# build before lint
+	# so static files can be embedded
+	# on fresh projects
+	cd frontend && $(PM) build && cd ../
 	golangci-lint run ./...
 
 test:
