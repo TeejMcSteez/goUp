@@ -1,22 +1,13 @@
 import useLiveQuery from "./useLiveQuery";
-import type { Service } from "../types";
+import { LIVE_QUERY_KEY, LIVE_STALE_TIME } from "./liveConnection";
+import { liveConnection } from "../queryClient";
+import type { LiveData, Service } from "../types";
 
-async function fetchQuickServices(): Promise<Service[]> {
-  const res = await fetch("/api/status");
-  if (!res.ok) {
-    throw new Error(`Server error: ${res.status}`);
-  }
-  const data: unknown = await res.json();
-  if (data === null) {
-    return [];
-  }
-  if (Array.isArray(data)) {
-    return data as Service[];
-  }
-  console.error(`Expected array from /api/status, got: ${JSON.stringify(data)}`);
-  return [];
-}
+const selectDowned = (data: LiveData): Service[] => data.downed_services ?? [];
 
 export default function useQuickServices() {
-  return useLiveQuery(["status"], fetchQuickServices);
+  return useLiveQuery(LIVE_QUERY_KEY, liveConnection.fetchLive, {
+    select: selectDowned,
+    staleTime: LIVE_STALE_TIME,
+  });
 }

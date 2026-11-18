@@ -1,4 +1,5 @@
 import useLiveQuery from "./useLiveQuery";
+import { liveConnection } from "../queryClient";
 import type { UptimeItem, UptimeChartData } from "../types";
 
 export type UptimeRange =
@@ -13,14 +14,13 @@ export type UptimeRange =
 async function fetchUptimeData(
   range: UptimeRange,
 ): Promise<UptimeChartData | null> {
-  const res = await fetch(`/api/uptime?range=${range}`);
-  if (!res.ok) {
-    throw new Error(`Error fetching data: ${res.statusText}`);
-  }
-  const json: unknown = await res.json();
+  const items = await liveConnection.request<UptimeItem[] | null>({
+    type: "uptime",
+    uptimeParams: { range },
+  });
 
-  if (Array.isArray(json)) {
-    const items = json as UptimeItem[];
+  // empty means no service had usable data yet
+  if (items && items.length > 0) {
     const labels = items.map((item) => item.name);
     const data = items.map((item) => item.average * 100);
 

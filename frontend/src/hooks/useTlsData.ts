@@ -1,15 +1,13 @@
 import useLiveQuery from "./useLiveQuery";
-import type { TlsStatus } from "../types";
+import { LIVE_QUERY_KEY, LIVE_STALE_TIME } from "./liveConnection";
+import { liveConnection } from "../queryClient";
+import type { LiveData, TlsStatus } from "../types";
 
-async function fetchTlsData(): Promise<TlsStatus[]> {
-  const res = await fetch("/api/tls");
-  if (!res.ok) {
-    throw new Error(`Server error: ${res.status}`);
-  }
-  const data: unknown = await res.json();
-  return (data as TlsStatus[]) || [];
-}
+const selectTls = (data: LiveData): TlsStatus[] => data.tls_status ?? [];
 
 export default function useTlsData() {
-  return useLiveQuery(["tls"], fetchTlsData);
+  return useLiveQuery(LIVE_QUERY_KEY, liveConnection.fetchLive, {
+    select: selectTls,
+    staleTime: LIVE_STALE_TIME,
+  });
 }

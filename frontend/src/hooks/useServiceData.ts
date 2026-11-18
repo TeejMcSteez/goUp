@@ -1,20 +1,13 @@
 import useLiveQuery from "./useLiveQuery";
-import type { Service } from "../types";
+import { LIVE_QUERY_KEY, LIVE_STALE_TIME } from "./liveConnection";
+import { liveConnection } from "../queryClient";
+import type { LiveData, Service } from "../types";
 
-async function fetchServices(): Promise<Service[]> {
-  const res = await fetch("/api");
-  if (!res.ok) {
-    throw new Error(`Server error: ${res.status}`);
-  }
-  const data: unknown = await res.json();
-  if (data && Array.isArray(data)) {
-    return data as Service[];
-  } else {
-    console.error("Expected array from /api, got:", data);
-    return [];
-  }
-}
+const selectServices = (data: LiveData): Service[] => data.services ?? [];
 
 export default function useServiceData() {
-  return useLiveQuery(["services"], fetchServices);
+  return useLiveQuery(LIVE_QUERY_KEY, liveConnection.fetchLive, {
+    select: selectServices,
+    staleTime: LIVE_STALE_TIME,
+  });
 }

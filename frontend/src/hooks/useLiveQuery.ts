@@ -7,15 +7,24 @@ interface LiveQueryResult<T> {
   refetch: () => Promise<void>;
 }
 
-// Fetches once on mount, then refetches whenever liveConnection invalidates
-// the key after a websocket push from the scheduler.
-export default function useLiveQuery<T>(
+interface LiveQueryOptions<TQueryFnData, TData> {
+  // Pass a module-level function so react-query can memoise it.
+  select?: (data: TQueryFnData) => TData;
+  staleTime?: number;
+}
+
+// Wraps useQuery for data delivered over the /ws connection: either pushed
+// into the cache by liveConnection, or re-requested over the socket when
+// liveConnection invalidates the key after a scheduler broadcast.
+export default function useLiveQuery<TQueryFnData, TData = TQueryFnData>(
   queryKey: QueryKey,
-  fetchFunction: () => Promise<T>,
-): LiveQueryResult<T> {
+  fetchFunction: () => Promise<TQueryFnData>,
+  options: LiveQueryOptions<TQueryFnData, TData> = {},
+): LiveQueryResult<TData> {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: fetchFunction,
+    ...options,
   });
 
   return {
