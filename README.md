@@ -18,6 +18,20 @@ Development focusing on security may arise but is not planned hence this warning
 
 A full interactive API reference is available at `/swagger/index.html` when the server is running. Run `make docs` to regenerate it after modifying handler annotations.
 
+UI uses Websocket connection for streaming data from server to client.
+
+Status, TLS, and Service Data are pushed on demand when a full scan succeeds on the server.
+
+Errors, Uptime, and Response Time information can be fetched sending JSON encoded Websocket text messages.
+
+| Message | Response |
+|---------|----------|
+| `{"type": "errors"}` | `/api/errors` |
+| `{"type": "rt"}` | `/api/rt` |
+| `{"type": "uptime"}` | `/api/uptime` |
+
+In the UI every push invalidates the current data and re-fetches other information from the server.
+
 ## AI Disclosure
 
 Portions of this project were generated with the assistance of AI tools.
@@ -154,14 +168,14 @@ triggers:
 
 These are **subject to change** 
 
-- [x] Webhook
-- [x] MQTT
-- [x] SMTP (via Gmail App Password currently)
-- [x] Slack (via bot token)
-- [x] Gotify
-- [x] Telegram
-- [x] Home Assistant (via event bus)
-- [x] Discord
+- Webhook
+- MQTT
+- SMTP (via Gmail App Password)
+- Slack (via bot token)
+- Gotify
+- Telegram
+- Home Assistant (via event bus)
+- Discord
 
 ## Building
 
@@ -182,7 +196,7 @@ The Makefile auto-detects the package manager by matching the existing lock file
 | `make docs` | Regenerate Swagger docs from handler annotations (served at `/swagger/index.html`) |
 | `make build` | Build the frontend, SQL codegen, then compile the Go binary (`./goUp`) |
 | `make fmt` | Format Go source files via `golangci-lint fmt` |
-| `make lint` | Lint Go source files via `golangci-lint run` |
+| `make lint` | Lints frontend, Builds frontend (to sasitfy Go embed), and Lint Go source files via `golangci-lint run` |
 | `make test` | Run all Go tests with coverage (`go test ./... -cover`) |
 | `make prof` | Run benchmarks and write CPU + memory profiles to `perf/` use [pprof](https://github.com/google/pprof) for viewing (example: `pprof -http=:8080 perf/workers.mem.out`)|
 | `make clean` | Remove the compiled binary and `perf/` directory |
@@ -243,6 +257,6 @@ Schema:
 ## Current Test Coverage
 
 - goUp coverage: 0.0% of statements
-- goUp/server coverage: 31.9% of statements
-- goUp/utils coverage: 62.2% of statements
-- goUp/workers coverage: 68.8% of statements
+- goUp/server coverage: 39.7% of statements
+- goUp/utils coverage: 65.0% of statements
+- goUp/workers coverage: 63.1% of statements
