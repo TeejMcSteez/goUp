@@ -176,10 +176,6 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 		return
 	}
 
-	if len(p) > readLimit {
-		// message is to large move on
-		return
-	}
 	var msg readMessage
 	err := json.Unmarshal(p, &msg)
 	if err != nil {
