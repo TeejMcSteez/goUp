@@ -14,13 +14,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type outMsg struct {
+	typ  int
+	data []byte
+}
+
 type wsConn struct {
-	conn *websocket.Conn
-	send chan []byte
-	done chan struct{}
-	once sync.Once
-	hub  *Hub
-	db   *sql.DB
+	conn  *websocket.Conn
+	send  chan []byte
+	reply chan outMsg
+	done  chan struct{}
+	once  sync.Once
+	hub   *Hub
+	db    *sql.DB
 }
 
 // Hub owns the set of connected wsConns and is the only goroutine that
@@ -187,19 +193,27 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 			slog.Error("failed to get error data for websocket client", "ERROR", err)
 			return
 		}
-		// TODO: figure out how to send without racing with sendLoop
+		b, err := json.Marshal(data)
+		if err != nil {
+			return
+		}
+		ws.enqueue(websocket.TextMessage, b)
 	case "rt":
 		switch msg.RtParams.Type {
 		case 0:
 			data, err := utils.BuildRtSnapshot(ws.db)
-			// TODO: figure out how to send without racing with sendLoop
-
+			if err != nil {
+				slog.Error("failed to build response time snapshot for websocket client", "ERROR", err)
+				return
+			}
+			frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
+			ws.enqueue(websocket.BinaryMessage, frame)
 		case 1:
 			// TODO: factor out of datastore.go to be a general util helper for accepting from/to
 			// as string to convert to unix time format
 			fromUnix, perr := strconv.ParseInt(msg.RtParams.From, 10, 64)
 			if perr != nil || fromUnix < 0 {
-				slog.Error("failed to parse to in websocket read", "ERROR", err)
+				slog.Error("failed to parse to in websocket read", "ERROR", perr)
 				return
 			}
 			from := time.Unix(fromUnix, 0)
@@ -215,11 +229,16 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 				to = time.Unix(toUnix, 0).Add(time.Second - time.Nanosecond)
 			}
 			if from.After(to) {
-				slog.Error("'from' must be at or before 'to'", "ERROR", err)
+				slog.Error("'from' must be at or before 'to'", "ERROR", perr)
 				return
 			}
 			data, err := utils.BuildRtSnapshotRange(ws.db, from, to)
-			// TODO: figure out how to send without racing with sendLoop
+			if err != nil {
+				slog.Error("failed to build response time append for websocket client", "ERROR", err)
+				return
+			}
+			frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
+			ws.enqueue(websocket.BinaryMessage, frame)
 
 		default:
 			slog.Error("invalid type based for response time fetch", "ERROR", errors.New("invalid input"))
@@ -244,15 +263,17 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 				data = append(data, utils.AverageData{Name: endpoint.Name, Average: *upAvg})
 			}
 		}
-		// TODO: figure out how to send without racing with sendLoop
+		b, err := json.Marshal(data)
+		if err != nil {
+			slog.Error("failed to marshal uptime data for websocket client", "ERROR", err)
+			return
+		}
+		ws.enqueue(websocket.TextMessage, b)
 	default:
 		// invalid key
 	}
 }
 
-// TODO: refactor to allow errors, uptime, and responseTimes to be fetched
-// through websocket. This allows the client to fetch on demand over websocket.
-// Also, keeps the API surface for consumers moving all frontend logic to websocket.
 func (ws *wsConn) readLoop() {
 	defer ws.stop()
 	ws.conn.SetReadLimit(readLimit)
@@ -302,6 +323,14 @@ func (ws *wsConn) writeLoop() {
 				slog.Error("error setting read deadline in websocket writeLoop", "error", err)
 			}
 			if err := ws.conn.WriteMessage(websocket.TextMessage, b); err != nil {
+				ws.stop()
+				return
+			}
+		case m := <-ws.reply:
+			if err := ws.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				slog.Error("failed to set write deadline for websocket clinet", "ERROR", err)
+			}
+			if err := ws.conn.WriteMessage(m.typ, m.data); err != nil {
 				ws.stop()
 				return
 			}
