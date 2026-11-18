@@ -1,6 +1,7 @@
 import type { AlignedData } from "uplot";
 import { useQueryClient } from "@tanstack/react-query";
 import useLiveQuery from "./useLiveQuery";
+import { liveConnection } from "../queryClient";
 
 export interface ResponseTimeSeries {
   names: string[];
@@ -115,22 +116,25 @@ const RANGE_SECONDS: Record<ResponseTimeRange, number | null> = {
 const queryKey = (range: ResponseTimeRange) =>
   ["responseTime", "series", range] as const;
 
-// GET /api/rt: the full history (or the trailing window) as a snapshot frame.
+// The full history (or the trailing window) as a snapshot frame over /ws.
 async function fetchSnapshot(
   range: ResponseTimeRange,
 ): Promise<ResponseTimeSeries | null> {
   const windowSecs = RANGE_SECONDS[range];
-  const url =
-    windowSecs == null
-      ? "/api/rt"
-      : `/api/rt?from=${Math.floor(Date.now() / 1000) - windowSecs}`;
-  const res = await fetch(url);
-  if (!res.ok)
-    throw new Error(`Error fetching response times: ${res.statusText}`);
+  const buf = await liveConnection.request<ArrayBuffer>({
+    type: "rt",
+    rtParams:
+      windowSecs == null
+        ? { type: 0 }
+        : {
+            type: 1,
+            from: String(Math.floor(Date.now() / 1000) - windowSecs),
+          },
+  });
 
-  const frame = decodeFrame(await res.arrayBuffer());
+  const frame = decodeFrame(buf);
   if (frame.typ !== FRAME_SNAPSHOT)
-    throw new Error("Expected a snapshot frame from /api/rt");
+    throw new Error("Expected a snapshot frame for response times");
   if (frame.ts.length === 0 || frame.names.length === 0) return null;
 
   return {
@@ -212,7 +216,7 @@ function trimBefore(
   };
 }
 
-// POST /api/rt: only rows recorded since prev's newest timestamp.
+// Only rows recorded since prev's newest timestamp.
 async function fetchAppend(
   prev: ResponseTimeSeries,
   range: ResponseTimeRange,
@@ -220,17 +224,14 @@ async function fetchAppend(
   const prevTs = prev.data[0];
   const lastTs = prevTs[prevTs.length - 1];
 
-  const res = await fetch("/api/rt", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // Unix seconds, same unit as the frame; the server fills `to` with its
-    // own clock so browser clock skew can't hide fresh rows.
-    body: JSON.stringify({ from: lastTs }),
+  // Unix seconds, same unit as the frame; the server fills `to` with its
+  // own clock so browser clock skew can't hide fresh rows. The reply is a
+  // snapshot-typed frame of just that window, merged in like an append.
+  const buf = await liveConnection.request<ArrayBuffer>({
+    type: "rt",
+    rtParams: { type: 1, from: String(lastTs) },
   });
-  if (!res.ok)
-    throw new Error(`Error fetching response time update: ${res.statusText}`);
-
-  const frame = decodeFrame(await res.arrayBuffer());
+  const frame = decodeFrame(buf);
   if (frame.ts.length === 0) return prev;
 
   const colMap = mapColumns(prev, frame);

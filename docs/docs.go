@@ -1452,7 +1452,7 @@ const docTemplate = `{
         },
         "/ws": {
             "get": {
-                "description": "Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle; the client sends nothing.",
+                "description": "Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle.\nThe first message after connecting is the same payload, read from the DB.\nThe client may also send JSON requests ` + "`" + `{\"id\":N,\"type\":\"live\"|\"errors\"|\"uptime\"|\"rt\", \"errParams\"|\"uptimeParams\"|\"rtParams\":{...}}` + "`" + `.\nlive/errors/uptime reply with JSON ` + "`" + `{\"id\":N,\"type\":...,\"data\":...}` + "`" + ` (or ` + "`" + `\"error\"` + "`" + ` on failure); rt replies with a binary message: u32 LE id followed by an encodeFrame frame.",
                 "tags": [
                     "websocket"
                 ],

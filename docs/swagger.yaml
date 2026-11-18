@@ -1198,9 +1198,11 @@ paths:
       - data
   /ws:
     get:
-      description: Upgrades the HTTP connection to a websocket. Not a REST call —
-        no request/response body. Once connected, the server pushes a utils.ServiceResponse
-        JSON message on every scheduler fetch cycle; the client sends nothing.
+      description: |-
+        Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle.
+        The first message after connecting is the same payload, read from the DB.
+        The client may also send JSON requests `{"id":N,"type":"live"|"errors"|"uptime"|"rt", "errParams"|"uptimeParams"|"rtParams":{...}}`.
+        live/errors/uptime reply with JSON `{"id":N,"type":...,"data":...}` (or `"error"` on failure); rt replies with a binary message: u32 LE id followed by an encodeFrame frame.
       responses:
         "101":
           description: Switching Protocols; subsequent messages pushed to the client
