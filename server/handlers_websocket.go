@@ -39,7 +39,6 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *wsConn
 	unregister chan *wsConn
-	latest     []byte // last thing broadcast, only touched by Run()
 }
 
 func NewHub() *Hub {
@@ -69,16 +68,12 @@ func (h *Hub) Run() {
 		select {
 		case ws := <-h.register:
 			h.clients[ws] = struct{}{}
-			if h.latest != nil {
-				ws.send <- h.latest // fresh channel with buffer, won't block
-			}
 		case ws := <-h.unregister:
 			if _, ok := h.clients[ws]; ok {
 				delete(h.clients, ws)
 				close(ws.send)
 			}
 		case b := <-h.broadcast:
-			h.latest = b
 			for ws := range h.clients {
 				select {
 				case ws.send <- b:
@@ -110,8 +105,9 @@ const (
 
 // @Summary Start Websocket connection to receive data on every fetch
 // @Description Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle.
-// @Description The client may also send JSON requests `{"id":N,"type":"errors"|"uptime"|"rt", "errParams"|"uptimeParams"|"rtParams":{...}}`.
-// @Description errors/uptime reply with JSON `{"id":N,"type":...,"data":...}` (or `"error"` on failure); rt replies with a binary message: u32 LE id followed by an encodeFrame frame.
+// @Description The first message after connecting is the same payload, read from the DB.
+// @Description The client may also send JSON requests `{"id":N,"type":"live"|"errors"|"uptime"|"rt", "errParams"|"uptimeParams"|"rtParams":{...}}`.
+// @Description live/errors/uptime reply with JSON `{"id":N,"type":...,"data":...}` (or `"error"` on failure); rt replies with a binary message: u32 LE id followed by an encodeFrame frame.
 // @Tags websocket
 // @Success 101 {object} utils.ServiceResponse "Switching Protocols; subsequent messages pushed to the client are utils.ServiceResponse JSON"
 // @Failure 500 {string} string "internal server error"
@@ -123,6 +119,15 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub}
+	// Seed the client with the current services/status/TLS state read
+	// straight from the DB, so it has data before the next fetch cycle
+	// broadcasts. Queued before register so it's always the first message
+	// and any broadcast that follows is at least as new.
+	if b, err := liveSnapshot(s.db); err != nil {
+		slog.Error("failed to build initial live data for websocket client", "error", err)
+	} else {
+		wsConn.send <- b // fresh buffered channel, nothing else writes yet
+	}
 	s.hub.register <- wsConn
 	go wsConn.readLoop()
 	go wsConn.writeLoop()
@@ -134,6 +139,9 @@ const (
 	ReadErrors        ReadType = "errors"
 	ReadUptime        ReadType = "uptime"
 	ReadResponseTimes ReadType = "rt"
+	// ReadLive re-pulls the same services/status/TLS payload the hub
+	// broadcasts (and sends on connect), wrapped in a reply envelope.
+	ReadLive ReadType = "live"
 )
 
 type ErrorParams struct {
@@ -245,6 +253,14 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 			return
 		}
 		ws.replyFrame(msg.ID, data)
+	case ReadLive:
+		data, err := utils.GetLiveData(ws.db)
+		if err != nil {
+			slog.Error("failed to get live data for websocket client", "ERROR", err)
+			ws.replyError(msg.ID, msg.Type, errors.New("failed to get live data"))
+			return
+		}
+		ws.replyJSON(msg.ID, msg.Type, data)
 	case ReadUptime:
 		fetch, ok := uptimeFetchers[msg.UptimeParams.Range]
 		if !ok {
@@ -377,4 +393,14 @@ func (ws *wsConn) stop() {
 		close(ws.done)
 		ws.hub.unregister <- ws
 	})
+}
+
+// liveSnapshot is the hub broadcast payload built on demand, for seeding a
+// newly connected client.
+func liveSnapshot(db *sql.DB) ([]byte, error) {
+	live, err := utils.GetLiveData(db)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(live)
 }
