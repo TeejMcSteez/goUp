@@ -1,8 +1,13 @@
 package server
 
 import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"goUp/utils"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,6 +20,7 @@ type wsConn struct {
 	done chan struct{}
 	once sync.Once
 	hub  *Hub
+	db   *sql.DB
 }
 
 // Hub owns the set of connected wsConns and is the only goroutine that
@@ -99,12 +105,147 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := &wsConn{conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), hub: s.hub}
+	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), hub: s.hub}
 	s.hub.register <- wsConn
 	go wsConn.readLoop()
 	go wsConn.writeLoop()
 }
 
+type ReadType string
+
+const (
+	ReadErrors        ReadType = "errors"
+	ReadUptime        ReadType = "uptime"
+	ReadResponseTimes ReadType = "rt"
+)
+
+type ErrorParams struct {
+	Limit     int    `json:"limit"`
+	SortOrder string `json:"sortOrder"`
+}
+
+type ResponseTimeParams struct {
+	Type byte
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type UptimeParams struct {
+	// Range matches the /api/uptime ?range= values: "" (all time),
+	// "1hr", "12hr", "day", "week", "month", "year".
+	Range string `json:"range"`
+}
+
+// uptimeFetchers maps an UptimeParams.Range to the utils helper that
+// computes a single service's uptime average over that window.
+var uptimeFetchers = map[string]func(*sql.DB, string) (*float64, error){
+	"":      utils.GetUptimeAverage,
+	"1hr":   utils.GetPastHourUptime,
+	"12hr":  utils.GetPast12HourUptime,
+	"day":   utils.GetPastDayUptime,
+	"week":  utils.GetPastWeekUptime,
+	"month": utils.GetPastMonthUptime,
+	"year":  utils.GetPastYearUptime,
+}
+
+type readMessage struct {
+	Type         ReadType           `json:"type"`
+	ErrParams    ErrorParams        `json:"errParams"`
+	RtParams     ResponseTimeParams `json:"rtParams"`
+	UptimeParams UptimeParams       `json:"uptimeParams"`
+}
+
+func (ws *wsConn) handleRead(t int, p []byte) {
+	if t > 1 {
+		// 1: websocket.TextMessage
+		// 2: websocket.BinaryMessage
+		// rest are control signals
+		return
+	}
+
+	if len(p) > readLimit {
+		// message is to large move on
+		return
+	}
+	var msg readMessage
+	err := json.Unmarshal(p, &msg)
+	if err != nil {
+		slog.Error("error reading message from websocket client", "ERROR", err)
+		return
+	}
+	switch msg.Type {
+	case "errors":
+		data, err := utils.GetErrorData(ws.db, msg.ErrParams.Limit, msg.ErrParams.SortOrder)
+		if err != nil {
+			slog.Error("failed to get error data for websocket client", "ERROR", err)
+			return
+		}
+		// TODO: figure out how to send without racing with sendLoop
+	case "rt":
+		switch msg.RtParams.Type {
+		case 0:
+			data, err := utils.BuildRtSnapshot(ws.db)
+			// TODO: figure out how to send without racing with sendLoop
+
+		case 1:
+			// TODO: factor out of datastore.go to be a general util helper for accepting from/to
+			// as string to convert to unix time format
+			fromUnix, perr := strconv.ParseInt(msg.RtParams.From, 10, 64)
+			if perr != nil || fromUnix < 0 {
+				slog.Error("failed to parse to in websocket read", "ERROR", err)
+				return
+			}
+			from := time.Unix(fromUnix, 0)
+			to := time.Now()
+			if msg.RtParams.To != "" {
+				toUnix, perr := strconv.ParseInt(msg.RtParams.To, 10, 64)
+				if perr != nil {
+					slog.Error("invalid to time in websocket client", "ERROR", perr)
+					return
+				}
+				// Stored timestamps carry sub-second precision, so stretch `to` to the
+				// end of its second; otherwise rows later in that second are dropped.
+				to = time.Unix(toUnix, 0).Add(time.Second - time.Nanosecond)
+			}
+			if from.After(to) {
+				slog.Error("'from' must be at or before 'to'", "ERROR", err)
+				return
+			}
+			data, err := utils.BuildRtSnapshotRange(ws.db, from, to)
+			// TODO: figure out how to send without racing with sendLoop
+
+		default:
+			slog.Error("invalid type based for response time fetch", "ERROR", errors.New("invalid input"))
+			return
+		}
+	case "uptime":
+		fetch, ok := uptimeFetchers[msg.UptimeParams.Range]
+		if !ok {
+			slog.Error("websocket client requested uptime with bad range", "range", msg.UptimeParams.Range)
+			return
+		}
+		var data []utils.AverageData
+		for _, endpoint := range utils.GetServiceEndpoints() {
+			upAvg, err := fetch(ws.db, endpoint.Name)
+			if err != nil {
+				slog.Error("failed to get uptime data for websocket client", "service", endpoint.Name, "ERROR", err)
+				return
+			}
+			// nil means the uptime calculation had nothing usable, skip it
+			// (same behavior as UptimeAPI)
+			if upAvg != nil {
+				data = append(data, utils.AverageData{Name: endpoint.Name, Average: *upAvg})
+			}
+		}
+		// TODO: figure out how to send without racing with sendLoop
+	default:
+		// invalid key
+	}
+}
+
+// TODO: refactor to allow errors, uptime, and responseTimes to be fetched
+// through websocket. This allows the client to fetch on demand over websocket.
+// Also, keeps the API surface for consumers moving all frontend logic to websocket.
 func (ws *wsConn) readLoop() {
 	defer ws.stop()
 	ws.conn.SetReadLimit(readLimit)
@@ -113,11 +254,15 @@ func (ws *wsConn) readLoop() {
 		return ws.conn.SetReadDeadline(time.Now().Add(pongWait))
 	})
 	for {
-		if _, _, err := ws.conn.ReadMessage(); err != nil {
+		if t, p, err := ws.conn.ReadMessage(); err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				slog.Warn("websocket closed unexpectedly", "error", err)
 			}
 			return
+		} else {
+			// handles reads to push data back to client
+			// based off ReadType type
+			ws.handleRead(t, p)
 		}
 	}
 }
