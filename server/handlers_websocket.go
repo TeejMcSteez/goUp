@@ -49,6 +49,13 @@ func (h *Hub) Broadcast(b []byte) {
 	h.broadcast <- b
 }
 
+func (ws *wsConn) enqueue(typ int, b []byte) {
+	select {
+	case ws.reply <- outMsg{typ, b}:
+	case <-ws.done: // conn shutting down drop
+	}
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
