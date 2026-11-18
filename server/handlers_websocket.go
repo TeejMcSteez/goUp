@@ -268,6 +268,7 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 		ws.enqueue(websocket.TextMessage, b)
 	default:
 		// invalid key
+		return
 	}
 }
 
