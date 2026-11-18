@@ -118,7 +118,7 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), hub: s.hub}
+	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub}
 	s.hub.register <- wsConn
 	go wsConn.readLoop()
 	go wsConn.writeLoop()
