@@ -2,8 +2,10 @@ package server
 
 import (
 	"database/sql"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"goUp/utils"
 	"log/slog"
 	"net/http"
@@ -107,7 +109,9 @@ const (
 )
 
 // @Summary Start Websocket connection to receive data on every fetch
-// @Description Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle; the client sends nothing.
+// @Description Upgrades the HTTP connection to a websocket. Not a REST call — no request/response body. Once connected, the server pushes a utils.ServiceResponse JSON message on every scheduler fetch cycle.
+// @Description The client may also send JSON requests `{"id":N,"type":"errors"|"uptime"|"rt", "errParams"|"uptimeParams"|"rtParams":{...}}`.
+// @Description errors/uptime reply with JSON `{"id":N,"type":...,"data":...}` (or `"error"` on failure); rt replies with a binary message: u32 LE id followed by an encodeFrame frame.
 // @Tags websocket
 // @Success 101 {object} utils.ServiceResponse "Switching Protocols; subsequent messages pushed to the client are utils.ServiceResponse JSON"
 // @Failure 500 {string} string "internal server error"
@@ -212,89 +216,48 @@ func (ws *wsConn) replyFrame(id uint32, data utils.ResponseTimePayload) {
 }
 
 func (ws *wsConn) handleRead(t int, p []byte) {
-	slog.Info("received message", "msg", p)
-	if t > 1 {
-		// 1: websocket.TextMessage
-		// 2: websocket.BinaryMessage
-		// rest are control signals
+	if t != websocket.TextMessage {
+		// requests are JSON text, ignore anything else
 		return
 	}
 
 	var msg readMessage
-	err := json.Unmarshal(p, &msg)
-	if err != nil {
+	if err := json.Unmarshal(p, &msg); err != nil {
 		slog.Error("error reading message from websocket client", "ERROR", err)
 		return
 	}
+	slog.Debug("websocket request", "id", msg.ID, "type", msg.Type)
+
 	switch msg.Type {
-	case "errors":
+	case ReadErrors:
 		data, err := utils.GetErrorData(ws.db, msg.ErrParams.Limit, msg.ErrParams.SortOrder)
 		if err != nil {
 			slog.Error("failed to get error data for websocket client", "ERROR", err)
+			ws.replyError(msg.ID, msg.Type, errors.New("failed to get error data"))
 			return
 		}
-		b, err := json.Marshal(data)
+		ws.replyJSON(msg.ID, msg.Type, data)
+	case ReadResponseTimes:
+		data, err := ws.responseTimes(msg.RtParams)
 		if err != nil {
+			slog.Error("failed to build response times for websocket client", "ERROR", err)
+			ws.replyError(msg.ID, msg.Type, err)
 			return
 		}
-		ws.enqueue(websocket.TextMessage, b)
-	case "rt":
-		switch msg.RtParams.Type {
-		case 0:
-			data, err := utils.BuildRtSnapshot(ws.db)
-			if err != nil {
-				slog.Error("failed to build response time snapshot for websocket client", "ERROR", err)
-				return
-			}
-			frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
-			ws.enqueue(websocket.BinaryMessage, frame)
-		case 1:
-			// TODO: factor out of datastore.go to be a general util helper for accepting from/to
-			// as string to convert to unix time format
-			fromUnix, perr := strconv.ParseInt(msg.RtParams.From, 10, 64)
-			if perr != nil || fromUnix < 0 {
-				slog.Error("failed to parse to in websocket read", "ERROR", perr)
-				return
-			}
-			from := time.Unix(fromUnix, 0)
-			to := time.Now()
-			if msg.RtParams.To != "" {
-				toUnix, perr := strconv.ParseInt(msg.RtParams.To, 10, 64)
-				if perr != nil {
-					slog.Error("invalid to time in websocket client", "ERROR", perr)
-					return
-				}
-				// Stored timestamps carry sub-second precision, so stretch `to` to the
-				// end of its second; otherwise rows later in that second are dropped.
-				to = time.Unix(toUnix, 0).Add(time.Second - time.Nanosecond)
-			}
-			if from.After(to) {
-				slog.Error("'from' must be at or before 'to'", "ERROR", perr)
-				return
-			}
-			data, err := utils.BuildRtSnapshotRange(ws.db, from, to)
-			if err != nil {
-				slog.Error("failed to build response time append for websocket client", "ERROR", err)
-				return
-			}
-			frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
-			ws.enqueue(websocket.BinaryMessage, frame)
-
-		default:
-			slog.Error("invalid type based for response time fetch", "ERROR", errors.New("invalid input"))
-			return
-		}
-	case "uptime":
+		ws.replyFrame(msg.ID, data)
+	case ReadUptime:
 		fetch, ok := uptimeFetchers[msg.UptimeParams.Range]
 		if !ok {
 			slog.Error("websocket client requested uptime with bad range", "range", msg.UptimeParams.Range)
+			ws.replyError(msg.ID, msg.Type, fmt.Errorf("invalid uptime range %q", msg.UptimeParams.Range))
 			return
 		}
-		var data []utils.AverageData
+		data := []utils.AverageData{}
 		for _, endpoint := range utils.GetServiceEndpoints() {
 			upAvg, err := fetch(ws.db, endpoint.Name)
 			if err != nil {
 				slog.Error("failed to get uptime data for websocket client", "service", endpoint.Name, "ERROR", err)
+				ws.replyError(msg.ID, msg.Type, errors.New("failed to get uptime data"))
 				return
 			}
 			// nil means the uptime calculation had nothing usable, skip it
@@ -303,15 +266,43 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 				data = append(data, utils.AverageData{Name: endpoint.Name, Average: *upAvg})
 			}
 		}
-		b, err := json.Marshal(data)
-		if err != nil {
-			slog.Error("failed to marshal uptime data for websocket client", "ERROR", err)
-			return
-		}
-		ws.enqueue(websocket.TextMessage, b)
+		ws.replyJSON(msg.ID, msg.Type, data)
 	default:
-		// invalid key
-		return
+		ws.replyError(msg.ID, msg.Type, fmt.Errorf("unknown request type %q", msg.Type))
+	}
+}
+
+// responseTimes builds the snapshot a "rt" request asks for: type 0 is the
+// full history, type 1 is the [from, to] window (unix seconds, `to`
+// defaults to now). Type 1 serves both windowed views and appends.
+func (ws *wsConn) responseTimes(p ResponseTimeParams) (utils.ResponseTimePayload, error) {
+	switch p.Type {
+	case 0:
+		return utils.BuildRtSnapshot(ws.db)
+	case 1:
+		// TODO: factor out of datastore.go to be a general util helper for accepting from/to
+		// as string to convert to unix time format
+		fromUnix, err := strconv.ParseInt(p.From, 10, 64)
+		if err != nil || fromUnix < 0 {
+			return utils.ResponseTimePayload{}, fmt.Errorf("invalid from %q", p.From)
+		}
+		from := time.Unix(fromUnix, 0)
+		to := time.Now()
+		if p.To != "" {
+			toUnix, err := strconv.ParseInt(p.To, 10, 64)
+			if err != nil {
+				return utils.ResponseTimePayload{}, fmt.Errorf("invalid to %q", p.To)
+			}
+			// Stored timestamps carry sub-second precision, so stretch `to` to the
+			// end of its second; otherwise rows later in that second are dropped.
+			to = time.Unix(toUnix, 0).Add(time.Second - time.Nanosecond)
+		}
+		if from.After(to) {
+			return utils.ResponseTimePayload{}, errors.New("'from' must be at or before 'to'")
+		}
+		return utils.BuildRtSnapshotRange(ws.db, from, to)
+	default:
+		return utils.ResponseTimePayload{}, fmt.Errorf("invalid response time request type %d", p.Type)
 	}
 }
 
