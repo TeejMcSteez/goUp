@@ -169,6 +169,7 @@ type readMessage struct {
 }
 
 func (ws *wsConn) handleRead(t int, p []byte) {
+	slog.Info("received message", "msg", p)
 	if t > 1 {
 		// 1: websocket.TextMessage
 		// 2: websocket.BinaryMessage
