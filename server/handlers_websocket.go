@@ -138,7 +138,8 @@ type ErrorParams struct {
 }
 
 type ResponseTimeParams struct {
-	Type byte
+	// 0: full snapshot, 1: snapshot of [from, to]
+	Type byte   `json:"type"`
 	From string `json:"from"`
 	To   string `json:"to"`
 }
@@ -162,10 +163,52 @@ var uptimeFetchers = map[string]func(*sql.DB, string) (*float64, error){
 }
 
 type readMessage struct {
+	// ID is chosen by the client and echoed back on the reply so it can
+	// match replies to requests (several can be in flight at once).
+	ID           uint32             `json:"id"`
 	Type         ReadType           `json:"type"`
 	ErrParams    ErrorParams        `json:"errParams"`
 	RtParams     ResponseTimeParams `json:"rtParams"`
 	UptimeParams UptimeParams       `json:"uptimeParams"`
+}
+
+// replyEnvelope wraps every JSON reply to a client request. Exactly one of
+// Data or Error is meaningful. Hub broadcasts are sent unwrapped, so clients
+// tell the two apart by the presence of "id".
+type replyEnvelope struct {
+	ID    uint32   `json:"id"`
+	Type  ReadType `json:"type"`
+	Data  any      `json:"data"`
+	Error string   `json:"error,omitempty"`
+}
+
+func (ws *wsConn) replyJSON(id uint32, typ ReadType, data any) {
+	b, err := json.Marshal(replyEnvelope{ID: id, Type: typ, Data: data})
+	if err != nil {
+		slog.Error("failed to marshal websocket reply", "type", typ, "ERROR", err)
+		ws.replyError(id, typ, errors.New("failed to encode reply"))
+		return
+	}
+	ws.enqueue(websocket.TextMessage, b)
+}
+
+func (ws *wsConn) replyError(id uint32, typ ReadType, err error) {
+	b, mErr := json.Marshal(replyEnvelope{ID: id, Type: typ, Error: err.Error()})
+	if mErr != nil {
+		slog.Error("failed to marshal websocket error reply", "ERROR", mErr)
+		return
+	}
+	ws.enqueue(websocket.TextMessage, b)
+}
+
+// replyFrame sends a response time frame as a binary message prefixed with
+// the request id (u32 little-endian), followed by the encodeFrame bytes.
+func (ws *wsConn) replyFrame(id uint32, data utils.ResponseTimePayload) {
+	frame := encodeFrame(data.Typ, data.Seq, data.Names, data.Ts, data.Cols)
+	b := make([]byte, 4+len(frame))
+	binary.LittleEndian.PutUint32(b, id)
+	copy(b[4:], frame)
+	ws.enqueue(websocket.BinaryMessage, b)
 }
 
 func (ws *wsConn) handleRead(t int, p []byte) {
