@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -19,6 +20,79 @@ type ConfigStore struct {
 	lastWritten [32]byte
 }
 
+func NewConfigStore(path string) *ConfigStore {
+	return &ConfigStore{
+		cur:         atomic.Pointer[Config]{},
+		wmu:         sync.Mutex{},
+		path:        path,
+		subs:        []func(old, new *Config){},
+		lastWritten: [32]byte{},
+	}
+}
+
+func (s *ConfigStore) LoadFromFile() error {
+	data, err := os.ReadFile(s.path)
+	// handle no config -> write default
+	if os.IsNotExist(err) {
+		defaultDB := "goup.db"
+		default_size := "5mb"
+		st := ScheduleState{
+			30,
+			"seconds",
+		}
+		default_persist := true
+		cfg := &Config{
+			ConfigPath:        s.path,
+			Services:          make(map[string]Service),
+			Database_Location: &defaultDB,
+			Database_Max_Size: &default_size,
+			Schedule:          &st,
+			Persist_db:        &default_persist,
+		}
+		if err := s.persist(cfg); err != nil {
+			return fmt.Errorf("error creating default config: %w", err)
+		}
+		s.cur.Store(cfg)
+
+		return nil
+	}
+	// non-exist error return
+	if err != nil {
+		return err
+	}
+
+	var cfg = new(Config)
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return err
+	}
+
+	cfg.ConfigPath = s.path
+
+	for key, svc := range cfg.Services {
+		svc.Name = key
+		cfg.Services[key] = svc
+	}
+
+	if err := s.persist(cfg); err != nil {
+		return fmt.Errorf("failed to create config: %w", err)
+	}
+	s.cur.Store(cfg)
+
+	return nil
+}
+
+// Observers subscribe handling there own changes from old->new
+// Subscribers MUST not call Update as this will deadlock
+// Subs are only readers
+// TODO: consider moving subs out of the lock to avoid blocking
+func (s *ConfigStore) Subscribe(fn func(old, new *Config)) {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
+	s.subs = append(s.subs, fn)
+}
+
+// handles storing on disk and checksum gen
+// ensuring future updates aren't duplicate
 func (s *ConfigStore) persist(c *Config) error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
@@ -55,12 +129,23 @@ func (s *ConfigStore) persist(c *Config) error {
 	return nil
 }
 
-func (c *Config) Clone() *Config {
-	n := c
-	n.Services = maps.Clone(c.Services)
-	return n
+// Deep-copy current config returned as a pointer to config
+func (s *Config) Clone() *Config {
+	n := *s
+	n.Services = maps.Clone(s.Services)
+	if s.Schedule != nil {
+		s := *s.Schedule
+		n.Schedule = &s
+	}
+	if s.Database_Location != nil {
+		s := *s.Database_Location
+		n.Database_Location = &s
+	}
+	// TODO: handle rest of pointers with deep copy
+	return &n
 }
 
+// return current config (atomic operation)
 func (s *ConfigStore) Get() *Config { return s.cur.Load() }
 
 func (s *ConfigStore) Update(fn func(c *Config) error) error {
@@ -69,6 +154,7 @@ func (s *ConfigStore) Update(fn func(c *Config) error) error {
 
 	old := s.cur.Load()
 	next := old.Clone()
+	// runs all observer functions
 	if err := fn(next); err != nil {
 		return err
 	}

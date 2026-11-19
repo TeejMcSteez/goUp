@@ -16,6 +16,9 @@ import (
 	"time"
 )
 
+// TODO: refactor service endpoints to avoid concurrent pointer use under lock
+// use a store similar to ConfigStore for concurrent reads/writes
+
 var mu sync.RWMutex
 var svcEndpoints ServiceEndpoints = ServiceEndpoints{Mux: &mu}
 var transport = &http.Transport{

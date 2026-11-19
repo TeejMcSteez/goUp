@@ -15,8 +15,10 @@ import (
 	"goUp/utils"
 	"goUp/workers"
 	"log"
+	"maps"
 	"os"
 	"os/signal"
+	"reflect"
 	"syscall"
 )
 
@@ -31,13 +33,10 @@ func main() {
 		log.Print("Build Version: " + utils.Version)
 		return
 	}
-
-	cfg, err := utils.LoadConfig(*configPath)
+	cfgStore := utils.NewConfigStore(*configPath)
+	err := cfgStore.LoadFromFile()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
-	}
-	if setupErr := utils.Setup(cfg); err != nil {
-		log.Fatalf("Failed to setup services: %v", setupErr)
 	}
 
 	db, err := utils.InitDB()
@@ -51,9 +50,25 @@ func main() {
 	// Starts all background workers
 	hub := server.NewHub()
 	go hub.Run()
-	sch := workers.NewScheduler(ctx, db, cfg, hub)
+	sch := workers.NewScheduler(ctx, db, cfgStore, hub)
+	// updates scheduler with new schedule state
+	cfgStore.Subscribe(func(old, new *utils.Config) {
+		if !reflect.DeepEqual(old.Schedule, new.Schedule) {
+			sch.Reschedule(*new.Schedule)
+		}
+	})
+	// updates in memory config store used my services
+	cfgStore.Subscribe(func(old, new *utils.Config) {
+		if !maps.Equal(old.Services, new.Services) {
+			utils.Setup(new)
+		}
+	})
+	// notify websocket client configuration has been updated
+	cfgStore.Subscribe(func(_, new *utils.Config) {
+		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
+	})
 	defer sch.Stop()
-	if garabgeCollectErr := utils.DbGarbageCollect(db, cfg); err != nil {
+	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); err != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
 	}
 	go workers.StartHotReloader(*configPath, ctx, db)
@@ -74,7 +89,7 @@ func main() {
 	<-ctx.Done()
 	log.Printf("Caught stop signal, starting workers graceful shutdown")
 	log.Printf("Loading fresh configuration file before stoppping services")
-	cfg, err = utils.LoadConfig(*configPath)
+	err = cfgStore.LoadFromFile()
 	if err != nil {
 		log.Fatalf("Failed to load fresh config on shutdown: %v", err)
 	}
@@ -83,6 +98,7 @@ func main() {
 	} else {
 		log.Println("Database connection closed")
 	}
+	cfg := cfgStore.Get()
 	if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
 		if err := utils.CleanupDbFiles(); err != nil {
 			log.Printf("Error occured cleaning up the database: %v", err)

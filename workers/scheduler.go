@@ -108,14 +108,14 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(ctx context.Context, db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub Broadcaster) *Scheduler {
 	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
-
-	if cfg != nil && cfg.Schedule != nil {
-		span = cfg.Schedule.Span
-		interval = cfg.Schedule.Interval
+	curr := store.Get()
+	if curr != nil && curr.Schedule != nil {
+		span = curr.Schedule.Span
+		interval = curr.Schedule.Interval
 	}
 
 	s := &Scheduler{
@@ -131,6 +131,13 @@ func NewScheduler(ctx context.Context, db *sql.DB, cfg *utils.Config, pub Broadc
 	go s.StartScheduler(db, span, interval)
 
 	return s
+}
+
+func (s *Scheduler) Reschedule(st utils.ScheduleState) {
+	select {
+	case s.state <- st:
+	case <-s.ctx.Done():
+	}
 }
 
 func hostOnline(ctx context.Context) bool {
