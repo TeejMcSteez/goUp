@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"goUp/utils"
+	"goUp/workers"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -29,6 +30,7 @@ type wsConn struct {
 	once  sync.Once
 	hub   *Hub
 	db    *sql.DB
+	scd   *workers.Scheduler
 }
 
 // Hub owns the set of connected wsConns and is the only goroutine that
@@ -118,7 +120,7 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub}
+	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub, scd: s.scd}
 	// Seed the client with the current services/status/TLS state read
 	// straight from the DB, so it has data before the next fetch cycle
 	// broadcasts. Queued before register so it's always the first message
@@ -142,6 +144,7 @@ const (
 	// ReadLive re-pulls the same services/status/TLS payload the hub
 	// broadcasts (and sends on connect), wrapped in a reply envelope.
 	ReadLive ReadType = "live"
+	ReadFire ReadType = "fire"
 )
 
 type ErrorParams struct {
@@ -283,6 +286,8 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 			}
 		}
 		ws.replyJSON(msg.ID, msg.Type, data)
+	case ReadFire:
+		ws.scd.Fire()
 	default:
 		ws.replyError(msg.ID, msg.Type, fmt.Errorf("unknown request type %q", msg.Type))
 	}
