@@ -22,13 +22,14 @@ UI uses Websocket connection for streaming data from server to client.
 
 Status, TLS, and Service Data are pushed on demand when a full scan succeeds on the server.
 
-Errors, Uptime, and Response Time information can be fetched sending JSON encoded Websocket text messages.
+Information can also be fetched sending JSON encoded Websocket text messages to a connected websocket client via `/ws`.
 
 | Message | Response |
 |---------|----------|
 | `{"type": "errors"}` | `/api/errors` |
 | `{"type": "rt"}` | `/api/rt` |
 | `{"type": "uptime"}` | `/api/uptime` |
+| `{"type": "fire" }` | `/api/fire` |
 
 In the UI every push invalidates the current data and re-fetches other information from the server.
 

@@ -135,16 +135,17 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 	go wsConn.writeLoop()
 }
 
-type ReadType string
+type WsMessageType string
 
 const (
-	ReadErrors        ReadType = "errors"
-	ReadUptime        ReadType = "uptime"
-	ReadResponseTimes ReadType = "rt"
+	ReadErrors        WsMessageType = "errors"
+	ReadUptime        WsMessageType = "uptime"
+	ReadResponseTimes WsMessageType = "rt"
 	// ReadLive re-pulls the same services/status/TLS payload the hub
 	// broadcasts (and sends on connect), wrapped in a reply envelope.
-	ReadLive ReadType = "live"
-	ReadFire ReadType = "fire"
+	ReadLive      WsMessageType = "live"
+	Fire          WsMessageType = "fire"
+	ServiceUpdate WsMessageType = "serviceUpdate"
 )
 
 type ErrorParams struct {
@@ -181,23 +182,24 @@ type readMessage struct {
 	// ID is chosen by the client and echoed back on the reply so it can
 	// match replies to requests (several can be in flight at once).
 	ID           uint32             `json:"id"`
-	Type         ReadType           `json:"type"`
+	Type         WsMessageType      `json:"type"`
 	ErrParams    ErrorParams        `json:"errParams"`
 	RtParams     ResponseTimeParams `json:"rtParams"`
 	UptimeParams UptimeParams       `json:"uptimeParams"`
+	Services     []utils.Service    `json:"services"`
 }
 
 // replyEnvelope wraps every JSON reply to a client request. Exactly one of
 // Data or Error is meaningful. Hub broadcasts are sent unwrapped, so clients
 // tell the two apart by the presence of "id".
 type replyEnvelope struct {
-	ID    uint32   `json:"id"`
-	Type  ReadType `json:"type"`
-	Data  any      `json:"data"`
-	Error string   `json:"error,omitempty"`
+	ID    uint32        `json:"id"`
+	Type  WsMessageType `json:"type"`
+	Data  any           `json:"data"`
+	Error string        `json:"error,omitempty"`
 }
 
-func (ws *wsConn) replyJSON(id uint32, typ ReadType, data any) {
+func (ws *wsConn) replyJSON(id uint32, typ WsMessageType, data any) {
 	b, err := json.Marshal(replyEnvelope{ID: id, Type: typ, Data: data})
 	if err != nil {
 		slog.Error("failed to marshal websocket reply", "type", typ, "ERROR", err)
@@ -207,7 +209,7 @@ func (ws *wsConn) replyJSON(id uint32, typ ReadType, data any) {
 	ws.enqueue(websocket.TextMessage, b)
 }
 
-func (ws *wsConn) replyError(id uint32, typ ReadType, err error) {
+func (ws *wsConn) replyError(id uint32, typ WsMessageType, err error) {
 	b, mErr := json.Marshal(replyEnvelope{ID: id, Type: typ, Error: err.Error()})
 	if mErr != nil {
 		slog.Error("failed to marshal websocket error reply", "ERROR", mErr)
@@ -286,8 +288,10 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 			}
 		}
 		ws.replyJSON(msg.ID, msg.Type, data)
-	case ReadFire:
+	case Fire:
 		ws.scd.Fire()
+	case ServiceUpdate:
+	// TODO: implement
 	default:
 		ws.replyError(msg.ID, msg.Type, fmt.Errorf("unknown request type %q", msg.Type))
 	}
