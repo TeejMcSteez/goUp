@@ -21,13 +21,13 @@ import (
 
 // Returns a pointer to the db client
 // Db is in WAL mode and the maximum number of open connections are one
-func InitDB() (*sql.DB, error) {
+func InitDB(cfg *Config) (*sql.DB, error) {
 	var conn_string string
-	if Current_Config == nil {
+	if cfg == nil {
 		return nil, &NoConfigError{"Configuration", "Not found"}
 	}
-	if Current_Config.Database_Location != nil {
-		conn_string = *Current_Config.Database_Location + "?_pragma=journal_mode(WAL)"
+	if cfg.Database_Location != nil {
+		conn_string = *cfg.Database_Location + "?_pragma=journal_mode(WAL)"
 	} else {
 		return nil, &NoConfigError{"db_path", "Not found"}
 	}
@@ -271,7 +271,9 @@ func GetData(db *sql.DB) ([]ServiceData, error) {
 }
 
 // Gets recent data defined by total number of service endpoints
-func GetRecentData(db *sql.DB) ([]ServiceData, error) {
+// GetRecentData returns the latest row per service. With a non-nil cfg, rows
+// for services no longer in config are dropped; nil cfg returns everything.
+func GetRecentData(db *sql.DB, cfg *Config) ([]ServiceData, error) {
 	rows, err := database.New(db).GetRecentData(context.Background())
 	if err != nil {
 		return nil, err
@@ -283,8 +285,8 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 	// only a snapshot from whenever it was last written, which goes stale
 	// the moment a service is toggled and stops being fetched.
 	liveServices := make(map[string]Service)
-	if Current_Config != nil {
-		liveServices = ReadConfigServices(Current_Config)
+	if cfg != nil {
+		liveServices = cfg.Services
 	}
 
 	sd := []ServiceData{}
@@ -308,14 +310,14 @@ func GetRecentData(db *sql.DB) ([]ServiceData, error) {
 // GetLiveData builds the websocket broadcast from the same reads backing
 // /api, /api/status and /api/tls, so the frontend can write each field
 // straight into its query cache in place of refetching those endpoints.
-func GetLiveData(db *sql.DB) (*ServiceResponse, error) {
-	services, err := GetRecentData(db)
+func GetLiveData(db *sql.DB, cfg *Config) (*ServiceResponse, error) {
+	services, err := GetRecentData(db, cfg)
 	if err != nil {
 		return nil, err
 	}
 	// Check flags Error on the slice it's given; clone so services keeps
 	// the stored values exactly as /api returns them.
-	down, err := Check(slices.Clone(services))
+	down, err := Check(cfg, slices.Clone(services))
 	if err != nil {
 		return nil, err
 	}
@@ -577,12 +579,12 @@ func ClearDatabase(db *sql.DB) (retErr error) {
 }
 
 // Cleans up database after exit
-func CleanupDbFiles() error {
+func CleanupDbFiles(cfg *Config) error {
 	slog.Info("Cleaning up database file")
-	if Current_Config == nil || Current_Config.Database_Location == nil {
+	if cfg == nil || cfg.Database_Location == nil {
 		return fmt.Errorf("no database location configured, skipping cleanup")
 	}
-	if err := os.Remove(*Current_Config.Database_Location); err != nil {
+	if err := os.Remove(*cfg.Database_Location); err != nil {
 		return err
 	}
 	slog.Info("Database file succesfully removed")

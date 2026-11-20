@@ -31,55 +31,100 @@ func NewConfigStore(path string) *ConfigStore {
 	}
 }
 
-func (s *ConfigStore) LoadFromFile() error {
-	data, err := os.ReadFile(s.path)
-	// handle no config -> write default
-	if os.IsNotExist(err) {
-		defaultDB := "goup.db"
-		default_size := "5mb"
-		st := ScheduleState{
-			30,
-			"seconds",
-		}
-		default_persist := true
-		cfg := &Config{
-			ConfigPath:        s.path,
-			Services:          make(map[string]Service),
-			Database_Location: &defaultDB,
-			Database_Max_Size: &default_size,
-			Schedule:          &st,
-			Persist_db:        &default_persist,
-		}
-		if err := s.persist(cfg); err != nil {
-			return fmt.Errorf("error creating default config: %w", err)
-		}
-		s.cur.Store(cfg)
+// Path returns the config file this store reads from and writes to.
+func (s *ConfigStore) Path() string { return s.path }
 
-		return nil
+func defaultConfig(path string) *Config {
+	defaultDB := "goup.db"
+	defaultSize := "5mb"
+	defaultPersist := true
+	return &Config{
+		ConfigPath:        path,
+		Services:          make(map[string]Service),
+		Database_Location: &defaultDB,
+		Database_Max_Size: &defaultSize,
+		Schedule:          &ScheduleState{Span: 30, Interval: "seconds"},
+		Persist_db:        &defaultPersist,
 	}
-	// non-exist error return
-	if err != nil {
-		return err
-	}
+}
 
-	var cfg = new(Config)
+// parseConfig unmarshals YAML into a ready-to-publish Config: path set,
+// service names filled from their map keys, and triggers derived.
+func parseConfig(path string, data []byte) (*Config, error) {
+	cfg := new(Config)
 	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return err
+		return nil, err
 	}
-
-	cfg.ConfigPath = s.path
-
+	cfg.ConfigPath = path
 	for key, svc := range cfg.Services {
 		svc.Name = key
 		cfg.Services[key] = svc
 	}
+	SetupTrigger(cfg)
+	return cfg, nil
+}
 
+// LoadFromFile reads the config file (writing a default one if missing),
+// normalises it back to disk and publishes it. Subscribers are NOT run;
+// use Reload for that.
+func (s *ConfigStore) LoadFromFile() error {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
+
+	data, err := os.ReadFile(s.path)
+	if os.IsNotExist(err) {
+		cfg := defaultConfig(s.path)
+		SetupTrigger(cfg)
+		if err := s.persist(cfg); err != nil {
+			return fmt.Errorf("error creating default config: %w", err)
+		}
+		s.cur.Store(cfg)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	cfg, err := parseConfig(s.path, data)
+	if err != nil {
+		return err
+	}
 	if err := s.persist(cfg); err != nil {
 		return fmt.Errorf("failed to create config: %w", err)
 	}
 	s.cur.Store(cfg)
-
 	return nil
+}
+
+// Reload re-reads the file after an external edit, publishes it and runs
+// subscribers. Returns false without doing anything when the file content
+// is exactly what this store last wrote (its own echo).
+func (s *ConfigStore) Reload() (bool, error) {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
+
+	data, err := os.ReadFile(s.path)
+	if err != nil {
+		return false, err
+	}
+	sum := sha256.Sum256(data)
+	if sum == s.lastWritten {
+		return false, nil
+	}
+	next, err := parseConfig(s.path, data)
+	if err != nil {
+		return false, err
+	}
+	s.lastWritten = sum
+	old := s.cur.Load()
+	s.cur.Store(next)
+	if old == nil {
+		return true, nil
+	}
+	for _, sub := range s.subs {
+		sub(old, next)
+	}
+	return true, nil
 }
 
 // Observers subscribe handling there own changes from old->new
@@ -279,11 +324,16 @@ func (s *ConfigStore) Update(fn func(c *Config) error) error {
 	defer s.wmu.Unlock()
 
 	old := s.cur.Load()
+	if old == nil {
+		return fmt.Errorf("config store not loaded")
+	}
 	next := old.Clone()
-	// runs all observer functions
 	if err := fn(next); err != nil {
 		return err
 	}
+	// re-derive trigger runtime state (backoff durations, notifiers) on the
+	// private clone so every writer gets it, not just HTTP handlers
+	SetupTrigger(next)
 
 	if err := s.persist(next); err != nil {
 		return err

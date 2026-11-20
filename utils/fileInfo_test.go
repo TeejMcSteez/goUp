@@ -41,7 +41,7 @@ services:
 		}
 	}()
 
-	cfg, err := utils.LoadConfig("services.yml")
+	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load configuration file: %v", err)
 	}
@@ -50,12 +50,12 @@ services:
 		t.Fatalf("Initial Setup() failed: %v", err)
 	}
 
-	initialSize, err := utils.GetDatabaseSize()
+	initialSize, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Fatalf("Failed to get initial database size: %v", err)
 	}
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("Failure to initialize database: %v", err)
 	}
@@ -67,14 +67,14 @@ services:
 		}
 	}
 
-	newSize, err := utils.GetDatabaseSize()
+	newSize, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Errorf("failed to get database size: %v", err)
 	}
 	if err := db.Close(); err != nil {
 		t.Fatalf("Failed to shutdown the database %v: ", err)
 	}
-	if err := utils.CleanupDbFiles(); err != nil {
+	if err := utils.CleanupDbFiles(cfg); err != nil {
 		t.Fatalf("Error cleaning up the database: %v", err)
 	}
 	if newSize <= initialSize {

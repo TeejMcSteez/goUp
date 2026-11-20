@@ -19,9 +19,8 @@ func setupIntegrationDB(t *testing.T, services map[string]utils.Service) (*utils
 		Database_Location: &dbPath,
 		Services:          services,
 	}
-	utils.Current_Config = cfg
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -33,7 +32,6 @@ func setupIntegrationDB(t *testing.T, services map[string]utils.Service) (*utils
 		if err := os.Remove(dbPath); err != nil {
 			t.Errorf("os.Remove %s: %v", dbPath, err)
 		}
-		utils.Current_Config = nil
 	}
 }
 
@@ -45,7 +43,7 @@ func TestGetRecentDataFiltersStaleRowsAfterRename(t *testing.T) {
 	})
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -64,7 +62,7 @@ func TestGetRecentDataFiltersStaleRowsAfterRename(t *testing.T) {
 	}
 
 	// Config only knows "Website" — stale "Web" row must be filtered.
-	got, err := utils.GetRecentData(db)
+	got, err := utils.GetRecentData(db, cfg)
 	if err != nil {
 		t.Fatalf("GetRecentData: %v", err)
 	}
@@ -81,10 +79,10 @@ func TestGetRecentDataFiltersStaleRowsAfterRename(t *testing.T) {
 // TestGetRecentDataNilConfigReturnsAll verifies that when no config is loaded
 // the filter is skipped and all rows are returned.
 func TestGetRecentDataNilConfigReturnsAll(t *testing.T) {
-	_, cleanup := setupIntegrationDB(t, nil)
+	cfg, cleanup := setupIntegrationDB(t, nil)
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -100,9 +98,7 @@ func TestGetRecentDataNilConfigReturnsAll(t *testing.T) {
 		}
 	}
 
-	utils.Current_Config = nil
-
-	got, err := utils.GetRecentData(db)
+	got, err := utils.GetRecentData(db, nil)
 	if err != nil {
 		t.Fatalf("GetRecentData: %v", err)
 	}
@@ -120,7 +116,7 @@ func TestConcurrentRenameAndGetRecentData(t *testing.T) {
 	})
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -156,12 +152,11 @@ func TestConcurrentRenameAndGetRecentData(t *testing.T) {
 	cfg.Services = map[string]utils.Service{
 		"NewName": {Name: "NewName", URL: "https://example.com"},
 	}
-	utils.Current_Config = cfg
 	_ = utils.InsertData(db, utils.ServiceData{ServiceName: "NewName", ServiceHTTPResponse: "200"})
 
 	// After rename, GetRecentData must not return "OldName".
 	for range 10 {
-		got, err := utils.GetRecentData(db)
+		got, err := utils.GetRecentData(db, cfg)
 		if err != nil {
 			t.Fatalf("GetRecentData: %v", err)
 		}
@@ -185,7 +180,7 @@ func TestConcurrentGCAndInserts(t *testing.T) {
 	})
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -250,7 +245,7 @@ func TestGCRemovesOrphanedRows(t *testing.T) {
 	})
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -285,13 +280,13 @@ func TestGCRemovesOrphanedRows(t *testing.T) {
 // TestGetRecentDataReturnsLatestPerService verifies that only the most recent
 // row per service name is returned regardless of total row count.
 func TestGetRecentDataReturnsLatestPerService(t *testing.T) {
-	_, cleanup := setupIntegrationDB(t, map[string]utils.Service{
+	cfg, cleanup := setupIntegrationDB(t, map[string]utils.Service{
 		"svcA": {Name: "svcA", URL: "https://a.example.com"},
 		"svcB": {Name: "svcB", URL: "https://b.example.com"},
 	})
 	defer cleanup()
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
@@ -317,7 +312,7 @@ func TestGetRecentDataReturnsLatestPerService(t *testing.T) {
 		}
 	}
 
-	got, err := utils.GetRecentData(db)
+	got, err := utils.GetRecentData(db, cfg)
 	if err != nil {
 		t.Fatalf("GetRecentData: %v", err)
 	}

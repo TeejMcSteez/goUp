@@ -44,7 +44,7 @@ services:
 	// Ensure endpoints are empty before setup
 	utils.SetServiceEndpoints([]utils.Service{})
 
-	cfg, err := utils.LoadConfig("services.yml")
+	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -69,7 +69,7 @@ services:
 `
 	createTestYML(ymlContent2, t)
 
-	cfg, err = utils.LoadConfig("services.yml")
+	cfg, err = loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -120,7 +120,7 @@ services:
 
 	utils.SetServiceEndpoints([]utils.Service{})
 
-	cfg, err := utils.LoadConfig("services.yml")
+	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -143,7 +143,7 @@ services:
 `
 	createTestYML(ymlContent2, t)
 
-	cfg, err = utils.LoadConfig("services.yml")
+	cfg, err = loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -186,15 +186,13 @@ func TestGetServiceData(t *testing.T) {
 	}
 	utils.SetServiceEndpoints(services)
 
-	// Also need to set Current_Config for the Check function inside GetServiceData
-	utils.Current_Config = &utils.Config{
+	cfg := &utils.Config{
 		Services: map[string]utils.Service{
 			"test-service": services[0],
 		},
 	}
-	defer func() { utils.Current_Config = nil }()
 
-	svcResponse, err := utils.GetServiceData()
+	svcResponse, err := utils.GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
@@ -237,15 +235,13 @@ func TestGetServiceDataRetry(t *testing.T) {
 	}
 	utils.SetServiceEndpoints(services)
 
-	// Also need to set Current_Config for the Check function inside GetServiceData
-	utils.Current_Config = &utils.Config{
+	cfg := &utils.Config{
 		Services: map[string]utils.Service{
 			"retry-service": services[0],
 		},
 	}
-	defer func() { utils.Current_Config = nil }()
 
-	svcResponse, err := utils.GetServiceData()
+	svcResponse, err := utils.GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
@@ -272,19 +268,18 @@ func TestGetServiceDataValidResponses(t *testing.T) {
 	service := utils.Service{Name: "multi-status-service", URL: server.URL, Valid_Responses: &validResponses}
 	utils.SetServiceEndpoints([]utils.Service{service})
 
-	utils.Current_Config = &utils.Config{
+	cfg := &utils.Config{
 		Services: map[string]utils.Service{
 			"multi-status-service": service,
 		},
 	}
 	// Clear for other tests
-	defer func() { utils.Current_Config = nil }()
 
 	// Every configured status code should be reported as up, regardless of
 	// which one the endpoint returns on a particular fetch.
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusMovedPermanently, http.StatusFound} {
 		statusCode = code
-		svcResponse, err := utils.GetServiceData()
+		svcResponse, err := utils.GetServiceData(cfg)
 		if err != nil {
 			t.Fatalf("GetServiceData returned an error for status %d: %v", code, err)
 		}
@@ -303,7 +298,7 @@ func TestGetServiceDataValidResponses(t *testing.T) {
 
 	// A response outside the configured list must be flagged as down.
 	statusCode = http.StatusInternalServerError
-	svcResponse, err := utils.GetServiceData()
+	svcResponse, err := utils.GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}

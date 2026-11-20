@@ -13,11 +13,11 @@ For regular files returns the size in bytes; system-dependent for others
 
 https://pkg.go.dev/io/fs#FileInfo.Size
 */
-func GetDatabaseSize() (int64, error) {
-	if Current_Config.Database_Location == nil {
+func GetDatabaseSize(cfg *Config) (int64, error) {
+	if cfg == nil || cfg.Database_Location == nil {
 		return 0, &NoConfigError{"error getting size", "configuration not found in memory"}
 	}
-	loc := *Current_Config.Database_Location
+	loc := *cfg.Database_Location
 	total := int64(0)
 	for _, path := range []string{loc, loc + "-wal", loc + "-shm"} {
 		info, err := os.Stat(path)

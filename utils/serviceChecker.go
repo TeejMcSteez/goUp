@@ -20,12 +20,12 @@ func (e *NoConfigError) Error() string {
 
 // Takes in service data and checks for any bad responses
 // Valid responses will either be configured or will be the default 200
-func Check(data []ServiceData) ([]ServiceData, error) {
+func Check(cfg *Config, data []ServiceData) ([]ServiceData, error) {
 	var ret []ServiceData
-	if Current_Config == nil {
+	if cfg == nil {
 		return nil, &NoConfigError{"configuration", "cannot be nil"}
 	}
-	services := ReadConfigServices(Current_Config)
+	services := cfg.Services
 	for i := range data {
 		var valid_responses []string
 
@@ -45,12 +45,12 @@ func Check(data []ServiceData) ([]ServiceData, error) {
 }
 
 // Returns the uptime average for a service or error
-func GetUptimeAverage(db *sql.DB, name string) (*float64, error) {
+func GetUptimeAverage(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	data, err := GetDataForService(db, name)
 	if err != nil {
 		return nil, err
 	}
-	chk, err := Check(data)
+	chk, err := Check(cfg, data)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -72,7 +72,7 @@ func GetUptimeAverage(db *sql.DB, name string) (*float64, error) {
 // Proposed: Could change SQL from text to integer to avoid all these helper functions and use the WHERE
 // clause to filter data over a range however this doesn't require any database mechanics
 // and stays simpler by just collecting data over a range in Go over SQL
-func GetPastHourUptime(db *sql.DB, name string) (*float64, error) {
+func GetPastHourUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour)
 	data, err := GetDataForService(db, name)
@@ -85,7 +85,7 @@ func GetPastHourUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -104,7 +104,7 @@ func GetPastHourUptime(db *sql.DB, name string) (*float64, error) {
 	return &rounded_average, nil
 }
 
-func GetPast12HourUptime(db *sql.DB, name string) (*float64, error) {
+func GetPast12HourUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour * 12)
 	data, err := GetDataForService(db, name)
@@ -117,7 +117,7 @@ func GetPast12HourUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -136,7 +136,7 @@ func GetPast12HourUptime(db *sql.DB, name string) (*float64, error) {
 	return &rounded_average, nil
 }
 
-func GetPastDayUptime(db *sql.DB, name string) (*float64, error) {
+func GetPastDayUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour * 24)
 	data, err := GetDataForService(db, name)
@@ -149,7 +149,7 @@ func GetPastDayUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -168,7 +168,7 @@ func GetPastDayUptime(db *sql.DB, name string) (*float64, error) {
 	return &rounded_average, nil
 }
 
-func GetPastWeekUptime(db *sql.DB, name string) (*float64, error) {
+func GetPastWeekUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour * 168) // 168 hours in a week
 	data, err := GetDataForService(db, name)
@@ -181,7 +181,7 @@ func GetPastWeekUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -200,7 +200,7 @@ func GetPastWeekUptime(db *sql.DB, name string) (*float64, error) {
 	return &rounded_average, nil
 }
 
-func GetPastMonthUptime(db *sql.DB, name string) (*float64, error) {
+func GetPastMonthUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour * 730) // 730 hours in a month (roughly)
 	data, err := GetDataForService(db, name)
@@ -213,7 +213,7 @@ func GetPastMonthUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err
@@ -232,7 +232,7 @@ func GetPastMonthUptime(db *sql.DB, name string) (*float64, error) {
 	return &rounded_average, nil
 }
 
-func GetPastYearUptime(db *sql.DB, name string) (*float64, error) {
+func GetPastYearUptime(db *sql.DB, cfg *Config, name string) (*float64, error) {
 	now := time.Now()
 	since := now.Add(-time.Hour * 8760) // 8760 hours in a year (roughly)
 	data, err := GetDataForService(db, name)
@@ -245,7 +245,7 @@ func GetPastYearUptime(db *sql.DB, name string) (*float64, error) {
 			pastHr = append(pastHr, d)
 		}
 	}
-	chk, err := Check(pastHr)
+	chk, err := Check(cfg, pastHr)
 	if err != nil {
 		slog.Error("Error while checking data in getting uptime averages", "error", err)
 		return nil, err

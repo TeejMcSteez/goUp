@@ -57,7 +57,8 @@ func (e *NoServiceEndpointsError) Error() string {
 	return e.Message
 }
 
-// Sets up service and trigger endpoints from configuration
+// Setup derives the monitored service endpoints from cfg.
+// Trigger setup now happens inside ConfigStore before a config is published.
 func Setup(cfg *Config) error {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
@@ -70,22 +71,16 @@ func Setup(cfg *Config) error {
 // GetServiceData) can re-run setup without deadlocking on the non-reentrant
 // RWMutex.
 func setupLocked(cfg *Config) error {
-	Current_Config = cfg
-	slog.Info("Setting up triggers")
-	Current_Config.Triggers = *SetupTrigger(cfg)
-
+	if cfg == nil {
+		return &NoConfigError{"configuration", "cannot be nil"}
+	}
 	var updatedEndpoints []Service
 	slog.Info("Setting up service endpoints")
-	configMu.RLock()
-	if cfg.Services != nil {
-		updatedEndpoints = append(updatedEndpoints, scanDeadEndpoints(cfg)...)
-
-		updatedEndpoints = append(updatedEndpoints, scanNewEndpoints(cfg, updatedEndpoints)...)
-	} else {
-		configMu.RUnlock()
+	if cfg.Services == nil {
 		return &NoServiceEndpointsError{"No service endpoints found in current configuration!"}
 	}
-	configMu.RUnlock()
+	updatedEndpoints = append(updatedEndpoints, scanDeadEndpoints(cfg)...)
+	updatedEndpoints = append(updatedEndpoints, scanNewEndpoints(cfg, updatedEndpoints)...)
 	svcEndpoints.ServiceEndpoint = updatedEndpoints
 	slog.Info("Service endpoints setup finished")
 	slog.Info("Configuration setup finished")
@@ -250,13 +245,14 @@ func fetchOne(endpoint Service) (ServiceData, TlsStatus) {
 	return sd, tls
 }
 
-// GetServiceData fetches all service endpoints concurrently and returns the results.
-func GetServiceData() (*ServiceResponse, error) {
+// GetServiceData fetches all service endpoints concurrently and returns the
+// results. cfg is the config snapshot used for endpoint setup and Check.
+func GetServiceData(cfg *Config) (*ServiceResponse, error) {
 	svcEndpoints.Mux.Lock()
 	defer svcEndpoints.Mux.Unlock()
 	if len(svcEndpoints.ServiceEndpoint) == 0 {
 		slog.Info("No service endpoints found looking for config . . .")
-		if err := setupLocked(Current_Config); err != nil {
+		if err := setupLocked(cfg); err != nil {
 			slog.Error("Error setting up config while fetching service data", "error", err)
 			return nil, err
 		}
@@ -295,7 +291,7 @@ func GetServiceData() (*ServiceResponse, error) {
 		svcResponse.TlsData = append(svcResponse.TlsData, r.tls)
 	}
 	var err error
-	if svcResponse.DownServices, err = Check(svcResponse.AllServices); err != nil {
+	if svcResponse.DownServices, err = Check(cfg, svcResponse.AllServices); err != nil {
 		return nil, err
 	}
 	return &svcResponse, nil

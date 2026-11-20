@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-// programmaticWrite is signalled by writeConfig so the hot reloader can
-// distinguish program-initiated writes from external file edits.
-var programmaticWrite = make(chan struct{}, 1)
-
 func UpdateDatabaseSize(conf *Config, newSize string) (*Config, error) {
 	_, err := GetSizeFromString(newSize)
 	if err != nil {
@@ -28,10 +24,10 @@ func UpdateDatabaseSize(conf *Config, newSize string) (*Config, error) {
 }
 
 // Returns max size set in config in bytes or 1 gigabyte as default size
-func GetMaxSize(Current_Config *Config) (float64, error) {
-	if Current_Config != nil {
-		if Current_Config.Database_Max_Size != nil {
-			str := *Current_Config.Database_Max_Size
+func GetMaxSize(cfg *Config) (float64, error) {
+	if cfg != nil {
+		if cfg.Database_Max_Size != nil {
+			str := *cfg.Database_Max_Size
 			size, err := GetSizeFromString(str)
 			if err != nil {
 				return 0, fmt.Errorf("incorrect format, must be <decimal><a-zA-Z>")

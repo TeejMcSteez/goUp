@@ -26,7 +26,7 @@ services:
 		}
 	}()
 
-	cfg, err := utils.LoadConfig(filePath)
+	cfg, err := loadConfig(filePath)
 	if err != nil {
 		t.Fatalf("LoadConfig failed: %v", err)
 	}
@@ -59,18 +59,18 @@ services:
 
 	newService := utils.Service{Name: "google", URL: "https://google.com/"}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
 	crn_len := len(conf.Services)
 
-	if err := utils.AddConfigService(conf, newService); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigService(c, newService) }); err != nil {
 		t.Fatalf("UpdateConfigService failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -97,16 +97,16 @@ services:
 	key := "mqttpassword"
 	newMQTT := utils.MQTTTrigger{Mqtt_broker: &broker, Mqtt_username: &username, Mqtt_key: &key}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	if err := utils.AddConfigMQTTTrigger(conf, newMQTT); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigMQTTTrigger(c, newMQTT) }); err != nil {
 		t.Fatalf("UpdateConfigMQTTTrigger failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -135,16 +135,16 @@ services:
 	key := "something"
 	custom_message := "lol"
 	new_webhook := utils.WebhookTrigger{Webhook_url: &url, Webhook_key_string: &key, Custom_message: &custom_message}
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	if err := utils.AddConfigWebhookTrigger(conf, new_webhook); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigWebhookTrigger(c, new_webhook) }); err != nil {
 		t.Fatalf("UpdateConfigWebhookTrigger failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -168,7 +168,7 @@ services:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -180,11 +180,11 @@ services:
 	db, cleanupDb := setupTestDB(t)
 	defer cleanupDb()
 
-	if err := utils.DeleteConfigService(conf, serviceToDelete, db); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.DeleteConfigService(c, serviceToDelete, db) }); err != nil {
 		t.Fatalf("Failed to delete config: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -216,7 +216,7 @@ triggers:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -226,7 +226,7 @@ triggers:
 		t.Fatal("Failed to load MQTT config from setup")
 	}
 
-	if err := utils.DeleteConfigMQTT(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigMQTT); err != nil {
 		t.Fatalf("Error occured deleting MQTT: %v", err)
 	}
 
@@ -253,7 +253,7 @@ triggers:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -263,7 +263,7 @@ triggers:
 		t.Fatal("Failed to load Webhook config from setup")
 	}
 
-	if err := utils.DeleteConfigWebhook(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigWebhook); err != nil {
 		t.Fatalf("Error occured deleting Webhook: %v", err)
 	}
 
@@ -290,7 +290,7 @@ triggers:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -325,7 +325,7 @@ triggers:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -353,7 +353,7 @@ triggers:
 	cleanup := createTestYML(ymlContent1, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -372,7 +372,7 @@ func TestLoadConfigMissingFile(t *testing.T) {
 		}
 	}()
 
-	cfg, err := utils.LoadConfig(path)
+	cfg, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("LoadConfig with missing file returned error: %v", err)
 	}
@@ -389,7 +389,7 @@ func TestLoadConfigMissingFile(t *testing.T) {
 	}
 
 	// File must have been written so a second load succeeds without error.
-	cfg2, err := utils.LoadConfig(path)
+	cfg2, err := loadConfig(path)
 	if err != nil {
 		t.Fatalf("Second LoadConfig on generated file failed: %v", err)
 	}
@@ -408,7 +408,7 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -417,11 +417,13 @@ services:
 	defer cleanupDB()
 
 	updated := utils.Service{Name: "new-name", URL: "https://example.com"}
-	if err := utils.UpdateConfigService(conf, "old-name", updated, db); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigService(c, "old-name", updated, db)
+	}); err != nil {
 		t.Fatalf("UpdateConfigService failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -446,7 +448,7 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -455,11 +457,13 @@ services:
 	defer cleanupDB()
 
 	updated := utils.Service{Name: "my-svc", URL: "https://new.example.com"}
-	if err := utils.UpdateConfigService(conf, "my-svc", updated, db); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigService(c, "my-svc", updated, db)
+	}); err != nil {
 		t.Fatalf("UpdateConfigService failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -482,7 +486,7 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -490,18 +494,19 @@ services:
 	db, cleanupDB := setupTestDB(t)
 	defer cleanupDB()
 
-	err = utils.UpdateConfigService(conf, "does-not-exist", utils.Service{Name: "x", URL: "https://x.com"}, db)
+	err = apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigService(c, "does-not-exist", utils.Service{Name: "x", URL: "https://x.com"}, db)
+	})
 	if err == nil {
 		t.Fatal("Expected error for non-existent service, got nil")
 	}
 }
 
-// TestConcurrentBulkUpdateConfigService reproduces the bulk-edit panic: the
-// frontend fires one PUT per changed service via Promise.all, which lands as
-// concurrent goroutines calling UpdateConfigService on the same
-// conf.Services map. Before configMu, this was a fatal "concurrent map
-// writes" crash rather than a recoverable error. Run with -race to also
-// catch any lock-free access reintroduced around the map.
+// TestConcurrentBulkUpdateConfigService reproduces the bulk-edit scenario:
+// the frontend fires one PUT per changed service via Promise.all, which lands
+// as concurrent goroutines each calling store.Update with UpdateConfigService.
+// Update serializes writers on a private clone, so no edit may be lost and
+// nothing may race. Run with -race to catch shared map access.
 func TestConcurrentBulkUpdateConfigService(t *testing.T) {
 	ymlContent := `db_path: "./test_data.db"
 services:
@@ -519,8 +524,8 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
-	if err != nil {
+	store := utils.NewConfigStore("./services.yml")
+	if err := store.LoadFromFile(); err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
@@ -536,7 +541,10 @@ services:
 			defer wg.Done()
 			name := fmt.Sprintf("svc-%d", i)
 			updated := utils.Service{Name: name, URL: fmt.Sprintf("https://updated.example.com/%d", i)}
-			errs[i] = utils.UpdateConfigService(conf, name, updated, db)
+			errs[i] = store.Update(func(c *utils.Config) error {
+				_, err := utils.UpdateConfigService(c, name, updated, db)
+				return err
+			})
 		}(i)
 	}
 	wg.Wait()
@@ -547,6 +555,18 @@ services:
 		}
 	}
 
+	// check both the published snapshot and what reached disk
+	reloaded, err := loadConfig("./services.yml")
+	if err != nil {
+		t.Fatalf("Failed to reload config: %v", err)
+	}
+	for _, conf := range []*utils.Config{store.Get(), reloaded} {
+		checkBulkUpdated(t, conf, n)
+	}
+}
+
+func checkBulkUpdated(t *testing.T, conf *utils.Config, n int) {
+	t.Helper()
 	for i := range n {
 		name := fmt.Sprintf("svc-%d", i)
 		svc, ok := conf.Services[name]
@@ -570,17 +590,17 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
 	state := utils.ScheduleState{Span: 15, Interval: "minutes"}
-	if err := utils.UpdateConfigSchedule(conf, state); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateConfigSchedule(c, state) }); err != nil {
 		t.Fatalf("UpdateConfigSchedule failed: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -618,13 +638,13 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
 	// nil → true
-	if err := utils.UpdateConfigDatabasePersistence(conf); err != nil {
+	if err := apply(conf, utils.UpdateConfigDatabasePersistence); err != nil {
 		t.Fatalf("First toggle failed: %v", err)
 	}
 	if conf.Persist_db == nil || !*conf.Persist_db {
@@ -632,7 +652,7 @@ services:
 	}
 
 	// true → false
-	if err := utils.UpdateConfigDatabasePersistence(conf); err != nil {
+	if err := apply(conf, utils.UpdateConfigDatabasePersistence); err != nil {
 		t.Fatalf("Second toggle failed: %v", err)
 	}
 	if conf.Persist_db == nil || *conf.Persist_db {
@@ -640,7 +660,7 @@ services:
 	}
 
 	// Verify persisted to disk.
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Failed to reload config: %v", err)
 	}
@@ -662,15 +682,15 @@ services:
 	password := "secret"
 	newSMTP := utils.SMTPTrigger{SMTPServer: &server, Email: &email, App_Password: &password}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigSMTPTrigger(conf, newSMTP); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigSMTPTrigger(c, newSMTP) }); err != nil {
 		t.Fatalf("AddConfigSMTPTrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -695,14 +715,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.SMTP.SMTPServer == nil {
 		t.Fatal("SMTP not loaded from YAML")
 	}
-	if err := utils.DeleteConfigSMTPTrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigSMTPTrigger); err != nil {
 		t.Fatalf("DeleteConfigSMTPTrigger: %v", err)
 	}
 	if conf.Triggers.SMTP.SMTPServer != nil || conf.Triggers.SMTP.Email != nil {
@@ -724,7 +744,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -746,15 +766,15 @@ services:
 	token := "mytoken"
 	newGotify := utils.GotifyTrigger{Gotify_Server: &gotifyServer, Gotify_Token: &token}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigGotifyTrigger(conf, newGotify); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigGotifyTrigger(c, newGotify) }); err != nil {
 		t.Fatalf("AddConfigGotifyTrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -775,14 +795,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.Gotify.Gotify_Server == nil {
 		t.Fatal("Gotify not loaded from YAML")
 	}
-	if err := utils.DeleteConfigGotifyTrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigGotifyTrigger); err != nil {
 		t.Fatalf("DeleteConfigGotifyTrigger: %v", err)
 	}
 	if conf.Triggers.Gotify.Gotify_Server != nil {
@@ -803,7 +823,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -825,15 +845,15 @@ services:
 	channel := "C1234567890"
 	newSlack := utils.SlackTrigger{Slack_Token: &token, Slack_Channel: &channel}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigSlackTrigger(conf, newSlack); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigSlackTrigger(c, newSlack) }); err != nil {
 		t.Fatalf("AddConfigSlackTrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -857,14 +877,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.Slack.Slack_Token == nil {
 		t.Fatal("Slack not loaded from YAML")
 	}
-	if err := utils.DeleteConfigSlackTrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigSlackTrigger); err != nil {
 		t.Fatalf("DeleteConfigSlackTrigger: %v", err)
 	}
 	if conf.Triggers.Slack.Slack_Token != nil || conf.Triggers.Slack.Slack_Channel != nil {
@@ -885,7 +905,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -907,15 +927,15 @@ services:
 	channelID := "@mychannel"
 	newTelegram := utils.TelegramTrigger{Telegram_Token: &token, Telegram_Channel_Id: &channelID}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigTelegramTrigger(conf, newTelegram); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigTelegramTrigger(c, newTelegram) }); err != nil {
 		t.Fatalf("AddConfigTelegramTrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -939,14 +959,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.Telegram.Telegram_Token == nil {
 		t.Fatal("Telegram not loaded from YAML")
 	}
-	if err := utils.DeleteConfigTelegramTrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigTelegramTrigger); err != nil {
 		t.Fatalf("DeleteConfigTelegramTrigger: %v", err)
 	}
 	if conf.Triggers.Telegram.Telegram_Token != nil || conf.Triggers.Telegram.Telegram_Channel_Id != nil {
@@ -967,7 +987,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -989,15 +1009,15 @@ services:
 	haToken := "ha-token"
 	newHA := utils.HATrigger{HA_URL: &haURL, HA_Token: &haToken}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigHATrigger(conf, newHA); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigHATrigger(c, newHA) }); err != nil {
 		t.Fatalf("AddConfigHATrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -1020,14 +1040,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.HA.HA_URL == nil {
 		t.Fatal("HA not loaded from YAML")
 	}
-	if err := utils.DeleteConfigHATrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigHATrigger); err != nil {
 		t.Fatalf("DeleteConfigHATrigger: %v", err)
 	}
 	if conf.Triggers.HA.HA_URL != nil || conf.Triggers.HA.HA_Token != nil {
@@ -1048,7 +1068,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -1070,15 +1090,15 @@ services:
 	channel := "123456789012345678"
 	newDiscord := utils.DiscordTrigger{Discord_Auth: &auth, Discord_Channel: &channel}
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if err := utils.AddConfigDiscordTrigger(conf, newDiscord); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.AddConfigDiscordTrigger(c, newDiscord) }); err != nil {
 		t.Fatalf("AddConfigDiscordTrigger: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -1102,14 +1122,14 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 	if conf.Triggers.Discord.Discord_Auth == nil {
 		t.Fatal("Discord not loaded from YAML")
 	}
-	if err := utils.DeleteConfigDiscordTrigger(conf); err != nil {
+	if err := apply(conf, utils.DeleteConfigDiscordTrigger); err != nil {
 		t.Fatalf("DeleteConfigDiscordTrigger: %v", err)
 	}
 	if conf.Triggers.Discord.Discord_Auth != nil || conf.Triggers.Discord.Discord_Channel != nil {
@@ -1130,7 +1150,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -1148,12 +1168,12 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
-	if err := utils.UpdateDatabaseSize(conf, "500mb"); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateDatabaseSize(c, "500mb") }); err != nil {
 		t.Fatalf("UpdateDatabaseSize: %v", err)
 	}
 	if conf.Database_Max_Size == nil || *conf.Database_Max_Size != "500mb" {
@@ -1161,16 +1181,16 @@ services:
 	}
 
 	// Same value should return an error.
-	if err := utils.UpdateDatabaseSize(conf, "500mb"); err == nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateDatabaseSize(c, "500mb") }); err == nil {
 		t.Error("Expected error when setting same size, got nil")
 	}
 
 	// Invalid format should return an error without changing the value.
-	if err := utils.UpdateDatabaseSize(conf, "notasize"); err == nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateDatabaseSize(c, "notasize") }); err == nil {
 		t.Error("Expected error for invalid size format, got nil")
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -1187,16 +1207,16 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
-	if err := utils.UpdateBackoff(conf, "45s", ""); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "45s", "") }); err != nil {
 		t.Fatalf("UpdateBackoff: %v", err)
 	}
 
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -1205,7 +1225,7 @@ services:
 	}
 
 	// "global" trigger name is equivalent to "".
-	if err := utils.UpdateBackoff(conf, "1m", "global"); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "1m", "global") }); err != nil {
 		t.Fatalf("UpdateBackoff global: %v", err)
 	}
 	if got := utils.ReadConfigBackoff(conf); got != "1m" {
@@ -1213,7 +1233,7 @@ services:
 	}
 
 	// Blank value clears the global backoff.
-	if err := utils.UpdateBackoff(conf, "", ""); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "", "") }); err != nil {
 		t.Fatalf("UpdateBackoff clear: %v", err)
 	}
 	if got := utils.ReadConfigBackoff(conf); got != "" {
@@ -1229,12 +1249,12 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
-	if err := utils.UpdateBackoff(conf, "2m", "mqtt"); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "2m", "mqtt") }); err != nil {
 		t.Fatalf("UpdateBackoff mqtt: %v", err)
 	}
 	if conf.Triggers.MQTT.Backoff_Period == nil || *conf.Triggers.MQTT.Backoff_Period != "2m" {
@@ -1246,7 +1266,7 @@ services:
 		t.Errorf("Expected global backoff to remain unset, got %q", got)
 	}
 
-	if err := utils.UpdateBackoff(conf, "3m", "webhook"); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "3m", "webhook") }); err != nil {
 		t.Fatalf("UpdateBackoff webhook: %v", err)
 	}
 	if conf.Triggers.Webhook.Backoff_Period == nil || *conf.Triggers.Webhook.Backoff_Period != "3m" {
@@ -1262,12 +1282,12 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
-	if err := utils.UpdateBackoff(conf, "not-a-duration", "mqtt"); err == nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "not-a-duration", "mqtt") }); err == nil {
 		t.Fatal("Expected error for invalid duration, got nil")
 	}
 	if conf.Triggers.MQTT.Backoff_Period != nil {
@@ -1283,18 +1303,18 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
-	if err := utils.UpdateBackoff(conf, "1m", "carrier-pigeon"); err == nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "1m", "carrier-pigeon") }); err == nil {
 		t.Fatal("Expected error for unknown trigger, got nil")
 	}
 }
 
 func TestUpdateBackoffNilConfig(t *testing.T) {
-	if err := utils.UpdateBackoff(nil, "1m", ""); err == nil {
+	if err := apply(nil, func(c *utils.Config) (*utils.Config, error) { return utils.UpdateBackoff(c, "1m", "") }); err == nil {
 		t.Fatal("Expected error for nil config, got nil")
 	}
 }
@@ -1309,7 +1329,7 @@ triggers:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -1331,7 +1351,7 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
@@ -1361,13 +1381,15 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
 
 	// Active starts nil (defaults to true via IsActive) -> first toggle sets it false.
-	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "svc1"}); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigServiceActive(c, utils.Service{Name: "svc1"})
+	}); err != nil {
 		t.Fatalf("UpdateConfigServiceActive: %v", err)
 	}
 	svc := conf.Services["svc1"]
@@ -1376,7 +1398,9 @@ services:
 	}
 
 	// Second toggle flips false -> true.
-	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "svc1"}); err != nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigServiceActive(c, utils.Service{Name: "svc1"})
+	}); err != nil {
 		t.Fatalf("UpdateConfigServiceActive: %v", err)
 	}
 	svc = conf.Services["svc1"]
@@ -1385,7 +1409,7 @@ services:
 	}
 
 	// Verify persisted to disk.
-	conf, err = utils.LoadConfig("./services.yml")
+	conf, err = loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("Reload: %v", err)
 	}
@@ -1394,11 +1418,15 @@ services:
 		t.Errorf("Expected Active true on disk after reload, got %v", svc.Active)
 	}
 
-	if err := utils.UpdateConfigServiceActive(conf, utils.Service{Name: "does-not-exist"}); err == nil {
+	if err := apply(conf, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigServiceActive(c, utils.Service{Name: "does-not-exist"})
+	}); err == nil {
 		t.Fatal("Expected error for unknown service, got nil")
 	}
 
-	if err := utils.UpdateConfigServiceActive(nil, utils.Service{Name: "svc1"}); err == nil {
+	if err := apply(nil, func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigServiceActive(c, utils.Service{Name: "svc1"})
+	}); err == nil {
 		t.Fatal("Expected error for nil config, got nil")
 	}
 }
@@ -1412,7 +1440,7 @@ services:
 `, t)
 	defer cleanup()
 
-	conf, err := utils.LoadConfig("./services.yml")
+	conf, err := loadConfig("./services.yml")
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}

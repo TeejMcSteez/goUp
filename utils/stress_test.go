@@ -43,14 +43,13 @@ func TestStress(t *testing.T) {
 	}
 
 	utils.SetServiceEndpoints(services)
-	utils.Current_Config = &utils.Config{Services: cfgServices}
+	cfg := &utils.Config{Services: cfgServices}
 	defer func() {
-		utils.Current_Config = nil
 		utils.SetServiceEndpoints([]utils.Service{})
 	}()
 
 	start := time.Now()
-	resp, err := utils.GetServiceData()
+	resp, err := utils.GetServiceData(cfg)
 	elapsed := time.Since(start)
 
 	if err != nil {

@@ -19,13 +19,19 @@ func TestMain(m *testing.M) {
 }
 
 func setupTestDB(t *testing.T) (*sql.DB, func()) {
+	db, _, cleanup := setupTestDBConfig(t)
+	return db, cleanup
+}
+
+// setupTestDBConfig is setupTestDB that also returns the config the DB was
+// opened with, for tests that pass it to config-aware helpers.
+func setupTestDBConfig(t *testing.T) (*sql.DB, *utils.Config, func()) {
 	dbPath := "./test_db.db"
 	cfg := &utils.Config{
 		Database_Location: &dbPath,
 	}
-	utils.Current_Config = cfg
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("Failed to initialize test database: %v", err)
 	}
@@ -37,27 +43,23 @@ func setupTestDB(t *testing.T) (*sql.DB, func()) {
 		if err := os.Remove(dbPath); err != nil {
 			t.Errorf("failed to remove the database file: %v", err)
 		}
-		utils.Current_Config = nil
 	}
 
-	return db, cleanup
+	return db, cfg, cleanup
 }
 
 func TestInitDBNoConfig(t *testing.T) {
-	utils.Current_Config = nil
-	_, err := utils.InitDB()
+	_, err := utils.InitDB(nil)
 	if err == nil {
 		t.Error("Expected error when initializing DB with nil config, but got nil")
 	}
 }
 
 func TestInitDBNoDBLocation(t *testing.T) {
-	utils.Current_Config = &utils.Config{}
-	_, err := utils.InitDB()
+	_, err := utils.InitDB(&utils.Config{})
 	if err == nil {
 		t.Error("Expected error when initializing DB with no db_path in config, but got nil")
 	}
-	utils.Current_Config = nil
 }
 
 func TestInsertAndGetData(t *testing.T) {
@@ -150,7 +152,7 @@ func TestGetRecentData(t *testing.T) {
 		}
 	}
 
-	recentData, err := utils.GetRecentData(db)
+	recentData, err := utils.GetRecentData(db, nil)
 	if err != nil {
 		t.Fatalf("Failed to get recent data: %v", err)
 	}
@@ -216,7 +218,7 @@ func TestGetResponseTimes(t *testing.T) {
 }
 
 func TestClearDatabaseVacuums(t *testing.T) {
-	db, cleanup := setupTestDB(t)
+	db, cfg, cleanup := setupTestDBConfig(t)
 	defer cleanup()
 
 	// Insert enough data to grow beyond the initial schema pages
@@ -233,7 +235,7 @@ func TestClearDatabaseVacuums(t *testing.T) {
 		}
 	}
 
-	sizeBeforeClear, err := utils.GetDatabaseSize()
+	sizeBeforeClear, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Fatalf("Failed to get database size: %v", err)
 	}
@@ -242,7 +244,7 @@ func TestClearDatabaseVacuums(t *testing.T) {
 		t.Fatalf("ClearDatabase failed: %v", err)
 	}
 
-	sizeAfterClear, err := utils.GetDatabaseSize()
+	sizeAfterClear, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Fatalf("Failed to get database size: %v", err)
 	}

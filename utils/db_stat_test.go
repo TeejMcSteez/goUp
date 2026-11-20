@@ -20,7 +20,7 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	cfg, err := utils.LoadConfig("services.yml")
+	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load configuration file: %v", err)
 	}
@@ -29,7 +29,7 @@ services:
 		t.Fatalf("Error occured during setup: %v", err)
 	}
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("Error occured during DB init: %v", err)
 	}
@@ -42,7 +42,7 @@ services:
 		}
 	}()
 
-	if _, err := utils.GetDatabaseSize(); err != nil {
+	if _, err := utils.GetDatabaseSize(cfg); err != nil {
 		t.Fatalf("Error occured getting database statistics: %v", err)
 	}
 }
@@ -61,7 +61,7 @@ services:
 	cleanup := createTestYML(ymlContent, t)
 	defer cleanup()
 
-	cfg, err := utils.LoadConfig("services.yml")
+	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load configuration file: %v", err)
 	}
@@ -70,7 +70,7 @@ services:
 		t.Fatalf("Error occured during setup: %v", err)
 	}
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("Error occured during DB init: %v", err)
 	}
@@ -83,7 +83,7 @@ services:
 		}
 	}()
 
-	size, err := utils.GetDatabaseSize()
+	size, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Fatalf("Error occured getting database statistics: %v", err)
 	}
