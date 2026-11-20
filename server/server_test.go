@@ -52,13 +52,11 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
 	})
-	// TODO: drop once handlers read from the store instead of Current_Config
-	utils.Current_Config = store.Get()
 	utils.SetServiceEndpoints([]utils.Service{
 		{Name: "test_service", URL: "http://example.com"},
 	})
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
@@ -66,7 +64,7 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 	hub := server.NewHub()
 	go hub.Run()
 	scd := scheduler.NewScheduler(t.Context(), db, store, hub)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
 		scd.Stop()
@@ -76,7 +74,6 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 		if err := os.Remove(dbPath); err != nil {
 			t.Errorf("Failed to remove database file on cleanup: %v", err)
 		}
-		utils.Current_Config = nil
 		utils.SetServiceEndpoints([]utils.Service{})
 	}
 
@@ -398,13 +395,11 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
 	})
-	// TODO: drop once handlers read from the store instead of Current_Config
-	utils.Current_Config = store.Get()
 	utils.SetServiceEndpoints([]utils.Service{
 		{Name: "test_service", URL: "http://example.com"},
 	})
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
@@ -412,7 +407,7 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 	hub := server.NewHub()
 	go hub.Run()
 	scd := scheduler.NewScheduler(t.Context(), db, store, hub)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
 		scd.Stop()
@@ -422,7 +417,6 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 		if err := os.Remove(dbPath); err != nil {
 			slog.Error("Failed to remove database file", "error", err)
 		}
-		utils.Current_Config = nil
 		utils.SetServiceEndpoints([]utils.Service{})
 	}
 	return db, scd, srv, cleanup

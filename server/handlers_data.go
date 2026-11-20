@@ -16,7 +16,7 @@ import (
 // @Failure 500 {string} string "internal server error"
 // @Router /api [get]
 func (s *Server) Api(w http.ResponseWriter, req *http.Request) {
-	data, err := utils.GetRecentData(s.db)
+	data, err := utils.GetRecentData(s.db, s.store.Get())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -44,13 +44,14 @@ func (s *Server) StatusApi(w http.ResponseWriter, req *http.Request) {
 	case "GET":
 		w.Header().Add("Content-Type", "application/json")
 
-		recData, err := utils.GetRecentData(s.db)
+		cfg := s.store.Get()
+		recData, err := utils.GetRecentData(s.db, cfg)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		apiData, err := utils.Check(recData)
+		apiData, err := utils.Check(cfg, recData)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -86,7 +87,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetUptimeAverage(s.db, endpointName)
+				upAvg, err := utils.GetUptimeAverage(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -104,7 +105,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPastHourUptime(s.db, endpointName)
+				upAvg, err := utils.GetPastHourUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -122,7 +123,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPast12HourUptime(s.db, endpointName)
+				upAvg, err := utils.GetPast12HourUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -140,7 +141,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPastWeekUptime(s.db, endpointName)
+				upAvg, err := utils.GetPastWeekUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -158,7 +159,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPastDayUptime(s.db, endpointName)
+				upAvg, err := utils.GetPastDayUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -176,7 +177,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPastMonthUptime(s.db, endpointName)
+				upAvg, err := utils.GetPastMonthUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -194,7 +195,7 @@ func (s *Server) UptimeAPI(w http.ResponseWriter, req *http.Request) {
 			var avgData []utils.AverageData
 			for idx := range endpoints {
 				endpointName := endpoints[idx].Name
-				upAvg, err := utils.GetPastYearUptime(s.db, endpointName)
+				upAvg, err := utils.GetPastYearUptime(s.db, s.store.Get(), endpointName)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
