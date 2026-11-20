@@ -60,7 +60,9 @@ func main() {
 	// updates in memory config store used my services
 	cfgStore.Subscribe(func(old, new *utils.Config) {
 		if !maps.Equal(old.Services, new.Services) {
-			utils.Setup(new)
+			if err := utils.Setup(new); err != nil {
+				log.Printf("failed to load new config after store update: %v", err)
+			}
 		}
 	})
 	// notify websocket client configuration has been updated

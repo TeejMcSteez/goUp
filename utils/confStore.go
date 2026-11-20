@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/sha256"
 	"fmt"
+	"log/slog"
 	"maps"
 	"os"
 	"path/filepath"
@@ -106,14 +107,22 @@ func (s *ConfigStore) persist(c *Config) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmp.Name()) // no-op after a successful rename
+	defer func(tmp *os.File) {
+		if err := os.Remove(tmp.Name()); err != nil {
+			slog.Error("failed to remove temp name persisting config", "ERROR", err)
+		}
+	}(tmp) // no-op after a successful rename
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		if err := tmp.Close(); err != nil {
+			slog.Error("failed to close temp file persisting config", "ERROR", err)
+		}
 		return err
 	}
 	if err := tmp.Sync(); err != nil { // flush to disk before the rename
-		tmp.Close()
+		if err := tmp.Close(); err != nil {
+			slog.Error("failed to close temp file persisting config", "ERROR", err)
+		}
 		return err
 	}
 	if err := tmp.Close(); err != nil {
