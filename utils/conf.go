@@ -5,116 +5,30 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-
-	"gopkg.in/yaml.v3"
 )
-
-var Current_Config *Config
-
-// configMu guards Current_Config.Services. It's a separate lock from
-// writeConfig's file I/O because reads (Setup, the scheduler, TLS/GC
-// scans) and writes (the config HTTP handlers) both touch the map from
-// different goroutines, and Go maps panic on concurrent access. Bulk
-// edits from the UI fire one PUT per changed service via Promise.all,
-// so without this lock two of those goroutines racing on the same map
-// is enough to crash the process (fatal error: concurrent map writes).
-var configMu sync.RWMutex
 
 // programmaticWrite is signalled by writeConfig so the hot reloader can
 // distinguish program-initiated writes from external file edits.
 var programmaticWrite = make(chan struct{}, 1)
 
-// ConfigWriteNotify returns the channel the hot reloader should listen on.
-func ConfigWriteNotify() <-chan struct{} {
-	return programmaticWrite
-}
-
-/*
-Parses yml file for service information
-*/
-func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		defaultDB := "goup.db"
-		default_size := "5mb"
-		st := ScheduleState{
-			30,
-			"seconds",
-		}
-		default_persist := true
-		cfg := &Config{
-			ConfigPath:        path,
-			Services:          make(map[string]Service),
-			Database_Location: &defaultDB,
-			Database_Max_Size: &default_size,
-			Schedule:          &st,
-			Persist_db:        &default_persist,
-		}
-		if err := writeConfig(cfg); err != nil {
-			return nil, fmt.Errorf("could not create default config: %w", err)
-		}
-		return cfg, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var cfg = new(Config)
-	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return nil, err
-	}
-
-	cfg.ConfigPath = path
-
-	for key, svc := range cfg.Services {
-		svc.Name = key
-		cfg.Services[key] = svc
-	}
-
-	return cfg, nil
-}
-
-// writeConfig marshals the config back to the file it was loaded from.
-func writeConfig(conf *Config) error {
-	// Refresh triggers on write fix #63
-	conf.Triggers = *SetupTrigger(conf)
-	if conf.ConfigPath == "" {
-		return fmt.Errorf("config path is not set")
-	}
-	data, err := yaml.Marshal(conf)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(conf.ConfigPath, data, 0644); err != nil {
-		return err
-	}
-	select {
-	case programmaticWrite <- struct{}{}:
-	default:
-	}
-	return nil
-}
-
-func UpdateDatabaseSize(conf *Config, newSize string) error {
+func UpdateDatabaseSize(conf *Config, newSize string) (*Config, error) {
 	_, err := GetSizeFromString(newSize)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if conf.Database_Max_Size != nil && newSize == *conf.Database_Max_Size {
-		return fmt.Errorf("new size is equal to current size no change needed")
+		return nil, fmt.Errorf("new size is equal to current size no change needed")
 	}
 	conf.Database_Max_Size = &newSize
-	return writeConfig(conf)
+	return conf, nil
 }
 
 // Returns max size set in config in bytes or 1 gigabyte as default size
-func GetMaxSize() (float64, error) {
+func GetMaxSize(Current_Config *Config) (float64, error) {
 	if Current_Config != nil {
 		if Current_Config.Database_Max_Size != nil {
 			str := *Current_Config.Database_Max_Size
@@ -168,12 +82,10 @@ func GetSizeFromString(str string) (float64, error) {
 	}
 }
 
-func AddConfigService(conf *Config, newEndpoint Service) error {
+func AddConfigService(conf *Config, newEndpoint Service) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
-	configMu.Lock()
-	defer configMu.Unlock()
 	if conf.Services == nil {
 		conf.Services = make(map[string]Service)
 	}
@@ -181,17 +93,15 @@ func AddConfigService(conf *Config, newEndpoint Service) error {
 	conf.Services[newEndpoint.Name] = newEndpoint
 	new_len := len(conf.Services)
 	if new_len == org_len {
-		return fmt.Errorf("no new endpoint added")
+		return nil, fmt.Errorf("no new endpoint added")
 	}
-	return writeConfig(conf)
+	return conf, nil
 }
 
 // ServiceURLExists reports whether a service with the given URL is already
 // configured. Callers must not range over conf.Services directly since the
 // map can be mutated concurrently by the config HTTP handlers.
 func ServiceURLExists(conf *Config, url string) bool {
-	configMu.RLock()
-	defer configMu.RUnlock()
 	for _, svc := range conf.Services {
 		if strings.TrimSuffix(svc.URL, "/") == strings.TrimSuffix(url, "/") {
 			return true
@@ -200,187 +110,181 @@ func ServiceURLExists(conf *Config, url string) bool {
 	return false
 }
 
-func setTrigger[T comparable](conf *Config, field *T, newVal T, name string) error {
+func setTrigger[T comparable](conf *Config, field *T, newVal T, name string) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if *field == newVal {
-		return fmt.Errorf("%s config is the same", name)
+		return nil, fmt.Errorf("%s config is the same", name)
 	}
 	*field = newVal
-	return writeConfig(conf)
+	return conf, nil
 }
 
-func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) error {
+func AddConfigMQTTTrigger(config *Config, newMQTT MQTTTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.MQTT, newMQTT, "MQTT")
 }
 
-func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) error {
+func AddConfigWebhookTrigger(config *Config, newWebhook WebhookTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.Webhook, newWebhook, "webhook")
 }
 
-func AddConfigSMTPTrigger(config *Config, newSmtp SMTPTrigger) error {
+func AddConfigSMTPTrigger(config *Config, newSmtp SMTPTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.SMTP, newSmtp, "SMTP")
 }
 
-func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) error {
+func AddConfigGotifyTrigger(config *Config, newGotify GotifyTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.Gotify, newGotify, "gotify")
 }
 
-func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) error {
+func AddConfigSlackTrigger(config *Config, newSlack SlackTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.Slack, newSlack, "slack")
 }
 
-func AddConfigTelegramTrigger(config *Config, newTelegram TelegramTrigger) error {
+func AddConfigTelegramTrigger(config *Config, newTelegram TelegramTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.Telegram, newTelegram, "telegram")
 }
 
-func AddConfigHATrigger(config *Config, newHA HATrigger) error {
+func AddConfigHATrigger(config *Config, newHA HATrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.HA, newHA, "ha")
 }
 
-func AddConfigDiscordTrigger(config *Config, newDiscord DiscordTrigger) error {
+func AddConfigDiscordTrigger(config *Config, newDiscord DiscordTrigger) (*Config, error) {
 	return setTrigger(config, &config.Triggers.Discord, newDiscord, "discord")
 }
 
-func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) error {
+func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
-	configMu.Lock()
-	defer configMu.Unlock()
 	if _, exists := conf.Services[oldName]; !exists {
-		return fmt.Errorf("service %q not found", oldName)
+		return nil, fmt.Errorf("service %q not found", oldName)
 	}
 	if oldName != updated.Name {
 		if err := DbServiceRename(db, oldName, updated.Name); err != nil {
-			return fmt.Errorf("failed to rename service in database: %w", err)
+			return nil, fmt.Errorf("failed to rename service in database: %w", err)
 		}
 		delete(conf.Services, oldName)
 	}
 	conf.Services[updated.Name] = updated
-	return writeConfig(conf)
+	return conf, nil
 }
 
-func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) error {
+func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 
 	err := DbServiceDelete(db, serviceToDelete)
 	if err != nil {
-		return fmt.Errorf("failed to remove data from database: %v", err)
+		return nil, fmt.Errorf("failed to remove data from database: %v", err)
 	}
 
-	configMu.Lock()
-	defer configMu.Unlock()
 	org_size := len(config.Services)
 	delete(config.Services, serviceToDelete.Name)
 	new_size := len(config.Services)
 
 	if org_size == new_size {
-		return fmt.Errorf("failed to remove the element")
+		return nil, fmt.Errorf("failed to remove the element")
 	}
 
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigMQTT(config *Config) error {
+func DeleteConfigMQTT(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.MQTT.Mqtt_broker == nil {
-		return fmt.Errorf("no MQTT broker to delete")
+		return nil, fmt.Errorf("no MQTT broker to delete")
 	}
 	// Clears MQTT trigger in config
 	config.Triggers.MQTT = MQTTTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigWebhook(config *Config) error {
+func DeleteConfigWebhook(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.Webhook.Webhook_url == nil {
-		return fmt.Errorf("no Webhook to delete")
+		return nil, fmt.Errorf("no Webhook to delete")
 	}
 
 	config.Triggers.Webhook = WebhookTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigSMTPTrigger(config *Config) error {
+func DeleteConfigSMTPTrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.SMTP.SMTPServer == nil || config.Triggers.SMTP.App_Password == nil || config.Triggers.SMTP.Email == nil {
-		return fmt.Errorf("no SMTP config to delete")
+		return nil, fmt.Errorf("no SMTP config to delete")
 	}
 	config.Triggers.SMTP = SMTPTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigGotifyTrigger(config *Config) error {
+func DeleteConfigGotifyTrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.Gotify.Gotify_Server == nil {
-		return fmt.Errorf("no Gotify config to delete")
+		return nil, fmt.Errorf("no Gotify config to delete")
 	}
 	config.Triggers.Gotify = GotifyTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigSlackTrigger(config *Config) error {
+func DeleteConfigSlackTrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.Slack.Slack_Channel == nil && config.Triggers.Slack.Slack_Token == nil {
-		return fmt.Errorf("no slack config to delete")
+		return nil, fmt.Errorf("no slack config to delete")
 	}
 	config.Triggers.Slack = SlackTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigTelegramTrigger(config *Config) error {
+func DeleteConfigTelegramTrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.Telegram.Telegram_Token == nil && config.Triggers.Telegram.Telegram_Channel_Id == nil {
-		return fmt.Errorf("no telegram config to delete")
+		return nil, fmt.Errorf("no telegram config to delete")
 	}
 	config.Triggers.Telegram = TelegramTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigHATrigger(config *Config) error {
+func DeleteConfigHATrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.HA.HA_URL == nil && config.Triggers.HA.HA_Token == nil {
-		return fmt.Errorf("no HA config to delete")
+		return nil, fmt.Errorf("no HA config to delete")
 	}
 	config.Triggers.HA = HATrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
-func DeleteConfigDiscordTrigger(config *Config) error {
+func DeleteConfigDiscordTrigger(config *Config) (*Config, error) {
 	if config == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	if config.Triggers.Discord.Discord_Auth == nil && config.Triggers.Discord.Discord_Channel == nil {
-		return fmt.Errorf("no discord config to delete")
+		return nil, fmt.Errorf("no discord config to delete")
 	}
 	config.Triggers.Discord = DiscordTrigger{}
-	return writeConfig(config)
+	return config, nil
 }
 
 // ReadConfigServices returns a snapshot copy of the configured services.
 // It copies rather than returning the live map so callers can range over
 // the result without racing the config HTTP handlers' writes.
 func ReadConfigServices(config *Config) map[string]Service {
-	configMu.RLock()
-	defer configMu.RUnlock()
 	out := make(map[string]Service, len(config.Services))
 	maps.Copy(out, config.Services)
 	return out
@@ -432,17 +336,17 @@ func ReadDatabaseSize(config *Config) (string, error) {
 	return *config.Database_Max_Size, nil
 }
 
-func UpdateConfigSchedule(conf *Config, state ScheduleState) error {
+func UpdateConfigSchedule(conf *Config, state ScheduleState) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 	conf.Schedule = &ScheduleState{Span: state.Span, Interval: state.Interval}
-	return writeConfig(conf)
+	return conf, nil
 }
 
-func UpdateConfigDatabasePersistence(conf *Config) error {
+func UpdateConfigDatabasePersistence(conf *Config) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("Config is nil")
+		return nil, fmt.Errorf("Config is nil")
 	}
 
 	org_state := conf.Persist_db
@@ -453,16 +357,16 @@ func UpdateConfigDatabasePersistence(conf *Config) error {
 		*conf.Persist_db = !*org_state
 	}
 
-	return writeConfig(conf)
+	return conf, nil
 }
 
 // UpdateBackoff sets the backoff period for a single trigger, or the global
 // fallback when trigger is "" or "global". A blank newTime clears the period
 // so the trigger falls back to the global default (or disables backoff, for
 // the global period itself).
-func UpdateBackoff(conf *Config, newTime string, trigger string) error {
+func UpdateBackoff(conf *Config, newTime string, trigger string) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 
 	var period *string
@@ -470,7 +374,7 @@ func UpdateBackoff(conf *Config, newTime string, trigger string) error {
 	if newTime != "" {
 		parsed, err := time.ParseDuration(newTime)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		period = &newTime
 		dur = parsed
@@ -505,10 +409,10 @@ func UpdateBackoff(conf *Config, newTime string, trigger string) error {
 		conf.Triggers.Backoff_Period = period
 		conf.Triggers.backoffDuration = dur
 	default:
-		return fmt.Errorf("unknown trigger %q", trigger)
+		return nil, fmt.Errorf("unknown trigger %q", trigger)
 	}
 
-	return writeConfig(conf)
+	return conf, nil
 }
 
 // ReadConfigBackoff returns the global trigger backoff period, or "" if unset.
@@ -524,8 +428,6 @@ func ReadConfigService(conf *Config, service Service) (Service, error) {
 		return Service{}, fmt.Errorf("config is nil")
 	}
 
-	configMu.RLock()
-	defer configMu.RUnlock()
 	s, ok := conf.Services[service.Name]
 	if !ok {
 		slog.Error("invalid service", "service", service.Name)
@@ -534,17 +436,15 @@ func ReadConfigService(conf *Config, service Service) (Service, error) {
 	return s, nil
 }
 
-func UpdateConfigServiceActive(conf *Config, service Service) error {
+func UpdateConfigServiceActive(conf *Config, service Service) (*Config, error) {
 	if conf == nil {
-		return fmt.Errorf("config is nil")
+		return nil, fmt.Errorf("config is nil")
 	}
 
-	configMu.Lock()
-	defer configMu.Unlock()
 	s, ok := conf.Services[service.Name]
 	if !ok {
 		slog.Error("invalid service", "service", service.Name)
-		return fmt.Errorf("invalid service %s", service.Name)
+		return nil, fmt.Errorf("invalid service %s", service.Name)
 	}
 
 	if s.Active != nil {
@@ -558,5 +458,5 @@ func UpdateConfigServiceActive(conf *Config, service Service) error {
 		conf.Services[service.Name] = s
 	}
 
-	return writeConfig(conf)
+	return conf, nil
 }
