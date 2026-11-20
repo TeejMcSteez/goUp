@@ -1,6 +1,9 @@
 package utils
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestConfigCloneIsDeep(t *testing.T) {
 	broker := "mqtt://old"
@@ -40,5 +43,62 @@ func TestConfigCloneIsDeep(t *testing.T) {
 	}
 	if c.Triggers.notifiers[0] == orig.Triggers.notifiers[0] {
 		t.Errorf("clone notifier aliases original")
+	}
+}
+
+func TestReloadSkipsOwnWritesAndAppliesExternalEdits(t *testing.T) {
+	path := t.TempDir() + "/cfg.yml"
+	if err := os.WriteFile(path, []byte("db_path: a.db\nservices:\n  one:\n    url: https://one.example.com\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := NewConfigStore(path)
+	if err := s.LoadFromFile(); err != nil {
+		t.Fatal(err)
+	}
+	var fired int
+	s.Subscribe(func(_, _ *Config) { fired++ })
+
+	// the file now holds exactly what LoadFromFile wrote -> own echo
+	if changed, err := s.Reload(); err != nil || changed {
+		t.Fatalf("own write: changed=%v err=%v, want false/nil", changed, err)
+	}
+
+	// program write through Update is also an echo for the reloader
+	if err := s.Update(func(c *Config) error {
+		c.Services["two"] = Service{Name: "two", URL: "https://two.example.com"}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	fired = 0
+	if changed, err := s.Reload(); err != nil || changed || fired != 0 {
+		t.Fatalf("after Update: changed=%v err=%v fired=%d, want false/nil/0", changed, err, fired)
+	}
+
+	// external edit is published, names filled in, subscribers run
+	if err := os.WriteFile(path, []byte("db_path: b.db\nservices:\n  ext:\n    url: https://ext.example.com\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := s.Reload()
+	if err != nil || !changed {
+		t.Fatalf("external edit: changed=%v err=%v, want true/nil", changed, err)
+	}
+	cfg := s.Get()
+	if *cfg.Database_Location != "b.db" || cfg.Services["ext"].Name != "ext" || len(cfg.Services) != 1 {
+		t.Errorf("reloaded config not applied: %+v", cfg)
+	}
+	if fired != 1 {
+		t.Errorf("subscribers fired %d times, want 1", fired)
+	}
+
+	// broken YAML keeps the last good config
+	if err := os.WriteFile(path, []byte("services: [::"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Reload(); err == nil {
+		t.Error("want parse error for invalid YAML")
+	}
+	if s.Get() != cfg {
+		t.Error("invalid YAML replaced the published config")
 	}
 }
