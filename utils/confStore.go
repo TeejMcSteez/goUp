@@ -108,7 +108,7 @@ func (s *ConfigStore) persist(c *Config) error {
 		return err
 	}
 	defer func(tmp *os.File) {
-		if err := os.Remove(tmp.Name()); err != nil {
+		if err := os.Remove(tmp.Name()); err != nil && !os.IsNotExist(err) {
 			slog.Error("failed to remove temp name persisting config", "ERROR", err)
 		}
 	}(tmp) // no-op after a successful rename
