@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log/slog"
-	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -138,19 +138,136 @@ func (s *ConfigStore) persist(c *Config) error {
 	return nil
 }
 
-// Deep-copy current config returned as a pointer to config
+// clonePtr returns a pointer to a fresh copy of *p (nil-safe).
+func clonePtr[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}
+
+// cloneSlicePtr copies both the slice header AND its backing array.
+func cloneSlicePtr[T any](p *[]T) *[]T {
+	if p == nil {
+		return nil
+	}
+	v := slices.Clone(*p)
+	return &v
+}
+
+// Value receivers: `s` is already a shallow copy (including unexported
+// fields like backoffDuration/lastFired), so only pointer fields need replacing.
+
+func (s Service) Clone() Service {
+	s.Description = clonePtr(s.Description)
+	s.API_URL = clonePtr(s.API_URL)
+	s.API_KEY = clonePtr(s.API_KEY)
+	s.Valid_Responses = cloneSlicePtr(s.Valid_Responses)
+	s.Retry_Requests = clonePtr(s.Retry_Requests)
+	s.Active = clonePtr(s.Active)
+	s.SkipInsecure = clonePtr(s.SkipInsecure)
+	return s
+}
+
+func (m MQTTTrigger) clone() MQTTTrigger {
+	m.Mqtt_broker = clonePtr(m.Mqtt_broker)
+	m.Mqtt_username = clonePtr(m.Mqtt_username)
+	m.Mqtt_key = clonePtr(m.Mqtt_key)
+	m.Backoff_Period = clonePtr(m.Backoff_Period)
+	return m
+}
+
+func (w WebhookTrigger) clone() WebhookTrigger {
+	w.Webhook_url = clonePtr(w.Webhook_url)
+	w.Webhook_key_string = clonePtr(w.Webhook_key_string)
+	w.Custom_message = clonePtr(w.Custom_message)
+	w.Backoff_Period = clonePtr(w.Backoff_Period)
+	return w
+}
+
+func (e SMTPTrigger) clone() SMTPTrigger {
+	e.Email = clonePtr(e.Email)
+	e.App_Password = clonePtr(e.App_Password)
+	e.SMTPServer = clonePtr(e.SMTPServer)
+	e.Backoff_Period = clonePtr(e.Backoff_Period)
+	return e
+}
+
+func (g GotifyTrigger) clone() GotifyTrigger {
+	g.Gotify_Server = clonePtr(g.Gotify_Server)
+	g.Gotify_Token = clonePtr(g.Gotify_Token)
+	g.Gotify_Application = clonePtr(g.Gotify_Application)
+	g.Gotify_Title = clonePtr(g.Gotify_Title)
+	g.Gotify_Priority = clonePtr(g.Gotify_Priority)
+	g.Backoff_Period = clonePtr(g.Backoff_Period)
+	return g
+}
+
+func (s SlackTrigger) clone() SlackTrigger {
+	s.Slack_Token = clonePtr(s.Slack_Token)
+	s.Slack_Channel = clonePtr(s.Slack_Channel)
+	s.Bot_Username = clonePtr(s.Bot_Username)
+	s.Backoff_Period = clonePtr(s.Backoff_Period)
+	return s
+}
+
+func (t TelegramTrigger) clone() TelegramTrigger {
+	t.Telegram_Token = clonePtr(t.Telegram_Token)
+	t.Telegram_Channel_Id = clonePtr(t.Telegram_Channel_Id)
+	t.Backoff_Period = clonePtr(t.Backoff_Period)
+	return t
+}
+
+func (h HATrigger) clone() HATrigger {
+	h.HA_Token = clonePtr(h.HA_Token)
+	h.HA_URL = clonePtr(h.HA_URL)
+	h.Backoff_Period = clonePtr(h.Backoff_Period)
+	return h
+}
+
+func (d DiscordTrigger) clone() DiscordTrigger {
+	d.Discord_Auth = clonePtr(d.Discord_Auth)
+	d.Discord_Channel = clonePtr(d.Discord_Channel)
+	d.Backoff_Period = clonePtr(d.Backoff_Period)
+	return d
+}
+
+// clone deep-copies every sub-trigger. It does NOT bind notifiers: the
+// returned value is copied again on assignment, so &n.MQTT here would point
+// at a temporary. Call bindNotifiers() on the final location instead.
+func (t Trigger) clone() Trigger {
+	t.MQTT = t.MQTT.clone()
+	t.Webhook = t.Webhook.clone()
+	t.SMTP = t.SMTP.clone()
+	t.Gotify = t.Gotify.clone()
+	t.Slack = t.Slack.clone()
+	t.Telegram = t.Telegram.clone()
+	t.HA = t.HA.clone()
+	t.Discord = t.Discord.clone()
+	t.Backoff_Period = clonePtr(t.Backoff_Period)
+	t.notifiers = nil
+	return t
+}
+
+// Deep-copy current config returned as a pointer to config.
+// Mutating the clone must never be visible through the original.
 func (s *Config) Clone() *Config {
 	n := *s
-	n.Services = maps.Clone(s.Services)
-	if s.Schedule != nil {
-		s := *s.Schedule
-		n.Schedule = &s
+	n.Database_Location = clonePtr(s.Database_Location)
+	n.Database_Max_Size = clonePtr(s.Database_Max_Size)
+	n.Persist_db = clonePtr(s.Persist_db)
+	n.Schedule = clonePtr(s.Schedule)
+
+	if s.Services != nil {
+		n.Services = make(map[string]Service, len(s.Services))
+		for k, svc := range s.Services {
+			n.Services[k] = svc.Clone()
+		}
 	}
-	if s.Database_Location != nil {
-		s := *s.Database_Location
-		n.Database_Location = &s
-	}
-	// TODO: handle rest of pointers with deep copy
+
+	n.Triggers = s.Triggers.clone()
+	n.Triggers.bindNotifiers() // point notifiers at n's fields, not s's
 	return &n
 }
 
