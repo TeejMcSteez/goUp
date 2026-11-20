@@ -15,7 +15,6 @@ import (
 	"goUp/utils"
 	"goUp/workers"
 	"log"
-	"maps"
 	"os"
 	"os/signal"
 	"reflect"
@@ -38,8 +37,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	// initial endpoint setup; later changes arrive via the subscriber below
+	if setupErr := utils.Setup(cfgStore.Get()); setupErr != nil {
+		log.Fatalf("Failed to setup services: %v", setupErr)
+	}
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfgStore.Get())
 	if err != nil {
 		log.Print("Error initializing database")
 		panic(err)
@@ -50,16 +53,13 @@ func main() {
 	// Starts all background workers
 	hub := server.NewHub()
 	go hub.Run()
+	// NewScheduler subscribes itself to schedule changes
 	sch := workers.NewScheduler(ctx, db, cfgStore, hub)
-	// updates scheduler with new schedule state
+	// rebuild monitored endpoints when services change. DeepEqual follows
+	// the pointer fields; maps.Equal compared their addresses, which always
+	// differ after Clone.
 	cfgStore.Subscribe(func(old, new *utils.Config) {
-		if !reflect.DeepEqual(old.Schedule, new.Schedule) {
-			sch.Reschedule(*new.Schedule)
-		}
-	})
-	// updates in memory config store used my services
-	cfgStore.Subscribe(func(old, new *utils.Config) {
-		if !maps.Equal(old.Services, new.Services) {
+		if !reflect.DeepEqual(old.Services, new.Services) {
 			if err := utils.Setup(new); err != nil {
 				log.Printf("failed to load new config after store update: %v", err)
 			}
@@ -70,18 +70,18 @@ func main() {
 		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
 	})
 	defer sch.Stop()
-	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); err != nil {
+	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); garabgeCollectErr != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
 	}
-	go workers.StartHotReloader(*configPath, ctx, db)
-	go workers.StartMemoryWatcher(ctx, db)
+	go workers.StartHotReloader(ctx, db, cfgStore)
+	go workers.StartMemoryWatcher(ctx, db, cfgStore)
 	go func() {
 		// Next is set in NewServer to use the DefaultServeMux
 		handler := server.GoupHandler{
 			Cors:   *cors,
 			Origin: origin,
 		}
-		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler, hub).Start(); err != nil {
+		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler, hub, cfgStore).Start(); serverCreateErr != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
@@ -102,7 +102,7 @@ func main() {
 	}
 	cfg := cfgStore.Get()
 	if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
-		if err := utils.CleanupDbFiles(); err != nil {
+		if err := utils.CleanupDbFiles(cfg); err != nil {
 			log.Printf("Error occured cleaning up the database: %v", err)
 		}
 	} else {
