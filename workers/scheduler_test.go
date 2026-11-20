@@ -10,20 +10,43 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
+
+// newTestStore returns a ConfigStore seeded with cfg, backed by a yaml file in
+// t.TempDir() (removed automatically). It goes through LoadFromFile so the
+// store is built exactly like production.
+func newTestStore(t *testing.T, cfg *utils.Config) *utils.ConfigStore {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yml")
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("Failed to marshal test config: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
+	}
+	store := utils.NewConfigStore(path)
+	if err := store.LoadFromFile(); err != nil {
+		t.Fatalf("Failed to load test config store: %v", err)
+	}
+	return store
+}
 
 // newTestScheduler creates a scheduler with a long initial duration so the
 // timer never fires during tests. Callers must defer s.Stop().
 func newTestScheduler(t *testing.T) *workers.Scheduler {
 	t.Helper()
 	var db *sql.DB
-	cfg := &utils.Config{
+	store := newTestStore(t, &utils.Config{
 		Schedule: &utils.ScheduleState{Span: 60, Interval: "minutes"},
-	}
-	s := workers.NewScheduler(t.Context(), db, cfg, nil)
+	})
+	s := workers.NewScheduler(t.Context(), db, store, nil)
 	return s
 }
 
@@ -284,7 +307,7 @@ func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
 	defer slog.SetDefault(prevLogger)
 
-	s := workers.NewScheduler(t.Context(), db, cfg, nil)
+	s := workers.NewScheduler(t.Context(), db, newTestStore(t, cfg), nil)
 	defer s.Stop()
 
 	// Fire() blocks on the unbuffered s.fire channel until the select loop
