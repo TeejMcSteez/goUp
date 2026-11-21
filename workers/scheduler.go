@@ -27,14 +27,15 @@ type Broadcaster interface {
 }
 
 type Scheduler struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	state  chan utils.ScheduleState
-	get    chan GetState
-	stop   chan struct{}
-	fire   chan struct{}
-	pub    Broadcaster
-	store  *utils.ConfigStore
+	ctx     context.Context
+	cancel  context.CancelFunc
+	state   chan utils.ScheduleState
+	get     chan GetState
+	stop    chan struct{}
+	fire    chan struct{}
+	pub     Broadcaster
+	store   *utils.ConfigStore
+	scanner *utils.Scanner
 }
 
 type fetchResult struct {
@@ -110,7 +111,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub Broadcaster) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner) *Scheduler {
 	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
@@ -121,14 +122,15 @@ func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub
 	}
 
 	s := &Scheduler{
-		ctx:    ctx,
-		cancel: cancel,
-		state:  make(chan utils.ScheduleState),
-		get:    make(chan GetState),
-		stop:   make(chan struct{}),
-		fire:   make(chan struct{}),
-		pub:    pub,
-		store:  store,
+		ctx:     ctx,
+		cancel:  cancel,
+		state:   make(chan utils.ScheduleState),
+		get:     make(chan GetState),
+		stop:    make(chan struct{}),
+		fire:    make(chan struct{}),
+		pub:     pub,
+		store:   store,
+		scanner: scanner,
 	}
 
 	// Any schedule change published to the store (API or hot reload) is
@@ -170,7 +172,7 @@ func hostOnline(ctx context.Context) bool {
 // (slow endpoints, retries), and the select loop must stay free to service
 // s.get/s.state/s.stop the whole time, or callers like GET/POST /api/schedule
 // would hang until the fetch finishes.
-func runFetchCycle(ctx context.Context, db *sql.DB, store *utils.ConfigStore, wasFailed bool, offlineSince time.Time, owedOffline time.Duration, pub Broadcaster) fetchResult {
+func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.ConfigStore, wasFailed bool, offlineSince time.Time, owedOffline time.Duration, pub Broadcaster) fetchResult {
 	// owedOffline > 0 means a restored notice failed to send last cycle;
 	// retry it before anything else. On failure keep it owed and carry on
 	// with the fetch rather than returning, so a broken trigger can't halt
@@ -186,7 +188,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, store *utils.ConfigStore, wa
 			owedOffline = 0
 		}
 	}
-	data, err := utils.GetServiceData(cfg)
+	data, err := s.scanner.GetServiceData(cfg)
 	if err != nil {
 		slog.Error("Failed fetching service data in scheduler", "error", err)
 		// probe instead of defaulting offline to false, which would clear
@@ -297,7 +299,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		}
 		fetching = true
 		go func(wasFailed bool, offlineSince time.Time, owedOffline time.Duration) {
-			fetchDone <- runFetchCycle(s.ctx, db, s.store, wasFailed, offlineSince, owedOffline, s.pub)
+			fetchDone <- s.runFetchCycle(s.ctx, db, s.store, wasFailed, offlineSince, owedOffline, s.pub)
 		}(hasFailed, offlineSince, owedOffline) // snapshot loop-owned state
 	}
 

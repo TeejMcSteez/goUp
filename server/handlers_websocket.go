@@ -276,7 +276,8 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 		}
 		data := []utils.AverageData{}
 		cfg := ws.store.Get()
-		for _, endpoint := range utils.GetServiceEndpoints() {
+		endpoints, _ := utils.Endpoints(cfg)
+		for _, endpoint := range endpoints {
 			upAvg, err := fetch(ws.db, cfg, endpoint.Name)
 			if err != nil {
 				slog.Error("failed to get uptime data for websocket client", "service", endpoint.Name, "ERROR", err)

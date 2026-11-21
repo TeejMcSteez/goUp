@@ -46,10 +46,6 @@ services:
 		t.Fatalf("Failed to load configuration file: %v", err)
 	}
 
-	if err := utils.Setup(cfg); err != nil {
-		t.Fatalf("Initial Setup() failed: %v", err)
-	}
-
 	initialSize, err := utils.GetDatabaseSize(cfg)
 	if err != nil {
 		t.Fatalf("Failed to get initial database size: %v", err)

@@ -179,12 +179,6 @@ func (s Service) IsActive() bool {
 	return s.Active == nil || *s.Active
 }
 
-// Shared service endpoint struct
-type ServiceEndpoints struct {
-	Mux             *sync.RWMutex
-	ServiceEndpoint []Service
-}
-
 // Service data from GetServiceData
 type ServiceData struct {
 	ServiceURL          string    `json:"url"`

@@ -33,23 +33,17 @@ func TestStress(t *testing.T) {
 	}))
 	defer server.Close()
 
-	services := make([]utils.Service, numServices)
 	cfgServices := make(map[string]utils.Service, numServices)
 	for i := range numServices {
 		name := fmt.Sprintf("stress-service-%03d", i+1)
 		svc := utils.Service{Name: name, URL: server.URL}
-		services[i] = svc
 		cfgServices[name] = svc
 	}
 
-	utils.SetServiceEndpoints(services)
 	cfg := &utils.Config{Services: cfgServices}
-	defer func() {
-		utils.SetServiceEndpoints([]utils.Service{})
-	}()
 
 	start := time.Now()
-	resp, err := utils.GetServiceData(cfg)
+	resp, err := utils.NewScanner().GetServiceData(cfg)
 	elapsed := time.Since(start)
 
 	if err != nil {

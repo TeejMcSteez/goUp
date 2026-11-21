@@ -52,9 +52,6 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
 	})
-	utils.SetServiceEndpoints([]utils.Service{
-		{Name: "test_service", URL: "http://example.com"},
-	})
 
 	db, err := utils.InitDB(store.Get())
 	if err != nil {
@@ -63,7 +60,7 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, store, hub)
+	scd := scheduler.NewScheduler(t.Context(), db, store, hub, utils.NewScanner())
 	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
@@ -74,7 +71,6 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 		if err := os.Remove(dbPath); err != nil {
 			t.Errorf("Failed to remove database file on cleanup: %v", err)
 		}
-		utils.SetServiceEndpoints([]utils.Service{})
 	}
 
 	return db, scd, srv, cleanup
@@ -383,8 +379,7 @@ func TestNewServer_NotNil(t *testing.T) {
 }
 
 // setupTestEnvWithConfig is like setupTestEnv but uses a separate DB file.
-// ConfigPath points at the store's temp yaml file, so handlers that call
-// writeConfig (config mutations) don't fail on empty ConfigPath.
+// The store is backed by a temp yaml file, so config mutations persist there.
 func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, func()) {
 	t.Helper()
 	dbPath := "./test_server_cfg.db"
@@ -395,9 +390,6 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
 	})
-	utils.SetServiceEndpoints([]utils.Service{
-		{Name: "test_service", URL: "http://example.com"},
-	})
 
 	db, err := utils.InitDB(store.Get())
 	if err != nil {
@@ -406,7 +398,7 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, store, hub)
+	scd := scheduler.NewScheduler(t.Context(), db, store, hub, utils.NewScanner())
 	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
@@ -417,7 +409,6 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 		if err := os.Remove(dbPath); err != nil {
 			slog.Error("Failed to remove database file", "error", err)
 		}
-		utils.SetServiceEndpoints([]utils.Service{})
 	}
 	return db, scd, srv, cleanup
 }

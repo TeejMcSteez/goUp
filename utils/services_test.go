@@ -1,162 +1,95 @@
 package utils_test
 
 import (
+	"errors"
 	"goUp/utils"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
 )
 
-// This helper function creates a temporary services.yml for testing Setup()
-func createTestYML(content string, t *testing.T) func() {
-	// The path in Setup() is hardcoded to "services.yml".
-	err := os.WriteFile("services.yml", []byte(content), 0644)
+func TestEndpointsFollowConfig(t *testing.T) {
+	cfg := &utils.Config{Services: map[string]utils.Service{
+		"service3": {URL: "https://www.apple.com"},
+		"service2": {URL: "https://example.com"},
+	}}
+	eps, err := utils.Endpoints(cfg)
 	if err != nil {
-		t.Fatalf("Failed to create test services.yml: %v", err)
+		t.Fatalf("Endpoints() failed: %v", err)
 	}
-	return func() {
-		if err := os.Remove("services.yml"); err != nil {
-			t.Errorf("Failed to remove test config file: %v", err)
-		}
+	// Name comes from the map key, order is sorted by name
+	if len(eps) != 2 || eps[0].Name != "service2" || eps[1].Name != "service3" {
+		t.Fatalf("Expected [service2 service3], got %+v", eps)
+	}
+
+	// A new snapshot fully replaces the list: no cached state carries over
+	cfg = &utils.Config{Services: map[string]utils.Service{
+		"service2": {URL: "https://example.com"},
+		"service4": {URL: "https://www.google.com"},
+	}}
+	eps, err = utils.Endpoints(cfg)
+	if err != nil {
+		t.Fatalf("Endpoints() failed: %v", err)
+	}
+	if len(eps) != 2 || eps[0].Name != "service2" || eps[1].Name != "service4" {
+		t.Fatalf("Expected [service2 service4], got %+v", eps)
 	}
 }
 
-func TestSetupServiceChanges(t *testing.T) {
-	ymlContent1 := `db_path: "./test_data.db"
-services:
-  service2:
-    url: "https://example.com"
-    retry: 2
-  service3:
-    url: "https://www.apple.com"
-    retry: 2
-`
-	cleanup1 := createTestYML(ymlContent1, t)
-	defer cleanup1()
-	defer func() {
-		if err := os.Remove("./test_data.db"); err != nil && !os.IsNotExist(err) {
-			t.Errorf("Failed to remove test database: %v", err)
-		}
-	}()
-
-	// Ensure endpoints are empty before setup
-	utils.SetServiceEndpoints([]utils.Service{})
-
-	cfg, err := loadConfig("services.yml")
+// TestEndpointsReflectFieldChanges ensures a field change on a service with
+// an unchanged URL (e.g. toggling Active) shows up in the endpoint list.
+func TestEndpointsReflectFieldChanges(t *testing.T) {
+	inactive := false
+	cfg := &utils.Config{Services: map[string]utils.Service{
+		"service1": {URL: "https://example.com", Active: &inactive},
+	}}
+	eps, err := utils.Endpoints(cfg)
 	if err != nil {
-		t.Fatalf("Failed to load config: %v", err)
+		t.Fatalf("Endpoints() failed: %v", err)
 	}
-
-	err = utils.Setup(cfg)
-	if err != nil {
-		t.Fatalf("Initial Setup() failed: %v", err)
-	}
-	endpoints1 := utils.GetServiceEndpoints()
-	if len(endpoints1) != 2 {
-		t.Fatalf("Expected 2 endpoints after initial setup, got %d", len(endpoints1))
-	}
-
-	ymlContent2 := `db_path: "./test_data.db"
-services:
-  service2:
-    url: "https://example.com"
-    retry: 2
-  service4:
-    url: "https://www.google.com"
-    retry: 1
-`
-	createTestYML(ymlContent2, t)
-
-	cfg, err = loadConfig("services.yml")
-	if err != nil {
-		t.Fatalf("Failed to reload config: %v", err)
-	}
-
-	err = utils.Setup(cfg)
-	if err != nil {
-		t.Fatalf("Second Setup() failed: %v", err)
-	}
-
-	endpoints2 := utils.GetServiceEndpoints()
-	if len(endpoints2) != 2 {
-		t.Fatalf("Expected 2 endpoints after update, got %d. Endpoints: %+v", len(endpoints2), endpoints2)
-	}
-
-	foundService2 := false
-	foundService4 := false
-	for _, s := range endpoints2 {
-		if s.Name == "service2" {
-			foundService2 = true
-		}
-		if s.Name == "service4" {
-			foundService4 = true
-		}
-	}
-
-	if !foundService2 || !foundService4 {
-		t.Errorf("Expected service2 and service4 to be present after update, but they were not. Endpoints: %+v", endpoints2)
+	if len(eps) != 1 || eps[0].IsActive() {
+		t.Fatalf("Expected 1 inactive endpoint, got %+v", eps)
 	}
 }
 
-// TestSetupRefreshesExistingServiceFields ensures that when a service's URL is
-// unchanged but its other fields change (e.g. toggling Active), Setup()
-// refreshes the live endpoint list instead of keeping the stale cached copy.
-func TestSetupRefreshesExistingServiceFields(t *testing.T) {
-	ymlContent1 := `db_path: "./test_data.db"
-services:
-  service1:
-    url: "https://example.com"
-    retry: 2
-`
-	cleanup1 := createTestYML(ymlContent1, t)
-	defer cleanup1()
-	defer func() {
-		if err := os.Remove("./test_data.db"); err != nil && !os.IsNotExist(err) {
-			t.Errorf("Failed to remove test database: %v", err)
-		}
-	}()
+func TestEndpointsErrors(t *testing.T) {
+	if _, err := utils.Endpoints(nil); err == nil {
+		t.Error("Expected error for nil config")
+	}
+	var noSvc *utils.NoServiceEndpointsError
+	if _, err := utils.Endpoints(&utils.Config{}); !errors.As(err, &noSvc) {
+		t.Errorf("Expected NoServiceEndpointsError for nil Services, got %v", err)
+	}
+	eps, err := utils.Endpoints(&utils.Config{Services: map[string]utils.Service{}})
+	if err != nil || len(eps) != 0 {
+		t.Errorf("Expected empty list and no error for empty Services, got %v, %v", eps, err)
+	}
+}
 
-	utils.SetServiceEndpoints([]utils.Service{})
+// Disabled services are skipped: no fetch, no row, not reported down.
+func TestGetServiceDataSkipsInactive(t *testing.T) {
+	hits := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
 
-	cfg, err := loadConfig("services.yml")
+	inactive := false
+	cfg := &utils.Config{Services: map[string]utils.Service{
+		"on":  {URL: server.URL},
+		"off": {URL: server.URL + "/off", Active: &inactive},
+	}}
+	svcResponse, err := utils.NewScanner().GetServiceData(cfg)
 	if err != nil {
-		t.Fatalf("Failed to load config: %v", err)
+		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
-	if err := utils.Setup(cfg); err != nil {
-		t.Fatalf("Initial Setup() failed: %v", err)
+	if len(svcResponse.AllServices) != 1 || svcResponse.AllServices[0].ServiceName != "on" {
+		t.Errorf("Expected only 'on' in results, got %+v", svcResponse.AllServices)
 	}
-
-	endpoints := utils.GetServiceEndpoints()
-	if len(endpoints) != 1 || !endpoints[0].IsActive() {
-		t.Fatalf("Expected 1 active endpoint after initial setup, got: %+v", endpoints)
-	}
-
-	// Same URL, but now explicitly disabled.
-	ymlContent2 := `db_path: "./test_data.db"
-services:
-  service1:
-    url: "https://example.com"
-    retry: 2
-    active: false
-`
-	createTestYML(ymlContent2, t)
-
-	cfg, err = loadConfig("services.yml")
-	if err != nil {
-		t.Fatalf("Failed to reload config: %v", err)
-	}
-	if err := utils.Setup(cfg); err != nil {
-		t.Fatalf("Second Setup() failed: %v", err)
-	}
-
-	endpoints = utils.GetServiceEndpoints()
-	if len(endpoints) != 1 {
-		t.Fatalf("Expected 1 endpoint after update, got %d. Endpoints: %+v", len(endpoints), endpoints)
-	}
-	if endpoints[0].IsActive() {
-		t.Errorf("Expected service1 to be inactive after config update, but Setup() kept the stale cached endpoint. Endpoints: %+v", endpoints)
+	if hits != 1 {
+		t.Errorf("Expected 1 request, got %d", hits)
 	}
 }
 
@@ -184,7 +117,6 @@ func TestGetServiceData(t *testing.T) {
 	services := []utils.Service{
 		{Name: "test-service", URL: server.URL, API_URL: &apiURL, API_KEY: &apiKey},
 	}
-	utils.SetServiceEndpoints(services)
 
 	cfg := &utils.Config{
 		Services: map[string]utils.Service{
@@ -192,7 +124,7 @@ func TestGetServiceData(t *testing.T) {
 		},
 	}
 
-	svcResponse, err := utils.GetServiceData(cfg)
+	svcResponse, err := utils.NewScanner().GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
@@ -233,7 +165,6 @@ func TestGetServiceDataRetry(t *testing.T) {
 	services := []utils.Service{
 		{Name: "retry-service", URL: server.URL, Retry_Requests: &retryNum},
 	}
-	utils.SetServiceEndpoints(services)
 
 	cfg := &utils.Config{
 		Services: map[string]utils.Service{
@@ -241,7 +172,7 @@ func TestGetServiceDataRetry(t *testing.T) {
 		},
 	}
 
-	svcResponse, err := utils.GetServiceData(cfg)
+	svcResponse, err := utils.NewScanner().GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
@@ -266,20 +197,18 @@ func TestGetServiceDataValidResponses(t *testing.T) {
 
 	validResponses := []string{"200", "201", "204", "301", "302"}
 	service := utils.Service{Name: "multi-status-service", URL: server.URL, Valid_Responses: &validResponses}
-	utils.SetServiceEndpoints([]utils.Service{service})
 
 	cfg := &utils.Config{
 		Services: map[string]utils.Service{
 			"multi-status-service": service,
 		},
 	}
-	// Clear for other tests
 
 	// Every configured status code should be reported as up, regardless of
 	// which one the endpoint returns on a particular fetch.
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusNoContent, http.StatusMovedPermanently, http.StatusFound} {
 		statusCode = code
-		svcResponse, err := utils.GetServiceData(cfg)
+		svcResponse, err := utils.NewScanner().GetServiceData(cfg)
 		if err != nil {
 			t.Fatalf("GetServiceData returned an error for status %d: %v", code, err)
 		}
@@ -298,7 +227,7 @@ func TestGetServiceDataValidResponses(t *testing.T) {
 
 	// A response outside the configured list must be flagged as down.
 	statusCode = http.StatusInternalServerError
-	svcResponse, err := utils.GetServiceData(cfg)
+	svcResponse, err := utils.NewScanner().GetServiceData(cfg)
 	if err != nil {
 		t.Fatalf("GetServiceData returned an error: %v", err)
 	}
