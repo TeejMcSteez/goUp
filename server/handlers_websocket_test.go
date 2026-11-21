@@ -20,14 +20,13 @@ func dialTestWs(t *testing.T) *websocket.Conn {
 	t.Helper()
 	dbPath := "./test_ws.db"
 	cfgPath := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(cfgPath, []byte("db_path: "+dbPath+"\nschedule:\n  span: 60\n  interval: seconds\n"), 0o600); err != nil {
+	if err := os.WriteFile(cfgPath, []byte("db_path: "+dbPath+"\nschedule:\n  span: 60\n  interval: seconds\nservices:\n  test_service:\n    url: http://example.com\n"), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 	store := utils.NewConfigStore(cfgPath)
 	if err := store.LoadFromFile(); err != nil {
 		t.Fatalf("load config: %v", err)
 	}
-	utils.SetServiceEndpoints([]utils.Service{{Name: "test_service", URL: "http://example.com"}})
 	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("init db: %v", err)
@@ -55,7 +54,6 @@ func dialTestWs(t *testing.T) *websocket.Conn {
 		ts.Close()
 		_ = db.Close()
 		_ = os.Remove(dbPath)
-		utils.SetServiceEndpoints([]utils.Service{})
 	})
 	return conn
 }
