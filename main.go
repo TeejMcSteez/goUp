@@ -17,7 +17,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"reflect"
 	"syscall"
 )
 
@@ -37,11 +36,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	// initial endpoint setup; later changes arrive via the subscriber below
-	if setupErr := utils.Setup(cfgStore.Get()); setupErr != nil {
-		log.Fatalf("Failed to setup services: %v", setupErr)
-	}
-
 	db, err := utils.InitDB(cfgStore.Get())
 	if err != nil {
 		log.Print("Error initializing database")
@@ -53,18 +47,10 @@ func main() {
 	// Starts all background workers
 	hub := server.NewHub()
 	go hub.Run()
-	// NewScheduler subscribes itself to schedule changes
-	sch := workers.NewScheduler(ctx, db, cfgStore, hub)
-	// rebuild monitored endpoints when services change. DeepEqual follows
-	// the pointer fields; maps.Equal compared their addresses, which always
-	// differ after Clone.
-	cfgStore.Subscribe(func(old, new *utils.Config) {
-		if !reflect.DeepEqual(old.Services, new.Services) {
-			if err := utils.Setup(new); err != nil {
-				log.Printf("failed to load new config after store update: %v", err)
-			}
-		}
-	})
+	// NewScheduler subscribes itself to schedule changes. The scanner reads
+	// endpoints from each cycle's config snapshot, so service changes need
+	// no subscriber.
+	sch := workers.NewScheduler(ctx, db, cfgStore, hub, utils.NewScanner())
 	// notify websocket client configuration has been updated
 	cfgStore.Subscribe(func(_, new *utils.Config) {
 		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
