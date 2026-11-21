@@ -21,5 +21,4 @@ Goal: remove the global `utils.Current_Config` (and `configMu`) and make `utils.
 - [ ] `UpdateConfigService` / `DeleteConfigService` touch the DB inside the `Update` closure (under the store lock, and before the save can fail). Move the DB work into the handler after a successful `Update`
 - [ ] `DbGarbageCollect` is still called manually (handlers, hot reloader, startup) rather than from a subscriber. A subscriber would run before the handler's DB rename, so ordering needs thought first
 - [ ] Subscribers run while holding `wmu` (see TODO in `Subscribe`); the scheduler's subscriber blocks until its loop accepts the new schedule
-- [ ] `CleanupDbFiles` removes the `.db` file but leaves `-wal` / `-shm`
 - [ ] Keep `Config.Clone` in sync when adding pointer/slice/map fields to `Config`, `Service`, or any `*Trigger` (covered by `TestConfigCloneIsDeep`)
