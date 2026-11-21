@@ -55,27 +55,14 @@ func newTestStoreYAML(t *testing.T, content string) *utils.ConfigStore {
 
 // newTestScheduler creates a scheduler with a long initial duration so the
 // timer never fires during tests. The config has no services key, so a fetch
-// cycle fails fast in GetServiceData (NoServiceEndpointsError) instead of
+// cycle fails fast in Scanner.GetServiceData (NoServiceEndpointsError) instead of
 // making network calls. Callers must defer s.Stop().
 func newTestScheduler(t *testing.T) *workers.Scheduler {
 	t.Helper()
 	var db *sql.DB
 	store := newTestStoreYAML(t, "schedule:\n  span: 60\n  interval: minutes\n")
-	s := workers.NewScheduler(t.Context(), db, store, nil)
+	s := workers.NewScheduler(t.Context(), db, store, nil, utils.NewScanner())
 	return s
-}
-
-// withEmptyServiceConfig resets utils' cached endpoint list to empty, both
-// so this test doesn't inherit endpoints left behind by another test and so
-// it doesn't leave any behind for the next one. GetServiceData only
-// re-derives that list from the scheduler's config (which has no services,
-// see newTestScheduler) when it's empty.
-func withEmptyServiceConfig(t *testing.T) {
-	t.Helper()
-	utils.SetServiceEndpoints([]utils.Service{})
-	t.Cleanup(func() {
-		utils.SetServiceEndpoints([]utils.Service{})
-	})
 }
 
 // syncBuffer is a concurrency-safe io.Writer, since fetch cycles run on a
@@ -202,8 +189,6 @@ func TestSchedulerUpdateValidIntervalVariants(t *testing.T) {
 // fetchDone case observes its completion and clears the fetching flag,
 // leaving the scheduler's select loop free to keep servicing requests.
 func TestSchedulerFireRunsFetchCycle(t *testing.T) {
-	withEmptyServiceConfig(t)
-
 	buf := &syncBuffer{}
 	prevLogger := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
@@ -230,8 +215,6 @@ func TestSchedulerFireRunsFetchCycle(t *testing.T) {
 // case is non-blocking (the actual fetch runs on its own goroutine), so the
 // scheduler's select loop stays responsive to Get() immediately after.
 func TestSchedulerFireDoesNotBlockScheduler(t *testing.T) {
-	withEmptyServiceConfig(t)
-
 	buf := &syncBuffer{}
 	prevLogger := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
@@ -253,7 +236,7 @@ func TestSchedulerFireDoesNotBlockScheduler(t *testing.T) {
 	}
 
 	// Wait for the fetch goroutine to actually finish before the test returns
-	// and withEmptyServiceConfig's cleanup resets endpoints under it.
+	// and the test's logger is restored under it.
 	waitForLog(t, buf, "Failed fetching service data in scheduler", 2*time.Second)
 }
 
@@ -284,13 +267,8 @@ func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
 			"Slow": {Name: "Slow", URL: srv.URL},
 		},
 	}
-	// Bypass Setup() and point utils directly at our slow endpoint, so the
-	// fetch is guaranteed to take fetchDelay regardless of what endpoint
-	// list an earlier test may have left behind.
-	utils.SetServiceEndpoints([]utils.Service{{Name: "Slow", URL: srv.URL}})
-	t.Cleanup(func() {
-		utils.SetServiceEndpoints([]utils.Service{})
-	})
+	// The scanner reads endpoints from this config each cycle, so the
+	// fetch always hits the slow server; no shared state to reset.
 
 	db, err := utils.InitDB(cfg)
 	if err != nil {
@@ -310,7 +288,7 @@ func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
 	defer slog.SetDefault(prevLogger)
 
-	s := workers.NewScheduler(t.Context(), db, newTestStore(t, cfg), nil)
+	s := workers.NewScheduler(t.Context(), db, newTestStore(t, cfg), nil, utils.NewScanner())
 	defer s.Stop()
 
 	// Fire() blocks on the unbuffered s.fire channel until the select loop
