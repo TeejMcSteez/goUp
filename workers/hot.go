@@ -60,6 +60,8 @@ func startHotReloader(ctx context.Context, db *sql.DB, store *utils.ConfigStore,
 				slog.Error("Hot reload GC failed: database is nil")
 				continue
 			}
+			// TODO: add tests to ensure Store subscribers garabge collect on update from anywhere
+			// removing the need for garbage collect from mutators
 			if err := utils.DbGarbageCollect(db, store.Get()); err != nil {
 				slog.Error("Hot reload GC failed", "error", err)
 			}

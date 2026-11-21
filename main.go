@@ -15,6 +15,7 @@ import (
 	"goUp/utils"
 	"goUp/workers"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,6 +55,12 @@ func main() {
 	// notify websocket client configuration has been updated
 	cfgStore.Subscribe(func(_, new *utils.Config) {
 		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
+	})
+	// collect removed services from database on configuration change
+	cfgStore.Subscribe(func(_, new *utils.Config) {
+		if err := utils.DbGarbageCollect(db, new); err != nil {
+			slog.Error("failed to garbage collect database on store update", "ERROR", err)
+		}
 	})
 	defer sch.Stop()
 	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); garabgeCollectErr != nil {
