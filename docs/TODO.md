@@ -14,10 +14,9 @@ Goal: remove the global `utils.Current_Config` (and `configMu`) and make `utils.
 - [x] `workers/hot.go`: `store.Reload()` skips its own writes by hash (`lastWritten`, read under `wmu`) and runs subscribers. A bad edit no longer stops the reloader
 - [x] `workers/memory.go`: reads max size and db path from the store every tick
 - [x] Tests: no test sets a global config any more
+- [x] `utils/scanner.go`: stateless `Scanner` derives endpoints from each config snapshot (`Endpoints(cfg)`). `services.go`, `svcEndpoints`, `Setup`, the startup Setup call and the services subscriber are gone. Tests put endpoints in the config's `Services` instead of a global
 
 **Remaining**
-- [ ] `main.go` still calls `utils.Setup(cfgStore.Get())` once at startup because `LoadFromFile` doesn't run subscribers. Fine as is, or add a `LoadFromFile` variant that does
-- [ ] Endpoint list (`svcEndpoints` in `utils/services.go`) is still package-level state rebuilt by `Setup`; could move onto a struct owned by the scheduler
 - [ ] Notifier `lastFired` is updated by `Send` on the published snapshot while `Clone` may be reading it. Move backoff state out of `Config` (e.g. a notifier registry keyed by name), or guard it
 - [ ] `UpdateConfigService` / `DeleteConfigService` touch the DB inside the `Update` closure (under the store lock, and before the save can fail). Move the DB work into the handler after a successful `Update`
 - [ ] `DbGarbageCollect` is still called manually (handlers, hot reloader, startup) rather than from a subscriber. A subscriber would run before the handler's DB rename, so ordering needs thought first
