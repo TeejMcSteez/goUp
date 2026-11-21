@@ -2,6 +2,8 @@ package utils_test
 
 import (
 	"goUp/utils"
+	"os"
+	"testing"
 )
 
 // loadConfig reads path through a fresh ConfigStore, the same way main does.
@@ -29,4 +31,16 @@ func apply(conf *utils.Config, fn func(*utils.Config) (*utils.Config, error)) er
 		*c = *conf.Clone()
 		return nil
 	})
+}
+
+// createTestYML writes content to ./services.yml and returns a cleanup func.
+func createTestYML(content string, t *testing.T) func() {
+	if err := os.WriteFile("services.yml", []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to create test services.yml: %v", err)
+	}
+	return func() {
+		if err := os.Remove("services.yml"); err != nil {
+			t.Errorf("Failed to remove test config file: %v", err)
+		}
+	}
 }

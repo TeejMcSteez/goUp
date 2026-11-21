@@ -135,7 +135,7 @@ func TestFetchOneHandlesRequestErrorWithoutRetries(t *testing.T) {
 
 	svc := Service{Name: "unreachable-service", URL: url}
 
-	sd, status := fetchOne(svc)
+	sd, status := NewScanner().fetchOne(svc)
 
 	if sd.ServiceName != "unreachable-service" {
 		t.Errorf("Expected ServiceName to be set, got %q", sd.ServiceName)
@@ -203,5 +203,14 @@ func TestCheckTlsPopulatesStatus(t *testing.T) {
 	}
 	if status.First_seen.IsZero() || status.Last_checked.IsZero() {
 		t.Error("Expected First_seen and Last_checked to be set")
+	}
+}
+
+// A URL http.NewRequest rejects used to leave req nil and panic on
+// req.Header.Add; it must come back as a failed fetch instead.
+func TestFetchOneHandlesInvalidURL(t *testing.T) {
+	sd, _ := NewScanner().fetchOne(Service{Name: "bad-url", URL: "http://bad host/"})
+	if sd.ServiceHTTPResponse == "" {
+		t.Error("Expected ServiceHTTPResponse to contain the request error")
 	}
 }

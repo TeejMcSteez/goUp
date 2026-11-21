@@ -132,12 +132,6 @@ func TestGetRecentData(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	// SetServiceEndpoints will be used to determine the limit.
-	utils.SetServiceEndpoints([]utils.Service{
-		{Name: "service1", URL: "http://service1.com"},
-		{Name: "service2", URL: "http://service2.com"},
-	})
-
 	allTestData := []utils.ServiceData{
 		{ServiceName: "service1", ServiceHTTPResponse: "200"},
 		{ServiceName: "service2", ServiceHTTPResponse: "200"},
@@ -157,7 +151,8 @@ func TestGetRecentData(t *testing.T) {
 		t.Fatalf("Failed to get recent data: %v", err)
 	}
 
-	numOfServices := len(utils.GetServiceEndpoints())
+	// two services inserted -> latest row per service
+	const numOfServices = 2
 	if len(recentData) != numOfServices {
 		t.Errorf("Expected %d recent data points, got %d", numOfServices, len(recentData))
 	}

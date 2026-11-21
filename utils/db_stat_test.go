@@ -25,10 +25,6 @@ services:
 		t.Fatalf("Failed to load configuration file: %v", err)
 	}
 
-	if err := utils.Setup(cfg); err != nil {
-		t.Fatalf("Error occured during setup: %v", err)
-	}
-
 	db, err := utils.InitDB(cfg)
 	if err != nil {
 		t.Fatalf("Error occured during DB init: %v", err)
@@ -64,10 +60,6 @@ services:
 	cfg, err := loadConfig("services.yml")
 	if err != nil {
 		t.Fatalf("Failed to load configuration file: %v", err)
-	}
-
-	if err := utils.Setup(cfg); err != nil {
-		t.Fatalf("Error occured during setup: %v", err)
 	}
 
 	db, err := utils.InitDB(cfg)
