@@ -149,12 +149,20 @@ func AddConfigDiscordTrigger(config *Config, newDiscord DiscordTrigger) (*Config
 	return setTrigger(config, &config.Triggers.Discord, newDiscord, "discord")
 }
 
+// TODO: refactor GC to be aware of renames
+// so renames do not cause history deletion
+// on updates
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) (*Config, error) {
 	if conf == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
 	if _, exists := conf.Services[oldName]; !exists {
 		return nil, fmt.Errorf("service %q not found", oldName)
+	}
+	if oldName != updated.Name {
+		if err := DbServiceRename(db, oldName, updated.Name); err != nil {
+			return nil, fmt.Errorf("failed to rename service in database: %w", err)
+		}
 	}
 	delete(conf.Services, oldName)
 

@@ -185,13 +185,6 @@ func (s *Server) configServicePut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if payload.OldName != payload.Service.Name {
-		if err := utils.DbServiceRename(s.db, payload.OldName, payload.Service.Name); err != nil {
-			slog.Error("failed to rename service in database")
-			http.Error(w, "failed to rename service in database", http.StatusInternalServerError)
-			return
-		}
-	}
 	if err := utils.UpdateServiceTls(s.db, payload.OldName, payload.Service.Name); err != nil {
 		slog.Error("Error updating TLS service name", "error", err)
 		http.Error(w, "failed to update TLS certificate for service", http.StatusInternalServerError)
