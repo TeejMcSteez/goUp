@@ -22,16 +22,12 @@ func TestServiceCheck(t *testing.T) {
 			},
 		},
 	}
-	utils.Current_Config = cfg
-	defer func() {
-		utils.Current_Config = nil
-	}()
 
 	sd := []utils.ServiceData{
 		{ServiceName: "test1", ServiceHTTPResponse: "200", ServiceAPIResponse: "", ServiceResponseTime: 0},
 		{ServiceName: "test2", ServiceHTTPResponse: "303", ServiceAPIResponse: "", ServiceResponseTime: 0},
 	}
-	res, err := utils.Check(sd)
+	res, err := utils.Check(cfg, sd)
 
 	if err != nil {
 		t.Errorf("Error checking data: %v", err)
@@ -43,10 +39,10 @@ func TestServiceCheck(t *testing.T) {
 }
 
 func TestUptimeRounding(t *testing.T) {
-	db, cleanup := setupTestDB(t)
+	db, cfg, cleanup := setupTestDBConfig(t)
 	defer cleanup()
 
-	utils.Current_Config.Services = map[string]utils.Service{
+	cfg.Services = map[string]utils.Service{
 		"roundService": {
 			Name:            "roundService",
 			URL:             "http://test.com",
@@ -67,7 +63,7 @@ func TestUptimeRounding(t *testing.T) {
 		}
 	}
 
-	avg, err := utils.GetUptimeAverage(db, "roundService")
+	avg, err := utils.GetUptimeAverage(db, cfg, "roundService")
 	if err != nil {
 		t.Fatalf("Error getting uptime average: %v", err)
 	}
@@ -79,10 +75,10 @@ func TestUptimeRounding(t *testing.T) {
 }
 
 func TestUptimeCalculation(t *testing.T) {
-	db, cleanup := setupTestDB(t)
+	db, cfg, cleanup := setupTestDBConfig(t)
 	defer cleanup()
 
-	utils.Current_Config.Services = map[string]utils.Service{
+	cfg.Services = map[string]utils.Service{
 		"testService": {
 			Name:            "testService",
 			URL:             "http://test.com",
@@ -104,7 +100,7 @@ func TestUptimeCalculation(t *testing.T) {
 		}
 	}
 
-	avg, err := utils.GetUptimeAverage(db, "testService")
+	avg, err := utils.GetUptimeAverage(db, cfg, "testService")
 	if err != nil {
 		t.Fatalf("Error getting uptime average: %v", err)
 	}
@@ -116,7 +112,7 @@ func TestUptimeCalculation(t *testing.T) {
 }
 
 func TestGetPastUptimeFunctions(t *testing.T) {
-	type uptimeFunc func(*sql.DB, string) (*float64, error)
+	type uptimeFunc func(*sql.DB, *utils.Config, string) (*float64, error)
 
 	cases := []struct {
 		name   string
@@ -131,24 +127,24 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 		{"GetPastYearUptime", utils.GetPastYearUptime, 8760 * time.Hour},
 	}
 
-	setupService := func(t *testing.T, serviceName string) *sql.DB {
-		db, cleanup := setupTestDB(t)
+	setupService := func(t *testing.T, serviceName string) (*sql.DB, *utils.Config) {
+		db, cfg, cleanup := setupTestDBConfig(t)
 		t.Cleanup(cleanup)
 
-		utils.Current_Config.Services = map[string]utils.Service{
+		cfg.Services = map[string]utils.Service{
 			serviceName: {
 				Name:            serviceName,
 				URL:             "http://test.com",
 				Valid_Responses: &[]string{"200"},
 			},
 		}
-		return db
+		return db, cfg
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name+"/WithinWindow", func(t *testing.T) {
 			serviceName := "svc_" + tc.name
-			db := setupService(t, serviceName)
+			db, cfg := setupService(t, serviceName)
 
 			now := time.Now()
 			testData := []utils.ServiceData{
@@ -166,7 +162,7 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 				}
 			}
 
-			avg, err := tc.fn(db, serviceName)
+			avg, err := tc.fn(db, cfg, serviceName)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -186,7 +182,7 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 
 		t.Run(tc.name+"/OutsideWindowOnly", func(t *testing.T) {
 			serviceName := "svc_outside_" + tc.name
-			db := setupService(t, serviceName)
+			db, cfg := setupService(t, serviceName)
 
 			now := time.Now()
 			sd := utils.ServiceData{
@@ -198,7 +194,7 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 				t.Fatalf("Failed to insert data: %v", err)
 			}
 
-			avg, err := tc.fn(db, serviceName)
+			avg, err := tc.fn(db, cfg, serviceName)
 			if err != nil {
 				t.Errorf("Expected nil error, but got: %v", err)
 			}
@@ -209,9 +205,9 @@ func TestGetPastUptimeFunctions(t *testing.T) {
 
 		t.Run(tc.name+"/NoData", func(t *testing.T) {
 			serviceName := "svc_empty_" + tc.name
-			db := setupService(t, serviceName)
+			db, cfg := setupService(t, serviceName)
 
-			avg, err := tc.fn(db, serviceName)
+			avg, err := tc.fn(db, cfg, serviceName)
 			if err != nil {
 				t.Errorf("Expected nil error, but got: %v", err)
 			}

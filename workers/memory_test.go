@@ -10,14 +10,12 @@ import (
 
 const oneGB = 1 * 1e9
 
-func setMaxSize(s string) func() {
-	utils.Current_Config = &utils.Config{Database_Max_Size: &s}
-	return func() { utils.Current_Config = nil }
+func maxSizeConfig(s string) *utils.Config {
+	return &utils.Config{Database_Max_Size: &s}
 }
 
 func TestGetMaxSizeNilConfig(t *testing.T) {
-	utils.Current_Config = nil
-	got, err := utils.GetMaxSize()
+	got, err := utils.GetMaxSize(nil)
 	if err != nil {
 		t.Fatalf("Unexpected error for nil config: %v", err)
 	}
@@ -27,10 +25,7 @@ func TestGetMaxSizeNilConfig(t *testing.T) {
 }
 
 func TestGetMaxSizeNilMaxSize(t *testing.T) {
-	utils.Current_Config = &utils.Config{}
-	defer func() { utils.Current_Config = nil }()
-
-	got, err := utils.GetMaxSize()
+	got, err := utils.GetMaxSize(&utils.Config{})
 	if err != nil {
 		t.Fatalf("Unexpected error when Database_Max_Size is nil: %v", err)
 	}
@@ -40,9 +35,7 @@ func TestGetMaxSizeNilMaxSize(t *testing.T) {
 }
 
 func TestGetMaxSizeKB(t *testing.T) {
-	defer setMaxSize("100kb")()
-
-	got, err := utils.GetMaxSize()
+	got, err := utils.GetMaxSize(maxSizeConfig("100kb"))
 	if err != nil {
 		t.Fatalf("Unexpected error for '100kb': %v", err)
 	}
@@ -53,9 +46,7 @@ func TestGetMaxSizeKB(t *testing.T) {
 }
 
 func TestGetMaxSizeMB(t *testing.T) {
-	defer setMaxSize("500mb")()
-
-	got, err := utils.GetMaxSize()
+	got, err := utils.GetMaxSize(maxSizeConfig("500mb"))
 	if err != nil {
 		t.Fatalf("Unexpected error for '500mb': %v", err)
 	}
@@ -66,9 +57,7 @@ func TestGetMaxSizeMB(t *testing.T) {
 }
 
 func TestGetMaxSizeGB(t *testing.T) {
-	defer setMaxSize("2gb")()
-
-	got, err := utils.GetMaxSize()
+	got, err := utils.GetMaxSize(maxSizeConfig("2gb"))
 	if err != nil {
 		t.Fatalf("Unexpected error for '2gb': %v", err)
 	}
@@ -79,39 +68,32 @@ func TestGetMaxSizeGB(t *testing.T) {
 }
 
 func TestGetMaxSizeBelowMinimumKB(t *testing.T) {
-	defer setMaxSize("3kb")()
-
-	_, err := utils.GetMaxSize()
+	_, err := utils.GetMaxSize(maxSizeConfig("3kb"))
 	if err == nil {
 		t.Error("Expected error for size below 4KB minimum, got nil")
 	}
 }
 
 func TestGetMaxSizeInvalidUnit(t *testing.T) {
-	defer setMaxSize("100tb")()
-
-	_, err := utils.GetMaxSize()
+	_, err := utils.GetMaxSize(maxSizeConfig("100tb"))
 	if err == nil {
 		t.Error("Expected error for unknown unit 'tb', got nil")
 	}
 }
 
 func TestGetMaxSizeInvalidFormat(t *testing.T) {
-	defer setMaxSize("notasize")()
-
-	_, err := utils.GetMaxSize()
+	_, err := utils.GetMaxSize(maxSizeConfig("notasize"))
 	if err == nil {
 		t.Error("Expected error for invalid format 'notasize', got nil")
 	}
 }
 
 func TestMemoryWatcherStopsOnContextCancel(t *testing.T) {
-	utils.Current_Config = nil // triggers default 1GB path in GetMaxSize
 	ctx, cancel := context.WithCancel(context.Background())
 
 	done := make(chan struct{})
 	go func() {
-		workers.StartMemoryWatcher(ctx, nil)
+		workers.StartMemoryWatcher(ctx, nil, utils.NewConfigStore("unused.yml"))
 		close(done)
 	}()
 

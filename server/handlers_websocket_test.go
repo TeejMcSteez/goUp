@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -18,18 +19,21 @@ import (
 func dialTestWs(t *testing.T) *websocket.Conn {
 	t.Helper()
 	dbPath := "./test_ws.db"
-	utils.Current_Config = &utils.Config{
-		Database_Location: &dbPath,
-		Schedule:          &utils.ScheduleState{Span: 60, Interval: "seconds"},
+	cfgPath := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(cfgPath, []byte("db_path: "+dbPath+"\nschedule:\n  span: 60\n  interval: seconds\nservices:\n  test_service:\n    url: http://example.com\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
 	}
-	utils.SetServiceEndpoints([]utils.Service{{Name: "test_service", URL: "http://example.com"}})
-	db, err := utils.InitDB()
+	store := utils.NewConfigStore(cfgPath)
+	if err := store.LoadFromFile(); err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("init db: %v", err)
 	}
 	hub := NewHub()
 	go hub.Run()
-	s := &Server{db: db, hub: hub}
+	s := &Server{db: db, hub: hub, store: store}
 	ts := httptest.NewServer(http.HandlerFunc(s.handleWs))
 	conn, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(ts.URL, "http"), nil)
 	if err != nil {
@@ -50,8 +54,6 @@ func dialTestWs(t *testing.T) *websocket.Conn {
 		ts.Close()
 		_ = db.Close()
 		_ = os.Remove(dbPath)
-		utils.Current_Config = nil
-		utils.SetServiceEndpoints([]utils.Service{})
 	})
 	return conn
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	_ "goUp/docs"
+	"goUp/utils"
 	scheduler "goUp/workers"
 	"io/fs"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 
 type Server struct {
 	db      *sql.DB
+	store   *utils.ConfigStore
 	scd     *scheduler.Scheduler
 	serveUi bool
 	handler *GoupHandler
@@ -43,8 +45,8 @@ func (g *GoupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var content embed.FS
 
 // Returns a new server instance
-func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler, hub *Hub) *Server {
-	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler, hub: hub}
+func NewServer(db *sql.DB, scd *scheduler.Scheduler, serveUi bool, handler GoupHandler, hub *Hub, store *utils.ConfigStore) *Server {
+	return &Server{db: db, scd: scd, serveUi: serveUi, handler: &handler, hub: hub, store: store}
 }
 
 // Starts server with all handler functions

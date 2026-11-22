@@ -21,3 +21,8 @@ func boolToInt(b bool) int64 {
 	}
 	return 0
 }
+
+// Returns boolean on whether the current time if after the passed time t
+func isExpired(t time.Time) bool {
+	return time.Now().Compare(t) == 1
+}

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -17,32 +18,50 @@ import (
 	"goUp/server"
 	"goUp/utils"
 	scheduler "goUp/workers"
+
+	"gopkg.in/yaml.v3"
 )
+
+// newTestStore returns a ConfigStore seeded with cfg, backed by a yaml file in
+// t.TempDir() (removed automatically). It goes through LoadFromFile so the
+// store is built exactly like production, with ConfigPath pointing at the file.
+func newTestStore(t *testing.T, cfg *utils.Config) *utils.ConfigStore {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yml")
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("Failed to marshal test config: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
+	}
+	store := utils.NewConfigStore(path)
+	if err := store.LoadFromFile(); err != nil {
+		t.Fatalf("Failed to load test config store: %v", err)
+	}
+	return store
+}
 
 func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, func()) {
 	t.Helper()
 	dbPath := "./test_server.db"
-	cfg := &utils.Config{
+	store := newTestStore(t, &utils.Config{
 		Database_Location: &dbPath,
 		Schedule:          &utils.ScheduleState{Span: 60, Interval: "seconds"},
 		Services: map[string]utils.Service{
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
-	}
-	utils.Current_Config = cfg
-	utils.SetServiceEndpoints([]utils.Service{
-		{Name: "test_service", URL: "http://example.com"},
 	})
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, cfg, hub)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
+	scd := scheduler.NewScheduler(t.Context(), db, store, hub, utils.NewScanner())
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
 		scd.Stop()
@@ -52,8 +71,6 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 		if err := os.Remove(dbPath); err != nil {
 			t.Errorf("Failed to remove database file on cleanup: %v", err)
 		}
-		utils.Current_Config = nil
-		utils.SetServiceEndpoints([]utils.Service{})
 	}
 
 	return db, scd, srv, cleanup
@@ -361,42 +378,28 @@ func TestNewServer_NotNil(t *testing.T) {
 	}
 }
 
-// setupTestEnvWithConfig is like setupTestEnv but also writes a temp config file
-// so handlers that call writeConfig (config mutations) don't fail on empty ConfigPath.
+// setupTestEnvWithConfig is like setupTestEnv but uses a separate DB file.
+// The store is backed by a temp yaml file, so config mutations persist there.
 func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, func()) {
 	t.Helper()
 	dbPath := "./test_server_cfg.db"
-	cfgFile, err := os.CreateTemp("", "goup-test-*.yml")
-	if err != nil {
-		t.Fatalf("Failed to create temp config file: %v", err)
-	}
-	cfgPath := cfgFile.Name()
-	if err := cfgFile.Close(); err != nil {
-		slog.Error("Error occured closing config file", "error", err)
-	}
-
-	cfg := &utils.Config{
+	store := newTestStore(t, &utils.Config{
 		Database_Location: &dbPath,
-		ConfigPath:        cfgPath,
 		Schedule:          &utils.ScheduleState{Span: 60, Interval: "seconds"},
 		Services: map[string]utils.Service{
 			"test_service": {Name: "test_service", URL: "http://example.com"},
 		},
-	}
-	utils.Current_Config = cfg
-	utils.SetServiceEndpoints([]utils.Service{
-		{Name: "test_service", URL: "http://example.com"},
 	})
 
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(store.Get())
 	if err != nil {
 		t.Fatalf("Failed to init test DB: %v", err)
 	}
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, cfg, hub)
-	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub)
+	scd := scheduler.NewScheduler(t.Context(), db, store, hub, utils.NewScanner())
+	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
 		scd.Stop()
@@ -406,11 +409,6 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 		if err := os.Remove(dbPath); err != nil {
 			slog.Error("Failed to remove database file", "error", err)
 		}
-		if err := os.Remove(cfgPath); err != nil {
-			slog.Error("Failed to remove config file", "error", err)
-		}
-		utils.Current_Config = nil
-		utils.SetServiceEndpoints([]utils.Service{})
 	}
 	return db, scd, srv, cleanup
 }

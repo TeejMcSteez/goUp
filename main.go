@@ -15,6 +15,7 @@ import (
 	"goUp/utils"
 	"goUp/workers"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -31,16 +32,12 @@ func main() {
 		log.Print("Build Version: " + utils.Version)
 		return
 	}
-
-	cfg, err := utils.LoadConfig(*configPath)
+	cfgStore := utils.NewConfigStore(*configPath)
+	err := cfgStore.LoadFromFile()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	if setupErr := utils.Setup(cfg); err != nil {
-		log.Fatalf("Failed to setup services: %v", setupErr)
-	}
-
-	db, err := utils.InitDB()
+	db, err := utils.InitDB(cfgStore.Get())
 	if err != nil {
 		log.Print("Error initializing database")
 		panic(err)
@@ -51,20 +48,33 @@ func main() {
 	// Starts all background workers
 	hub := server.NewHub()
 	go hub.Run()
-	sch := workers.NewScheduler(ctx, db, cfg, hub)
+	// NewScheduler subscribes itself to schedule changes. The scanner reads
+	// endpoints from each cycle's config snapshot, so service changes need
+	// no subscriber.
+	sch := workers.NewScheduler(ctx, db, cfgStore, hub, utils.NewScanner())
+	// notify websocket client configuration has been updated
+	cfgStore.Subscribe(func(_, new *utils.Config) {
+		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
+	})
+	// collect removed services from database on configuration change
+	cfgStore.Subscribe(func(_, new *utils.Config) {
+		if err := utils.DbGarbageCollect(db, new); err != nil {
+			slog.Error("failed to garbage collect database on store update", "ERROR", err)
+		}
+	})
 	defer sch.Stop()
-	if garabgeCollectErr := utils.DbGarbageCollect(db, cfg); err != nil {
+	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); garabgeCollectErr != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
 	}
-	go workers.StartHotReloader(*configPath, ctx, db)
-	go workers.StartMemoryWatcher(ctx, db)
+	go workers.StartHotReloader(ctx, cfgStore)
+	go workers.StartMemoryWatcher(ctx, db, cfgStore)
 	go func() {
 		// Next is set in NewServer to use the DefaultServeMux
 		handler := server.GoupHandler{
 			Cors:   *cors,
 			Origin: origin,
 		}
-		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler, hub).Start(); err != nil {
+		if serverCreateErr := server.NewServer(db, sch, *serveReact, handler, hub, cfgStore).Start(); serverCreateErr != nil {
 			log.Fatalf("Server failed to start: %v", serverCreateErr)
 		}
 		log.Println("Server started")
@@ -74,7 +84,7 @@ func main() {
 	<-ctx.Done()
 	log.Printf("Caught stop signal, starting workers graceful shutdown")
 	log.Printf("Loading fresh configuration file before stoppping services")
-	cfg, err = utils.LoadConfig(*configPath)
+	err = cfgStore.LoadFromFile()
 	if err != nil {
 		log.Fatalf("Failed to load fresh config on shutdown: %v", err)
 	}
@@ -83,8 +93,9 @@ func main() {
 	} else {
 		log.Println("Database connection closed")
 	}
+	cfg := cfgStore.Get()
 	if (cfg.Persist_db != nil && !*cfg.Persist_db) || cfg.Persist_db == nil {
-		if err := utils.CleanupDbFiles(); err != nil {
+		if err := utils.CleanupDbFiles(cfg); err != nil {
 			log.Printf("Error occured cleaning up the database: %v", err)
 		}
 	} else {

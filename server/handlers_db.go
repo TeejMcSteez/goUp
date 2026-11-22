@@ -15,7 +15,7 @@ import (
 // @Router /api/db/size [get]
 func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	size, err := utils.GetDatabaseSize()
+	size, err := utils.GetDatabaseSize(s.store.Get())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -32,7 +32,7 @@ func (s *Server) GetDatabaseSize(w http.ResponseWriter, req *http.Request) {
 // @Router /api/db/persist [get]
 func (s *Server) getDatabasePersistenceGet(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	persists := utils.ReadConfigDatabasePersistence(utils.Current_Config)
+	persists := utils.ReadConfigDatabasePersistence(s.store.Get())
 	if err := json.NewEncoder(w).Encode(persists); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -46,8 +46,7 @@ func (s *Server) getDatabasePersistenceGet(w http.ResponseWriter, _ *http.Reques
 // @Router /api/db/persist [post]
 func (s *Server) getDatabasePersistencePost(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	err := utils.UpdateConfigDatabasePersistence(utils.Current_Config)
-	if err != nil {
+	if err := s.edit(utils.UpdateConfigDatabasePersistence); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

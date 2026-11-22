@@ -2,11 +2,30 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"goUp/utils"
 	"log/slog"
 	"net/http"
 )
+
+var errServiceURLExists = errors.New("URL for this service is already in the configuration")
+
+// edit runs a conf.go mutator against a private clone inside store.Update.
+// The mutators edit c in place; their returned *Config is the same pointer.
+// store.Update re-derives triggers on the clone before publishing.
+func (s *Server) edit(fn func(c *utils.Config) (*utils.Config, error)) error {
+	return s.store.Update(func(c *utils.Config) error {
+		_, err := fn(c)
+		return err
+	})
+}
+
+func writeOK(w http.ResponseWriter) {
+	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
+		slog.Error("failed to write response", "error", err)
+	}
+}
 
 // ServiceUpdatePayload is the request body for PUT /api/config/service.
 type ServiceUpdatePayload struct {
@@ -32,16 +51,17 @@ type BackoffPayload struct {
 // @Router /api/config [get]
 func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	sData := utils.ReadConfigServices(utils.Current_Config)
-	mData := utils.ReadConfigMQTT(utils.Current_Config)
-	wData := utils.ReadConfigWebhook(utils.Current_Config)
-	eData := utils.ReadConfigSMTP(utils.Current_Config)
-	gData := utils.ReadConfigGotify(utils.Current_Config)
-	slData := utils.ReadConfigSlack(utils.Current_Config)
-	tgData := utils.ReadConfigTelegram(utils.Current_Config)
-	haData := utils.ReadConfigHA(utils.Current_Config)
-	dData := utils.ReadConfigDiscord(utils.Current_Config)
-	backoffData := utils.ReadConfigBackoff(utils.Current_Config)
+	c := s.store.Get()
+	sData := utils.ReadConfigServices(c)
+	mData := utils.ReadConfigMQTT(c)
+	wData := utils.ReadConfigWebhook(c)
+	eData := utils.ReadConfigSMTP(c)
+	gData := utils.ReadConfigGotify(c)
+	slData := utils.ReadConfigSlack(c)
+	tgData := utils.ReadConfigTelegram(c)
+	haData := utils.ReadConfigHA(c)
+	dData := utils.ReadConfigDiscord(c)
+	backoffData := utils.ReadConfigBackoff(c)
 
 	data := utils.ConfigData{Services: sData, MQTT: mData, Webhook: wData, SMTP: eData, Gotify: gData, Slack: slData, Telegram: tgData, HA: haData, Discord: dData, Backoff_Period: backoffData}
 
@@ -59,7 +79,8 @@ func (s *Server) ReadConfigData(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/size [get]
 func (s *Server) configDatabaseGet(w http.ResponseWriter, _ *http.Request) {
-	size, err := utils.ReadDatabaseSize(utils.Current_Config)
+	c := s.store.Get()
+	size, err := utils.ReadDatabaseSize(c)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -84,13 +105,14 @@ func (s *Server) configDatabasePost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := utils.UpdateDatabaseSize(utils.Current_Config, data.Size); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateDatabaseSize(c, data.Size)
+	}); err != nil {
+		slog.Error("Error updating database size", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigDatabaseApi(w http.ResponseWriter, req *http.Request) {
@@ -121,21 +143,23 @@ func (s *Server) configServicePost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if utils.ServiceURLExists(utils.Current_Config, service.URL) {
-		http.Error(w, "URL for this service is already in the configuration", http.StatusConflict)
+	// URL check runs inside Update so two concurrent POSTs can't both pass it
+	err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		if utils.ServiceURLExists(c, service.URL) {
+			return nil, errServiceURLExists
+		}
+		return utils.AddConfigService(c, service)
+	})
+	if errors.Is(err, errServiceURLExists) {
+		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
-	if err := utils.AddConfigService(utils.Current_Config, service); err != nil {
+	if err != nil {
 		slog.Error("Error adding config service", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := utils.Setup(utils.Current_Config); err != nil {
-		slog.Warn("failed to refresh endpoints after adding service", "error", err)
-	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Update a monitored service
@@ -153,25 +177,20 @@ func (s *Server) configServicePut(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.UpdateConfigService(utils.Current_Config, payload.OldName, payload.Service, s.db); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigService(c, payload.OldName, payload.Service, s.db)
+	}); err != nil {
 		slog.Error("Error updating config service", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	if err := utils.UpdateServiceTls(s.db, payload.OldName, payload.Service.Name); err != nil {
 		slog.Error("Error updating TLS service name", "error", err)
 		http.Error(w, "failed to update TLS certificate for service", http.StatusInternalServerError)
 		return
 	}
-	if err := utils.Setup(utils.Current_Config); err != nil {
-		slog.Warn("failed to refresh endpoints after updating service", "error", err)
-	}
-	if err := utils.DbGarbageCollect(s.db, utils.Current_Config); err != nil {
-		slog.Warn("GC failed after updating service", "error", err)
-	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Delete a monitored service
@@ -189,9 +208,17 @@ func (s *Server) configServiceDelete(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.DeleteConfigService(utils.Current_Config, service, s.db); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.DeleteConfigService(c, service, s.db)
+	}); err != nil {
 		slog.Error("Error deleting config service", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err := utils.DbServiceDelete(s.db, service)
+	if err != nil {
+		slog.Error("failed to delete service in datbase", "ERROR", err)
+		http.Error(w, "failed to delete service in database", http.StatusInternalServerError)
 		return
 	}
 	// delete TLS data for that service as well
@@ -200,15 +227,10 @@ func (s *Server) configServiceDelete(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := utils.Setup(utils.Current_Config); err != nil {
-		slog.Warn("failed to refresh endpoints after deleting service", "error", err)
-	}
-	if err := utils.DbGarbageCollect(s.db, utils.Current_Config); err != nil {
+	if err := utils.DbGarbageCollect(s.db, s.store.Get()); err != nil {
 		slog.Warn("GC failed after deleting service", "error", err)
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigServiceApi(w http.ResponseWriter, req *http.Request) {
@@ -240,14 +262,14 @@ func (s *Server) configMQTTPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigMQTTTrigger(utils.Current_Config, mqtt); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigMQTTTrigger(c, mqtt)
+	}); err != nil {
 		slog.Error("Error adding MQTT config", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove MQTT trigger configuration
@@ -257,14 +279,12 @@ func (s *Server) configMQTTPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/mqtt [delete]
 func (s *Server) configMQTTDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigMQTT(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigMQTT); err != nil {
 		slog.Error("Error deleting MQTT config", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigMQTTApi(w http.ResponseWriter, req *http.Request) {
@@ -294,14 +314,14 @@ func (s *Server) configWebhookPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigWebhookTrigger(utils.Current_Config, webhook); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigWebhookTrigger(c, webhook)
+	}); err != nil {
 		slog.Error("Error adding webhook config", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove webhook trigger configuration
@@ -311,14 +331,12 @@ func (s *Server) configWebhookPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/webhook [delete]
 func (s *Server) configWebhookDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigWebhook(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigWebhook); err != nil {
 		slog.Error("Error deleting webhook config", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigWebhookApi(w http.ResponseWriter, req *http.Request) {
@@ -348,14 +366,14 @@ func (s *Server) configSMTPPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigSMTPTrigger(utils.Current_Config, smtp); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigSMTPTrigger(c, smtp)
+	}); err != nil {
 		slog.Error("Error adding SMTP trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove SMTP trigger configuration
@@ -365,14 +383,12 @@ func (s *Server) configSMTPPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/smtp [delete]
 func (s *Server) configSMTPDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigSMTPTrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigSMTPTrigger); err != nil {
 		slog.Error("Error deleting SMTP trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigSMTPApi(w http.ResponseWriter, req *http.Request) {
@@ -402,14 +418,14 @@ func (s *Server) configGotifyPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigGotifyTrigger(utils.Current_Config, gotify); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigGotifyTrigger(c, gotify)
+	}); err != nil {
 		slog.Error("Error adding Gotify trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove Gotify trigger configuration
@@ -419,14 +435,12 @@ func (s *Server) configGotifyPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/gotify [delete]
 func (s *Server) configGotifyDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigGotifyTrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigGotifyTrigger); err != nil {
 		slog.Error("Error deleting Gotify trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write error message", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigGotifyApi(w http.ResponseWriter, req *http.Request) {
@@ -456,14 +470,14 @@ func (s *Server) configSlackPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigSlackTrigger(utils.Current_Config, slack); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigSlackTrigger(c, slack)
+	}); err != nil {
 		slog.Error("Error adding Slack trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove Slack trigger configuration
@@ -473,14 +487,12 @@ func (s *Server) configSlackPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/slack [delete]
 func (s *Server) configSlackDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigSlackTrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigSlackTrigger); err != nil {
 		slog.Error("Error deleting Slack trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigSlackApi(w http.ResponseWriter, req *http.Request) {
@@ -510,14 +522,14 @@ func (s *Server) configTelegramPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigTelegramTrigger(utils.Current_Config, telegram); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigTelegramTrigger(c, telegram)
+	}); err != nil {
 		slog.Error("Error adding Telegram trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove Telegram trigger configuration
@@ -527,14 +539,12 @@ func (s *Server) configTelegramPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/telegram [delete]
 func (s *Server) configTelegramDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigTelegramTrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigTelegramTrigger); err != nil {
 		slog.Error("Error deleting Telegram trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigTelegramApi(w http.ResponseWriter, req *http.Request) {
@@ -564,14 +574,14 @@ func (s *Server) configHAPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigHATrigger(utils.Current_Config, ha); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigHATrigger(c, ha)
+	}); err != nil {
 		slog.Error("Error adding Home Assistant trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove Home Assistant trigger configuration
@@ -581,14 +591,12 @@ func (s *Server) configHAPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/ha [delete]
 func (s *Server) configHADelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigHATrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigHATrigger); err != nil {
 		slog.Error("Error deleting Home Assistant trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigHAApi(w http.ResponseWriter, req *http.Request) {
@@ -618,14 +626,14 @@ func (s *Server) configDiscordPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.AddConfigDiscordTrigger(utils.Current_Config, discord); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.AddConfigDiscordTrigger(c, discord)
+	}); err != nil {
 		slog.Error("Error adding Discord trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 // @Summary Remove Discord trigger configuration
@@ -635,14 +643,12 @@ func (s *Server) configDiscordPost(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/discord [delete]
 func (s *Server) configDiscordDelete(w http.ResponseWriter, _ *http.Request) {
-	if err := utils.DeleteConfigDiscordTrigger(utils.Current_Config); err != nil {
+	if err := s.edit(utils.DeleteConfigDiscordTrigger); err != nil {
 		slog.Error("Error deleting Discord trigger", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprintf(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigDiscordApi(w http.ResponseWriter, req *http.Request) {
@@ -664,7 +670,7 @@ func (s *Server) ConfigDiscordApi(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "internal server error"
 // @Router /api/config/backoff [get]
 func (s *Server) configBackoffGet(w http.ResponseWriter, _ *http.Request) {
-	payload := BackoffPayload{Backoff_Period: utils.ReadConfigBackoff(utils.Current_Config)}
+	payload := BackoffPayload{Backoff_Period: utils.ReadConfigBackoff(s.store.Get())}
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -685,14 +691,14 @@ func (s *Server) configBackoffPost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.UpdateBackoff(utils.Current_Config, payload.Backoff_Period, "global"); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateBackoff(c, payload.Backoff_Period, "global")
+	}); err != nil {
 		slog.Error("Error updating global backoff", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigBackoffApi(w http.ResponseWriter, req *http.Request) {
@@ -723,7 +729,7 @@ func (s *Server) configActiveGet(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "missing required query parameter: name", http.StatusBadRequest)
 		return
 	}
-	svc, err := utils.ReadConfigService(utils.Current_Config, utils.Service{Name: name})
+	svc, err := utils.ReadConfigService(s.store.Get(), utils.Service{Name: name})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not read service: %v", err), http.StatusInternalServerError)
 		return
@@ -748,16 +754,13 @@ func (s *Server) configActivePost(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := utils.UpdateConfigServiceActive(utils.Current_Config, service); err != nil {
+	if err := s.edit(func(c *utils.Config) (*utils.Config, error) {
+		return utils.UpdateConfigServiceActive(c, service)
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("could not update service: %v", err), http.StatusInternalServerError)
 		return
 	}
-	if err := utils.Setup(utils.Current_Config); err != nil {
-		slog.Warn("failed to refresh endpoints after toggling service active state", "error", err)
-	}
-	if _, err := fmt.Fprint(w, `{ "ok": true }`); err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-	}
+	writeOK(w)
 }
 
 func (s *Server) ConfigActiveApi(w http.ResponseWriter, req *http.Request) {

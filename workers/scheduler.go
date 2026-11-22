@@ -9,6 +9,7 @@ import (
 	"goUp/utils"
 	"log/slog"
 	"net"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -26,13 +27,15 @@ type Broadcaster interface {
 }
 
 type Scheduler struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	state  chan utils.ScheduleState
-	get    chan GetState
-	stop   chan struct{}
-	fire   chan struct{}
-	pub    Broadcaster
+	ctx     context.Context
+	cancel  context.CancelFunc
+	state   chan utils.ScheduleState
+	get     chan GetState
+	stop    chan struct{}
+	fire    chan struct{}
+	pub     Broadcaster
+	store   *utils.ConfigStore
+	scanner *utils.Scanner
 }
 
 type fetchResult struct {
@@ -108,29 +111,46 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(ctx context.Context, db *sql.DB, cfg *utils.Config, pub Broadcaster) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner) *Scheduler {
 	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
-
-	if cfg != nil && cfg.Schedule != nil {
-		span = cfg.Schedule.Span
-		interval = cfg.Schedule.Interval
+	curr := store.Get()
+	if curr != nil && curr.Schedule != nil {
+		span = curr.Schedule.Span
+		interval = curr.Schedule.Interval
 	}
 
 	s := &Scheduler{
-		ctx:    ctx,
-		cancel: cancel,
-		state:  make(chan utils.ScheduleState),
-		get:    make(chan GetState),
-		stop:   make(chan struct{}),
-		fire:   make(chan struct{}),
-		pub:    pub,
+		ctx:     ctx,
+		cancel:  cancel,
+		state:   make(chan utils.ScheduleState),
+		get:     make(chan GetState),
+		stop:    make(chan struct{}),
+		fire:    make(chan struct{}),
+		pub:     pub,
+		store:   store,
+		scanner: scanner,
 	}
+
+	// Any schedule change published to the store (API or hot reload) is
+	// applied to the running loop. Scheduler.Update relies on this too.
+	store.Subscribe(func(old, new *utils.Config) {
+		if new.Schedule != nil && !reflect.DeepEqual(old.Schedule, new.Schedule) {
+			s.Reschedule(*new.Schedule)
+		}
+	})
 
 	go s.StartScheduler(db, span, interval)
 
 	return s
+}
+
+func (s *Scheduler) Reschedule(st utils.ScheduleState) {
+	select {
+	case s.state <- st:
+	case <-s.ctx.Done():
+	}
 }
 
 func hostOnline(ctx context.Context) bool {
@@ -152,21 +172,23 @@ func hostOnline(ctx context.Context) bool {
 // (slow endpoints, retries), and the select loop must stay free to service
 // s.get/s.state/s.stop the whole time, or callers like GET/POST /api/schedule
 // would hang until the fetch finishes.
-func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince time.Time, owedOffline time.Duration, pub Broadcaster) fetchResult {
+func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.ConfigStore, wasFailed bool, offlineSince time.Time, owedOffline time.Duration, pub Broadcaster) fetchResult {
 	// owedOffline > 0 means a restored notice failed to send last cycle;
 	// retry it before anything else. On failure keep it owed and carry on
 	// with the fetch rather than returning, so a broken trigger can't halt
 	// monitoring. Skipped while offlineSince is set: the host dropped again
 	// before the notice went out, so the owed time rolls into the next
 	// restored notice below instead.
+	// one snapshot for the whole cycle so endpoints, Check and triggers agree
+	cfg := store.Get()
 	if owedOffline > 0 && offlineSince.IsZero() {
-		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(owedOffline)); handleSendErr(err) {
+		if err := cfg.Triggers.Send(ctx, restoredNotice(owedOffline)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 		} else {
 			owedOffline = 0
 		}
 	}
-	data, err := utils.GetServiceData()
+	data, err := s.scanner.GetServiceData(cfg)
 	if err != nil {
 		slog.Error("Failed fetching service data in scheduler", "error", err)
 		// probe instead of defaulting offline to false, which would clear
@@ -197,7 +219,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 	// unreported ones; on failure the running total stays owed.
 	if !offlineSince.IsZero() {
 		total := owedOffline + time.Since(offlineSince)
-		if err := utils.Current_Config.Triggers.Send(ctx, restoredNotice(total)); handleSendErr(err) {
+		if err := cfg.Triggers.Send(ctx, restoredNotice(total)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 			owedOffline = total
 		} else {
@@ -210,11 +232,11 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 	}
 
 	if pub != nil {
-		broadcastLiveData(db, pub)
+		broadcastLiveData(db, cfg, pub)
 	}
 	// Fire when services are down
 	if len(data.DownServices) > 0 {
-		if err := utils.Current_Config.Triggers.Send(ctx, utils.Message{
+		if err := cfg.Triggers.Send(ctx, utils.Message{
 			Kind:     utils.KindAlert,
 			Title:    "Services are down",
 			Body:     "",
@@ -227,7 +249,7 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 	}
 	// Only fires on past errors with no new failures
 	if wasFailed {
-		if err := utils.Current_Config.Triggers.Send(ctx, utils.Message{
+		if err := cfg.Triggers.Send(ctx, utils.Message{
 			Kind:     utils.KindClear,
 			Title:    "Services have recovered",
 			Body:     "All services are back online",
@@ -245,8 +267,8 @@ func runFetchCycle(ctx context.Context, db *sql.DB, wasFailed bool, offlineSince
 // broadcastLiveData pushes the freshly persisted state read back from the DB
 // rather than the raw fetch result, so the payload matches what the REST
 // endpoints return (formatted response times, inactive services, stored TLS).
-func broadcastLiveData(db *sql.DB, pub Broadcaster) {
-	live, err := utils.GetLiveData(db)
+func broadcastLiveData(db *sql.DB, cfg *utils.Config, pub Broadcaster) {
+	live, err := utils.GetLiveData(db, cfg)
 	if err != nil {
 		slog.Error("failed to read live data for broadcast", "error", err)
 		return
@@ -277,7 +299,7 @@ func (s *Scheduler) StartScheduler(db *sql.DB, Span int, Interval string) {
 		}
 		fetching = true
 		go func(wasFailed bool, offlineSince time.Time, owedOffline time.Duration) {
-			fetchDone <- runFetchCycle(s.ctx, db, wasFailed, offlineSince, owedOffline, s.pub)
+			fetchDone <- s.runFetchCycle(s.ctx, db, s.store, wasFailed, offlineSince, owedOffline, s.pub)
 		}(hasFailed, offlineSince, owedOffline) // snapshot loop-owned state
 	}
 
@@ -342,15 +364,15 @@ func (s *Scheduler) Update(state utils.ScheduleState) bool {
 		return false
 	}
 
-	if utils.Current_Config != nil {
-		if err := utils.UpdateConfigSchedule(utils.Current_Config, state); err != nil {
-			slog.Error("Failed to persist schedule to config", "error", err)
-		}
-	}
-
-	s.state <- utils.ScheduleState{
-		Span:     state.Span,
-		Interval: state.Interval,
+	st := utils.ScheduleState{Span: state.Span, Interval: state.Interval}
+	// On success the store subscriber registered in NewScheduler delivers
+	// the change to the loop; only push directly if persisting failed.
+	if err := s.store.Update(func(c *utils.Config) error {
+		_, err := utils.UpdateConfigSchedule(c, st)
+		return err
+	}); err != nil {
+		slog.Error("Failed to persist schedule to config", "error", err)
+		s.Reschedule(st)
 	}
 
 	return true

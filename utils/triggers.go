@@ -192,6 +192,21 @@ func SetupTrigger(cfg *Config) *Trigger {
 	t.HA.backoffDuration = resolveBackoff("Home Assistant", t.HA.Backoff_Period, t.backoffDuration)
 	t.Discord.backoffDuration = resolveBackoff("Discord", t.Discord.Backoff_Period, t.backoffDuration)
 
+	t.bindNotifiers()
+	if len(t.notifiers) == 0 {
+		slog.Info("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
+		return t
+	}
+
+	slog.Info("Triggers setup")
+	return t
+}
+
+// bindNotifiers rebuilds t.notifiers as pointers into t's OWN fields.
+// Must be re-run whenever a Trigger is copied (e.g. Config.Clone), otherwise
+// the copy's notifiers still point at the original struct's fields.
+func (t *Trigger) bindNotifiers() {
+	t.notifiers = nil
 	if t.MQTT.IsConfigured() {
 		t.notifiers = append(t.notifiers, &t.MQTT)
 	}
@@ -216,13 +231,6 @@ func SetupTrigger(cfg *Config) *Trigger {
 	if t.Discord.IsConfigured() {
 		t.notifiers = append(t.notifiers, &t.Discord)
 	}
-	if len(t.notifiers) == 0 {
-		slog.Info("No MQTT broker, Webhook URL, or SMTP server setup, exiting trigger setup")
-		return t
-	}
-
-	slog.Info("Triggers setup")
-	return t
 }
 
 func (t *Trigger) Send(ctx context.Context, m Message) error {

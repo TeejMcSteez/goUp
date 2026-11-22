@@ -30,6 +30,7 @@ type wsConn struct {
 	once  sync.Once
 	hub   *Hub
 	db    *sql.DB
+	store *utils.ConfigStore
 	scd   *workers.Scheduler
 }
 
@@ -120,12 +121,12 @@ func (s *Server) handleWs(w http.ResponseWriter, req *http.Request) {
 		slog.Error("websocket handler error", "error", err)
 		return
 	}
-	wsConn := &wsConn{db: s.db, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub, scd: s.scd}
+	wsConn := &wsConn{db: s.db, store: s.store, conn: conn, done: make(chan struct{}), send: make(chan []byte, 16), reply: make(chan outMsg, 16), hub: s.hub, scd: s.scd}
 	// Seed the client with the current services/status/TLS state read
 	// straight from the DB, so it has data before the next fetch cycle
 	// broadcasts. Queued before register so it's always the first message
 	// and any broadcast that follows is at least as new.
-	if b, err := liveSnapshot(s.db); err != nil {
+	if b, err := liveSnapshot(s.db, s.store.Get()); err != nil {
 		slog.Error("failed to build initial live data for websocket client", "error", err)
 	} else {
 		wsConn.send <- b // fresh buffered channel, nothing else writes yet
@@ -168,7 +169,7 @@ type UptimeParams struct {
 
 // uptimeFetchers maps an UptimeParams.Range to the utils helper that
 // computes a single service's uptime average over that window.
-var uptimeFetchers = map[string]func(*sql.DB, string) (*float64, error){
+var uptimeFetchers = map[string]func(*sql.DB, *utils.Config, string) (*float64, error){
 	"":      utils.GetUptimeAverage,
 	"1hr":   utils.GetPastHourUptime,
 	"12hr":  utils.GetPast12HourUptime,
@@ -259,7 +260,7 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 		}
 		ws.replyFrame(msg.ID, data)
 	case ReadLive:
-		data, err := utils.GetLiveData(ws.db)
+		data, err := utils.GetLiveData(ws.db, ws.store.Get())
 		if err != nil {
 			slog.Error("failed to get live data for websocket client", "ERROR", err)
 			ws.replyError(msg.ID, msg.Type, errors.New("failed to get live data"))
@@ -274,8 +275,10 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 			return
 		}
 		data := []utils.AverageData{}
-		for _, endpoint := range utils.GetServiceEndpoints() {
-			upAvg, err := fetch(ws.db, endpoint.Name)
+		cfg := ws.store.Get()
+		endpoints, _ := utils.Endpoints(cfg)
+		for _, endpoint := range endpoints {
+			upAvg, err := fetch(ws.db, cfg, endpoint.Name)
 			if err != nil {
 				slog.Error("failed to get uptime data for websocket client", "service", endpoint.Name, "ERROR", err)
 				ws.replyError(msg.ID, msg.Type, errors.New("failed to get uptime data"))
@@ -406,8 +409,8 @@ func (ws *wsConn) stop() {
 
 // liveSnapshot is the hub broadcast payload built on demand, for seeding a
 // newly connected client.
-func liveSnapshot(db *sql.DB) ([]byte, error) {
-	live, err := utils.GetLiveData(db)
+func liveSnapshot(db *sql.DB, cfg *utils.Config) ([]byte, error) {
+	live, err := utils.GetLiveData(db, cfg)
 	if err != nil {
 		return nil, err
 	}

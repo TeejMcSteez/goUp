@@ -2,6 +2,7 @@ package workers_test
 
 import (
 	"context"
+	"goUp/utils"
 	"goUp/workers"
 	"os"
 	"testing"
@@ -26,7 +27,7 @@ func TestHotReloaderStopsOnContextCancel(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		workers.StartHotReloader(tmpFile.Name(), ctx, nil)
+		workers.StartHotReloader(ctx, utils.NewConfigStore(tmpFile.Name()))
 		close(done)
 	}()
 
@@ -47,7 +48,7 @@ func TestHotReloaderInvalidPathStopsOnContextCancel(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		workers.StartHotReloader("/nonexistent/path/to/config.yml", ctx, nil)
+		workers.StartHotReloader(ctx, utils.NewConfigStore("/nonexistent/path/to/config.yml"))
 		close(done)
 	}()
 
