@@ -184,6 +184,14 @@ func (s *Server) configServicePut(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	if payload.OldName != payload.Service.Name {
+		if err := utils.DbServiceRename(s.db, payload.OldName, payload.Service.Name); err != nil {
+			slog.Error("failed to rename service in database")
+			http.Error(w, "failed to rename service in database", http.StatusInternalServerError)
+			return
+		}
+	}
 	if err := utils.UpdateServiceTls(s.db, payload.OldName, payload.Service.Name); err != nil {
 		slog.Error("Error updating TLS service name", "error", err)
 		http.Error(w, "failed to update TLS certificate for service", http.StatusInternalServerError)
@@ -212,6 +220,12 @@ func (s *Server) configServiceDelete(w http.ResponseWriter, req *http.Request) {
 	}); err != nil {
 		slog.Error("Error deleting config service", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err := utils.DbServiceDelete(s.db, service)
+	if err != nil {
+		slog.Error("failed to delete service in datbase", "ERROR", err)
+		http.Error(w, "failed to delete service in database", http.StatusInternalServerError)
 		return
 	}
 	// delete TLS data for that service as well

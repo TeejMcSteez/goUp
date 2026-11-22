@@ -156,12 +156,8 @@ func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.
 	if _, exists := conf.Services[oldName]; !exists {
 		return nil, fmt.Errorf("service %q not found", oldName)
 	}
-	if oldName != updated.Name {
-		if err := DbServiceRename(db, oldName, updated.Name); err != nil {
-			return nil, fmt.Errorf("failed to rename service in database: %w", err)
-		}
-		delete(conf.Services, oldName)
-	}
+	delete(conf.Services, oldName)
+
 	conf.Services[updated.Name] = updated
 	return conf, nil
 }
@@ -169,11 +165,6 @@ func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.
 func DeleteConfigService(config *Config, serviceToDelete Service, db *sql.DB) (*Config, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is nil")
-	}
-
-	err := DbServiceDelete(db, serviceToDelete)
-	if err != nil {
-		return nil, fmt.Errorf("failed to remove data from database: %v", err)
 	}
 
 	org_size := len(config.Services)
