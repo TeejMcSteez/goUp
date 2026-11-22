@@ -27,7 +27,7 @@ func TestHotReloaderStopsOnContextCancel(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		workers.StartHotReloader(ctx, nil, utils.NewConfigStore(tmpFile.Name()))
+		workers.StartHotReloader(ctx, utils.NewConfigStore(tmpFile.Name()))
 		close(done)
 	}()
 
@@ -48,7 +48,7 @@ func TestHotReloaderInvalidPathStopsOnContextCancel(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		workers.StartHotReloader(ctx, nil, utils.NewConfigStore("/nonexistent/path/to/config.yml"))
+		workers.StartHotReloader(ctx, utils.NewConfigStore("/nonexistent/path/to/config.yml"))
 		close(done)
 	}()
 

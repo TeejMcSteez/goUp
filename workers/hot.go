@@ -2,26 +2,25 @@ package workers
 
 import (
 	"context"
-	"database/sql"
 	"goUp/utils"
 	"log/slog"
 	"time"
 )
 
 // StartHotReloader polls the store's config file and republishes it through
-// the store when it is edited externally. The store's subscribers (endpoint
-// setup, reschedule, websocket notice) run as part of Reload.
-func StartHotReloader(ctx context.Context, db *sql.DB, store *utils.ConfigStore) {
-	startHotReloader(ctx, db, store, 5*time.Second)
+// the store when it is edited externally. The store's subscribers (reschedule,
+// websocket notice, database GC) run as part of Reload.
+func StartHotReloader(ctx context.Context, store *utils.ConfigStore) {
+	startHotReloader(ctx, store, 5*time.Second)
 }
 
 // StartHotReloaderWithInterval is StartHotReloader with a configurable poll
 // interval. Intended for tests that need the reloader to fire quickly.
-func StartHotReloaderWithInterval(ctx context.Context, db *sql.DB, store *utils.ConfigStore, interval time.Duration) {
-	startHotReloader(ctx, db, store, interval)
+func StartHotReloaderWithInterval(ctx context.Context, store *utils.ConfigStore, interval time.Duration) {
+	startHotReloader(ctx, store, interval)
 }
 
-func startHotReloader(ctx context.Context, db *sql.DB, store *utils.ConfigStore, interval time.Duration) {
+func startHotReloader(ctx context.Context, store *utils.ConfigStore, interval time.Duration) {
 	path := store.Path()
 	lastModTime, err := utils.GetFileTimestamp(path)
 	if err != nil {
@@ -56,15 +55,6 @@ func startHotReloader(ctx context.Context, db *sql.DB, store *utils.ConfigStore,
 				continue
 			}
 			slog.Info("File change detected, configuration reloaded")
-			if db == nil {
-				slog.Error("Hot reload GC failed: database is nil")
-				continue
-			}
-			// TODO: add tests to ensure Store subscribers garabge collect on update from anywhere
-			// removing the need for garbage collect from mutators
-			if err := utils.DbGarbageCollect(db, store.Get()); err != nil {
-				slog.Error("Hot reload GC failed", "error", err)
-			}
 		case <-ctx.Done():
 			slog.Info("Reloader Worker recieved termination signal")
 			return

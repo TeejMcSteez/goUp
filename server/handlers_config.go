@@ -189,11 +189,6 @@ func (s *Server) configServicePut(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "failed to update TLS certificate for service", http.StatusInternalServerError)
 		return
 	}
-	// TODO: add tests to ensure Store subscribers garabge collect on update from anywhere
-	// removing the need for garbage collect from mutators
-	if err := utils.DbGarbageCollect(s.db, s.store.Get()); err != nil {
-		slog.Warn("GC failed after updating service", "error", err)
-	}
 	writeOK(w)
 }
 

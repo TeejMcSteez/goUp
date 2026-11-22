@@ -63,7 +63,7 @@ services:
 	reloaderDone := make(chan struct{})
 	go func() {
 		defer close(reloaderDone)
-		workers.StartHotReloaderWithInterval(ctx, nil, store, 50*time.Millisecond)
+		workers.StartHotReloaderWithInterval(ctx, store, 50*time.Millisecond)
 	}()
 
 	const (
