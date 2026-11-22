@@ -66,7 +66,7 @@ func main() {
 	if garabgeCollectErr := utils.DbGarbageCollect(db, cfgStore.Get()); garabgeCollectErr != nil {
 		log.Printf("Startup GC failed: %v", garabgeCollectErr)
 	}
-	go workers.StartHotReloader(ctx, db, cfgStore)
+	go workers.StartHotReloader(ctx, cfgStore)
 	go workers.StartMemoryWatcher(ctx, db, cfgStore)
 	go func() {
 		// Next is set in NewServer to use the DefaultServeMux
