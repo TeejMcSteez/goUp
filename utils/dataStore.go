@@ -635,6 +635,8 @@ func DbServiceRename(db *sql.DB, oldName string, newName string) error {
 	return nil
 }
 
+// TODO: refactor to allow system to handle renames
+// so GC doesn't delete renamed fields in the DB
 func DbGarbageCollect(db *sql.DB, conf *Config) error {
 	if conf == nil {
 		return fmt.Errorf("no config loaded")
