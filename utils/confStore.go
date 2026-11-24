@@ -202,7 +202,7 @@ func cloneSlicePtr[T any](p *[]T) *[]T {
 }
 
 // Value receivers: `s` is already a shallow copy (including unexported
-// fields like backoffDuration/lastFired), so only pointer fields need replacing.
+// fields like backoffDuration), so only pointer fields need replacing.
 
 func (s Service) Clone() Service {
 	s.Description = clonePtr(s.Description)
