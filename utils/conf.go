@@ -149,9 +149,6 @@ func AddConfigDiscordTrigger(config *Config, newDiscord DiscordTrigger) (*Config
 	return setTrigger(config, &config.Triggers.Discord, newDiscord, "discord")
 }
 
-// TODO: refactor GC to be aware of renames
-// so renames do not cause history deletion
-// on updates
 func UpdateConfigService(conf *Config, oldName string, updated Service, db *sql.DB) (*Config, error) {
 	if conf == nil {
 		return nil, fmt.Errorf("config is nil")

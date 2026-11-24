@@ -130,7 +130,6 @@ func (s *ConfigStore) Reload() (bool, error) {
 // Observers subscribe handling there own changes from old->new
 // Subscribers MUST not call Update as this will deadlock
 // Subs are only readers
-// TODO: consider moving subs out of the lock to avoid blocking
 func (s *ConfigStore) Subscribe(fn func(old, new *Config)) {
 	s.wmu.Lock()
 	defer s.wmu.Unlock()

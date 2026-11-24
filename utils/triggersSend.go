@@ -331,7 +331,6 @@ func (h *HATrigger) Send(ctx context.Context, m Message) error {
 	}, header("Authorization", "Bearer "+*h.HA_Token), expectStatus(200, 201))
 }
 
-// TODO: Handle chunked messages for discord 2000 char limit on API content
 func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 	if !d.IsConfigured() {
 		return errors.New("discord trigger is not configured")

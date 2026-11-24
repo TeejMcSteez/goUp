@@ -157,7 +157,6 @@ func (s *Scheduler) Reschedule(st utils.ScheduleState) {
 
 func hostOnline(ctx context.Context) bool {
 	d := net.Dialer{Timeout: 3 * time.Second}
-	// TODO: allow configurable query
 	conn, err := d.DialContext(ctx, "tcp", "1.1.1.1:53")
 	if err != nil {
 		return false
