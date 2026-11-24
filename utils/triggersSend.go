@@ -64,10 +64,6 @@ func buildMqtt(m Message) any {
 }
 
 func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
-	if err := checkBackoff("MQTT", msg.Kind, m.lastFired, m.backoffDuration); err != nil {
-		return err
-	}
-
 	var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 		slog.Info("Connected to MQTT broker")
 	}
@@ -106,7 +102,7 @@ func (m *MQTTTrigger) Send(ctx context.Context, msg Message) error {
 		return fmt.Errorf("MQTT publish: %w: %w", ErrNetwork, err)
 	}
 	slog.Info("MQTT message sent")
-	return markFired(msg.Kind, &m.lastFired, nil)
+	return nil
 }
 
 // waitToken blocks until the token completes or ctx ends. paho has no
@@ -121,10 +117,6 @@ func waitToken(ctx context.Context, t mqtt.Token) error {
 }
 
 func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
-	if err := checkBackoff("SMTP", m.Kind, e.lastFired, e.backoffDuration); err != nil {
-		return err
-	}
-
 	host, _, err := net.SplitHostPort(*e.SMTPServer)
 	if err != nil {
 		host = *e.SMTPServer
@@ -157,7 +149,7 @@ func (e *SMTPTrigger) Send(ctx context.Context, m Message) error {
 		return fmt.Errorf("SMTP: %s %w", err.Error(), ErrNetwork)
 	}
 	slog.Info("SMTP message sent")
-	return markFired(m.Kind, &e.lastFired, nil)
+	return nil
 }
 
 // servicesText formats downed services for plain-text chat triggers.
@@ -195,16 +187,12 @@ func (w *WebhookTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Webhook", m.Kind, w.lastFired, w.backoffDuration); err != nil {
-		return err
-	}
-
 	var opts []reqOption
 	if w.Webhook_key_string != nil {
 		opts = append(opts, header("Authorization", *w.Webhook_key_string))
 	}
 	// No expect option: any 2xx is success, since webhook receivers vary (200, 202, 204...)
-	return markFired(m.Kind, &w.lastFired, postJSON(ctx, *w.Webhook_url, payload, opts...))
+	return postJSON(ctx, *w.Webhook_url, payload, opts...)
 }
 
 func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
@@ -234,10 +222,6 @@ func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Gotify", m.Kind, g.lastFired, g.backoffDuration); err != nil {
-		return err
-	}
-
 	title := "GoUp Alert"
 	if g.Gotify_Title != nil {
 		title = *g.Gotify_Title
@@ -248,11 +232,11 @@ func (g *GotifyTrigger) Send(ctx context.Context, m Message) error {
 	}
 
 	url := strings.TrimRight(*g.Gotify_Server, "/") + "/message"
-	return markFired(m.Kind, &g.lastFired, postJSON(ctx, url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"title":    title,
 		"message":  message,
 		"priority": priority,
-	}, header("X-Gotify-Key", *g.Gotify_Token), expectStatus(200)))
+	}, header("X-Gotify-Key", *g.Gotify_Token), expectStatus(200))
 }
 
 func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
@@ -277,21 +261,17 @@ func (s *SlackTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Slack", m.Kind, s.lastFired, s.backoffDuration); err != nil {
-		return err
-	}
-
 	username := "GoUp Bot"
 	if s.Bot_Username != nil {
 		username = *s.Bot_Username
 	}
 
 	// Slack returns 200 even on failure; the real result is in the "ok" field
-	return markFired(m.Kind, &s.lastFired, postJSON(ctx, "https://slack.com/api/chat.postMessage", map[string]any{
+	return postJSON(ctx, "https://slack.com/api/chat.postMessage", map[string]any{
 		"channel":  *s.Slack_Channel,
 		"username": username,
 		"text":     text,
-	}, header("Authorization", "Bearer "+*s.Slack_Token), expectOkField()))
+	}, header("Authorization", "Bearer "+*s.Slack_Token), expectOkField())
 }
 
 func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
@@ -316,15 +296,11 @@ func (t *TelegramTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Telegram", m.Kind, t.lastFired, t.backoffDuration); err != nil {
-		return err
-	}
-
 	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", *t.Telegram_Token)
-	return markFired(m.Kind, &t.lastFired, postJSON(ctx, url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"chat_id": *t.Telegram_Channel_Id,
 		"text":    text,
-	}, expectOkField()))
+	}, expectOkField())
 }
 
 func (h *HATrigger) Send(ctx context.Context, m Message) error {
@@ -349,14 +325,10 @@ func (h *HATrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Home Assistant", m.Kind, h.lastFired, h.backoffDuration); err != nil {
-		return err
-	}
-
 	url := strings.TrimRight(*h.HA_URL, "/") + "/api/events/goup_alert"
-	return markFired(m.Kind, &h.lastFired, postJSON(ctx, url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"details": details,
-	}, header("Authorization", "Bearer "+*h.HA_Token), expectStatus(200, 201)))
+	}, header("Authorization", "Bearer "+*h.HA_Token), expectStatus(200, 201))
 }
 
 // TODO: Handle chunked messages for discord 2000 char limit on API content
@@ -386,12 +358,8 @@ func (d *DiscordTrigger) Send(ctx context.Context, m Message) error {
 		return nil
 	}
 
-	if err := checkBackoff("Discord", m.Kind, d.lastFired, d.backoffDuration); err != nil {
-		return err
-	}
-
 	url := fmt.Sprintf("https://discord.com/api/channels/%s/messages", *d.Discord_Channel)
-	return markFired(m.Kind, &d.lastFired, postJSON(ctx, url, map[string]any{
+	return postJSON(ctx, url, map[string]any{
 		"content": content,
-	}, header("Authorization", *d.Discord_Auth), expectStatus(200)))
+	}, header("Authorization", *d.Discord_Auth), expectStatus(200))
 }
