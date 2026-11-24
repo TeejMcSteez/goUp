@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -27,45 +26,6 @@ func resolveBackoff(name string, period *string, fallback time.Duration) time.Du
 	}
 	slog.Info("Backoff period set", "trigger", name, "duration", dur)
 	return dur
-}
-
-// shouldBackoff reports whether a trigger fired within its backoff window.
-func shouldBackoff(name string, lastFired time.Time, backoffDuration time.Duration) bool {
-	if backoffDuration > 0 && !lastFired.IsZero() && time.Since(lastFired) < backoffDuration {
-		slog.Info("Trigger backoff period active, skipping", "trigger", name, "last_fired", time.Since(lastFired))
-		return true
-	}
-	return false
-}
-
-// checkBackoff gates a send on the notifier's backoff window. Only alerts are
-// rate-limited: recovery/info/offline/reconnected messages always go out and
-// don't start a window, so a short outage still gets its "recovered" notice.
-// It does not stamp lastFired; pair it with markFired after the send.
-func checkBackoff(name string, kind Kind, lastFired time.Time, backoffDuration time.Duration) error {
-	if kind != KindAlert {
-		return nil
-	}
-	if shouldBackoff(name, lastFired, backoffDuration) {
-		return backoffErr(name, lastFired, backoffDuration)
-	}
-	return nil
-}
-
-// markFired starts the backoff window only once an alert was actually
-// delivered, so a failed send is retried next cycle instead of being
-// suppressed by a window it never earned. Returns err unchanged.
-func markFired(kind Kind, lastFired *time.Time, err error) error {
-	if err == nil && kind == KindAlert {
-		*lastFired = time.Now()
-	}
-	return err
-}
-
-// backoffErr wraps ErrBackoff with how long until the trigger can fire again.
-func backoffErr(name string, lastFired time.Time, backoffDuration time.Duration) error {
-	remaining := (backoffDuration - time.Since(lastFired)).Round(time.Millisecond)
-	return fmt.Errorf("%s: %w (%s remaining)", name, ErrBackoff, remaining)
 }
 
 type resCheck func(res *http.Response, body []byte) error
@@ -231,28 +191,4 @@ func (t *Trigger) bindNotifiers() {
 	if t.Discord.IsConfigured() {
 		t.notifiers = append(t.notifiers, &t.Discord)
 	}
-}
-
-func (t *Trigger) Send(ctx context.Context, m Message) error {
-
-	if len(t.notifiers) == 0 {
-		return ErrNoTriggers
-	}
-	var ers []error
-	// Backoff is enforced per notifier in each Send implementation.
-	for _, n := range t.notifiers {
-		nctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		err := n.Send(nctx, m)
-		cancel()
-		// If if is in backoff ignore
-		if errors.Is(err, ErrBackoff) {
-			slog.Info("backoff is active", "INFO", err)
-			continue
-		}
-		if err != nil {
-			ers = append(ers, err)
-		}
-
-	}
-	return errors.Join(ers...)
 }

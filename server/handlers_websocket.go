@@ -294,7 +294,6 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 	case Fire:
 		ws.scd.Fire()
 	case ServiceUpdate:
-	// TODO: implement
 	default:
 		ws.replyError(msg.ID, msg.Type, fmt.Errorf("unknown request type %q", msg.Type))
 	}
@@ -308,8 +307,6 @@ func (ws *wsConn) responseTimes(p ResponseTimeParams) (utils.ResponseTimePayload
 	case 0:
 		return utils.BuildRtSnapshot(ws.db)
 	case 1:
-		// TODO: factor out of datastore.go to be a general util helper for accepting from/to
-		// as string to convert to unix time format
 		fromUnix, err := strconv.ParseInt(p.From, 10, 64)
 		if err != nil || fromUnix < 0 {
 			return utils.ResponseTimePayload{}, fmt.Errorf("invalid from %q", p.From)
