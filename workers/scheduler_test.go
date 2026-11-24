@@ -61,7 +61,7 @@ func newTestScheduler(t *testing.T) *workers.Scheduler {
 	t.Helper()
 	var db *sql.DB
 	store := newTestStoreYAML(t, "schedule:\n  span: 60\n  interval: minutes\n")
-	s := workers.NewScheduler(t.Context(), db, store, nil, utils.NewScanner())
+	s := workers.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, nil, utils.NewScanner())
 	return s
 }
 
@@ -288,7 +288,8 @@ func TestSchedulerFireSkipsOverlappingFetch(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(buf, nil)))
 	defer slog.SetDefault(prevLogger)
 
-	s := workers.NewScheduler(t.Context(), db, newTestStore(t, cfg), nil, utils.NewScanner())
+	store := newTestStore(t, cfg)
+	s := workers.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, nil, utils.NewScanner())
 	defer s.Stop()
 
 	// Fire() blocks on the unbuffered s.fire channel until the select loop

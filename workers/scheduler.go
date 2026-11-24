@@ -27,15 +27,16 @@ type Broadcaster interface {
 }
 
 type Scheduler struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	state   chan utils.ScheduleState
-	get     chan GetState
-	stop    chan struct{}
-	fire    chan struct{}
-	pub     Broadcaster
-	store   *utils.ConfigStore
-	scanner *utils.Scanner
+	ctx        context.Context
+	cancel     context.CancelFunc
+	state      chan utils.ScheduleState
+	get        chan GetState
+	stop       chan struct{}
+	fire       chan struct{}
+	pub        Broadcaster
+	store      *utils.ConfigStore
+	scanner    *utils.Scanner
+	dispatcher *utils.Dispatcher
 }
 
 type fetchResult struct {
@@ -111,7 +112,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, dis *utils.Dispatcher, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner) *Scheduler {
 	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
@@ -122,15 +123,16 @@ func NewScheduler(ctx context.Context, db *sql.DB, store *utils.ConfigStore, pub
 	}
 
 	s := &Scheduler{
-		ctx:     ctx,
-		cancel:  cancel,
-		state:   make(chan utils.ScheduleState),
-		get:     make(chan GetState),
-		stop:    make(chan struct{}),
-		fire:    make(chan struct{}),
-		pub:     pub,
-		store:   store,
-		scanner: scanner,
+		ctx:        ctx,
+		cancel:     cancel,
+		state:      make(chan utils.ScheduleState),
+		get:        make(chan GetState),
+		stop:       make(chan struct{}),
+		fire:       make(chan struct{}),
+		pub:        pub,
+		store:      store,
+		scanner:    scanner,
+		dispatcher: dis,
 	}
 
 	// Any schedule change published to the store (API or hot reload) is
@@ -182,7 +184,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 	// one snapshot for the whole cycle so endpoints, Check and triggers agree
 	cfg := store.Get()
 	if owedOffline > 0 && offlineSince.IsZero() {
-		if err := cfg.Triggers.Send(ctx, restoredNotice(owedOffline)); handleSendErr(err) {
+		if err := s.dispatcher.Send(ctx, restoredNotice(owedOffline)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 		} else {
 			owedOffline = 0
@@ -219,7 +221,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 	// unreported ones; on failure the running total stays owed.
 	if !offlineSince.IsZero() {
 		total := owedOffline + time.Since(offlineSince)
-		if err := cfg.Triggers.Send(ctx, restoredNotice(total)); handleSendErr(err) {
+		if err := s.dispatcher.Send(ctx, restoredNotice(total)); handleSendErr(err) {
 			slog.Error("failed to send restored notice", "ERROR", err)
 			owedOffline = total
 		} else {
@@ -236,7 +238,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 	}
 	// Fire when services are down
 	if len(data.DownServices) > 0 {
-		if err := cfg.Triggers.Send(ctx, utils.Message{
+		if err := s.dispatcher.Send(ctx, utils.Message{
 			Kind:     utils.KindAlert,
 			Title:    "Services are down",
 			Body:     "",
@@ -249,7 +251,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 	}
 	// Only fires on past errors with no new failures
 	if wasFailed {
-		if err := cfg.Triggers.Send(ctx, utils.Message{
+		if err := s.dispatcher.Send(ctx, utils.Message{
 			Kind:     utils.KindClear,
 			Title:    "Services have recovered",
 			Body:     "All services are back online",
