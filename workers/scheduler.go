@@ -37,6 +37,7 @@ type Scheduler struct {
 	store      *utils.ConfigStore
 	scanner    *utils.Scanner
 	dispatcher *utils.Dispatcher
+	endpoint   string // used for hostOnline check
 }
 
 type fetchResult struct {
@@ -112,7 +113,7 @@ func computeDuration(Span int, Interval string) time.Duration {
 const defaultSpan = 30
 const defaultInterval = "seconds"
 
-func NewScheduler(ctx context.Context, db *sql.DB, dis *utils.Dispatcher, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner) *Scheduler {
+func NewScheduler(ctx context.Context, db *sql.DB, dis *utils.Dispatcher, store *utils.ConfigStore, pub Broadcaster, scanner *utils.Scanner, endpoint string) *Scheduler {
 	ctx, cancel := context.WithCancel(ctx)
 	span := defaultSpan
 	interval := defaultInterval
@@ -155,7 +156,7 @@ func (s *Scheduler) Reschedule(st utils.ScheduleState) {
 	}
 }
 
-func hostOnline(ctx context.Context) bool {
+func hostOnline(ctx context.Context, endpoint string) bool {
 	d := net.Dialer{Timeout: 3 * time.Second}
 	conn, err := d.DialContext(ctx, "tcp", "1.1.1.1:53")
 	if err != nil {
@@ -194,7 +195,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 		slog.Error("Failed fetching service data in scheduler", "error", err)
 		// probe instead of defaulting offline to false, which would clear
 		// offlineSince and log a false "host back online"
-		online := hostOnline(ctx)
+		online := hostOnline(ctx, s.endpoint)
 		// Host came back but the fetch failed, so the restored notice below
 		// won't run this cycle. StartScheduler clears offlineSince on
 		// offline=false, so roll this outage into owedOffline or it's lost;
@@ -209,7 +210,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 	// Skip persist/broadcast/send so the DB isn't filled with false downs;
 	// the resulting gap in history marks the connectivity loss. hasFailed is
 	// left as-is so a real outage is alerted on once the host is back.
-	if len(data.DownServices) > 0 && !hostOnline(ctx) {
+	if len(data.DownServices) > 0 && !hostOnline(ctx, s.endpoint) {
 		slog.Warn("services unreachable and host offline, skipping cycle")
 		return fetchResult{hasFailed: wasFailed, offline: true, owedOffline: owedOffline}
 	}
@@ -244,7 +245,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 			Services: data.DownServices,
 		}); err != nil {
 			slog.Error("error sending notification for failure", "ERROR", err)
-			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx), owedOffline: owedOffline}
+			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx, s.endpoint), owedOffline: owedOffline}
 		}
 		return fetchResult{hasFailed: true, offline: false, owedOffline: owedOffline}
 	}
@@ -257,7 +258,7 @@ func (s *Scheduler) runFetchCycle(ctx context.Context, db *sql.DB, store *utils.
 			Services: data.AllServices,
 		}); err != nil {
 			slog.Error("error sending notification for recovery", "ERROR", err)
-			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx), owedOffline: owedOffline}
+			return fetchResult{hasFailed: handleSendErr(err), offline: !hostOnline(ctx, s.endpoint), owedOffline: owedOffline}
 		}
 	}
 

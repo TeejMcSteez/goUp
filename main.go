@@ -27,6 +27,7 @@ func main() {
 	getVersion := flag.Bool("version", false, "Used to display version")
 	cors := flag.Bool("cors", false, "Allow CORS aside from localhost\nMainly for Swagger API")
 	origin := flag.String("origin", "*", "Sets allowed origin\nDefault is \"*\"")
+	endpoint := flag.String("endpoint", "1.1.1.1:53", "Endpoint used to check hosts outbound network status\nDefault uses Cloudflares public DNS resolver")
 	flag.Parse()
 	if *getVersion {
 		log.Print("Build Version: " + utils.Version)
@@ -52,7 +53,7 @@ func main() {
 	// NewScheduler subscribes itself to schedule changes. The scanner reads
 	// endpoints from each cycle's config snapshot, so service changes need
 	// no subscriber.
-	sch := workers.NewScheduler(ctx, db, dis, cfgStore, hub, utils.NewScanner())
+	sch := workers.NewScheduler(ctx, db, dis, cfgStore, hub, utils.NewScanner(), *endpoint)
 	// notify websocket client configuration has been updated
 	cfgStore.Subscribe(func(_, new *utils.Config) {
 		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
