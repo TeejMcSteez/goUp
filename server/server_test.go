@@ -60,7 +60,7 @@ func setupTestEnv(t *testing.T) (*sql.DB, *scheduler.Scheduler, *server.Server, 
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, hub, utils.NewScanner())
+	scd := scheduler.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, hub, utils.NewScanner(), "1.1.1.1:53")
 	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
@@ -398,7 +398,7 @@ func setupTestEnvWithConfig(t *testing.T) (*sql.DB, *scheduler.Scheduler, *serve
 
 	hub := server.NewHub()
 	go hub.Run()
-	scd := scheduler.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, hub, utils.NewScanner())
+	scd := scheduler.NewScheduler(t.Context(), db, utils.NewDispatcher(store), store, hub, utils.NewScanner(), "1.1.1.1:53")
 	srv := server.NewServer(db, scd, true, server.GoupHandler{}, hub, store)
 
 	cleanup := func() {
