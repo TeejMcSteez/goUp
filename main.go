@@ -42,6 +42,7 @@ func main() {
 		log.Print("Error initializing database")
 		panic(err)
 	}
+	dis := utils.NewDispatcher(cfgStore)
 	// listening for SIGINT (Ctrl+C) and SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -51,7 +52,7 @@ func main() {
 	// NewScheduler subscribes itself to schedule changes. The scanner reads
 	// endpoints from each cycle's config snapshot, so service changes need
 	// no subscriber.
-	sch := workers.NewScheduler(ctx, db, cfgStore, hub, utils.NewScanner())
+	sch := workers.NewScheduler(ctx, db, dis, cfgStore, hub, utils.NewScanner())
 	// notify websocket client configuration has been updated
 	cfgStore.Subscribe(func(_, new *utils.Config) {
 		hub.Broadcast([]byte(`{"message": "configuration updated"}`))
