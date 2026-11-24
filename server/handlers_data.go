@@ -276,7 +276,7 @@ func (s *Server) rtSnapshot(w http.ResponseWriter, r *http.Request) {
 		// No filter: send all data
 		data, err = utils.BuildRtSnapshot(s.db)
 	} else {
-		fromUnix, perr := strconv.ParseInt(f, 10, 64)
+		fromUnix, perr := utils.StrToInt(f)
 		if perr != nil || fromUnix < 0 {
 			http.Error(w, "'from' must be a non-negative unix timestamp", http.StatusBadRequest)
 			return
@@ -284,7 +284,7 @@ func (s *Server) rtSnapshot(w http.ResponseWriter, r *http.Request) {
 		from := time.Unix(fromUnix, 0)
 		to := time.Now()
 		if t != "" {
-			toUnix, perr := strconv.ParseInt(t, 10, 64)
+			toUnix, perr := utils.StrToInt(t)
 			if perr != nil {
 				http.Error(w, "'to' must be a unix timestamp", http.StatusBadRequest)
 				return

@@ -10,7 +10,6 @@ import (
 	"goUp/workers"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -307,14 +306,14 @@ func (ws *wsConn) responseTimes(p ResponseTimeParams) (utils.ResponseTimePayload
 	case 0:
 		return utils.BuildRtSnapshot(ws.db)
 	case 1:
-		fromUnix, err := strconv.ParseInt(p.From, 10, 64)
+		fromUnix, err := utils.StrToInt(p.From)
 		if err != nil || fromUnix < 0 {
 			return utils.ResponseTimePayload{}, fmt.Errorf("invalid from %q", p.From)
 		}
 		from := time.Unix(fromUnix, 0)
 		to := time.Now()
 		if p.To != "" {
-			toUnix, err := strconv.ParseInt(p.To, 10, 64)
+			toUnix, err := utils.StrToInt(p.To)
 			if err != nil {
 				return utils.ResponseTimePayload{}, fmt.Errorf("invalid to %q", p.To)
 			}
