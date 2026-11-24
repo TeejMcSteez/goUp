@@ -101,8 +101,8 @@ const (
 	pongWait = 60 * time.Second
 
 	pingPeriod = (pongWait * 9) / 10
-
-	readLimit = 512
+	// 16KiB readLimit
+	readLimit = 64 << 8
 )
 
 // @Summary Start Websocket connection to receive data on every fetch
@@ -145,7 +145,7 @@ const (
 	// broadcasts (and sends on connect), wrapped in a reply envelope.
 	ReadLive      WsMessageType = "live"
 	Fire          WsMessageType = "fire"
-	ServiceUpdate WsMessageType = "serviceUpdate"
+	ServiceUpsert WsMessageType = "ServiceUpsert"
 )
 
 type ErrorParams struct {
@@ -164,6 +164,11 @@ type UptimeParams struct {
 	// Range matches the /api/uptime ?range= values: "" (all time),
 	// "1hr", "12hr", "day", "week", "month", "year".
 	Range string `json:"range"`
+}
+
+type UpdateParams struct {
+	Name       string        `json:"name"`       // name of the service to update
+	NewService utils.Service `json:"newService"` // new service object
 }
 
 // uptimeFetchers maps an UptimeParams.Range to the utils helper that
@@ -186,6 +191,7 @@ type readMessage struct {
 	ErrParams    ErrorParams        `json:"errParams"`
 	RtParams     ResponseTimeParams `json:"rtParams"`
 	UptimeParams UptimeParams       `json:"uptimeParams"`
+	UpdateParams UpdateParams       `json:"updateParams"`
 	Services     []utils.Service    `json:"services"`
 }
 
@@ -292,7 +298,27 @@ func (ws *wsConn) handleRead(t int, p []byte) {
 		ws.replyJSON(msg.ID, msg.Type, data)
 	case Fire:
 		ws.scd.Fire()
-	case ServiceUpdate:
+	case ServiceUpsert:
+		params := msg.UpdateParams
+		if params.Name == "" {
+			ws.replyError(msg.ID, msg.Type, errors.New("service name is required"))
+			return
+		}
+		// The map key is the service's name, so it wins over whatever Name
+		// the client sent inside the service object.
+		params.NewService.Name = params.Name
+		if err := ws.store.Update(func(c *utils.Config) error {
+			// nil when the config file has no services section
+			if c.Services == nil {
+				c.Services = make(map[string]utils.Service)
+			}
+			c.Services[params.Name] = params.NewService
+			return nil
+		}); err != nil {
+			ws.replyError(msg.ID, msg.Type, fmt.Errorf("update failed ERROR: %s", err.Error()))
+			return
+		}
+		ws.replyJSON(msg.ID, msg.Type, map[string]bool{"ok": true})
 	default:
 		ws.replyError(msg.ID, msg.Type, fmt.Errorf("unknown request type %q", msg.Type))
 	}
