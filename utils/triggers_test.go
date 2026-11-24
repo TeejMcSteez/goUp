@@ -4,15 +4,18 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"goUp/utils"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // interceptTLS creates a TLS test server and redirects the notifier HTTP client's
@@ -812,101 +815,103 @@ func TestFireDiscordClear(t *testing.T) {
 	}
 }
 
-func TestFireWithBackoff(t *testing.T) {
+// newTestDispatcher writes cfg to a temp file and returns a Dispatcher reading
+// it through a ConfigStore, the same way main wires them.
+func newTestDispatcher(t *testing.T, cfg *utils.Config) *utils.Dispatcher {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yml")
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	store := utils.NewConfigStore(path)
+	if err := store.LoadFromFile(); err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	return utils.NewDispatcher(store)
+}
+
+// webhookServer counts hits; when fail is set it answers 500.
+func webhookServer(t *testing.T, fail *atomic.Bool) (string, chan struct{}) {
+	t.Helper()
 	hits := make(chan struct{}, 10)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail != nil && fail.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		hits <- struct{}{}
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer server.Close()
+	t.Cleanup(srv.Close)
+	return srv.URL, hits
+}
 
-	backoff := "50ms"
-	cfg := &utils.Config{
+func expectHit(t *testing.T, hits chan struct{}, what string) {
+	t.Helper()
+	select {
+	case <-hits:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("%s never reached webhook", what)
+	}
+}
+
+func expectNoHit(t *testing.T, hits chan struct{}, what string) {
+	t.Helper()
+	select {
+	case <-hits:
+		t.Errorf("%s should have been blocked by backoff but reached webhook", what)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func backoffConfig(url, backoff string) *utils.Config {
+	return &utils.Config{
 		Triggers: utils.Trigger{
 			Backoff_Period: &backoff,
-			Webhook: utils.WebhookTrigger{
-				Webhook_url: &server.URL,
-			},
+			Webhook:        utils.WebhookTrigger{Webhook_url: &url},
 		},
 	}
-	trigger := utils.SetupTrigger(cfg)
-	data := []utils.ServiceData{{ServiceName: "svc", ServiceHTTPResponse: "200"}}
+}
 
+func TestFireWithBackoff(t *testing.T) {
+	url, hits := webhookServer(t, nil)
+	d := newTestDispatcher(t, backoffConfig(url, "50ms"))
 	ctx := context.Background()
-	msg := alert(data)
+	msg := alert([]utils.ServiceData{{ServiceName: "svc", ServiceHTTPResponse: "200"}})
 
-	// First send must reach the server.
-	if err := trigger.Send(ctx, msg); err != nil {
+	if err := d.Send(ctx, msg); err != nil {
 		t.Fatalf("first Send() returned error: %v", err)
 	}
-	select {
-	case <-hits:
-	case <-time.After(2 * time.Second):
-		t.Fatal("first Send() never reached webhook")
-	}
+	expectHit(t, hits, "first Send()")
 
-	// Immediate second send must be suppressed by backoff. Backoff is not a
-	// failure, so Trigger.Send skips it and reports no error.
-	if err := trigger.Send(ctx, msg); err != nil {
+	// Backoff is a skip, not a failure: no error, no delivery.
+	if err := d.Send(ctx, msg); err != nil {
 		t.Errorf("second Send() should treat backoff as a skip, got error: %v", err)
 	}
-	// The notifier itself reports the skip as ErrBackoff.
-	if err := trigger.Webhook.Send(ctx, msg); !errors.Is(err, utils.ErrBackoff) {
-		t.Errorf("expected webhook Send() to return ErrBackoff, got %v", err)
-	}
-	select {
-	case <-hits:
-		t.Error("second Send() should have been blocked by backoff but reached webhook")
-	case <-time.After(100 * time.Millisecond):
-		// correct — nothing received within backoff window
-	}
+	expectNoHit(t, hits, "second Send()")
 
-	// After the 100 ms wait above the 50 ms backoff has expired; send again.
-	if err := trigger.Send(ctx, msg); err != nil {
+	// expectNoHit waited 100ms, so the 50ms window has expired.
+	if err := d.Send(ctx, msg); err != nil {
 		t.Fatalf("third Send() returned error: %v", err)
 	}
-	select {
-	case <-hits:
-	case <-time.After(2 * time.Second):
-		t.Fatal("third Send() never reached webhook after backoff expired")
-	}
+	expectHit(t, hits, "third Send()")
 }
 
 // Only alerts are rate-limited: a clear inside the alert's backoff window
 // must still go out, and must not start a window that blocks the next alert.
 func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
-	hits := make(chan struct{}, 10)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hits <- struct{}{}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	backoff := "1h"
-	cfg := &utils.Config{
-		Triggers: utils.Trigger{
-			Backoff_Period: &backoff,
-			Webhook: utils.WebhookTrigger{
-				Webhook_url: &server.URL,
-			},
-		},
-	}
-	trigger := utils.SetupTrigger(cfg)
+	url, hits := webhookServer(t, nil)
+	d := newTestDispatcher(t, backoffConfig(url, "1h"))
 	ctx := context.Background()
 
-	expectHit := func(what string) {
-		t.Helper()
-		select {
-		case <-hits:
-		case <-time.After(2 * time.Second):
-			t.Fatalf("%s never reached webhook", what)
-		}
-	}
-
-	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+	if err := d.Send(ctx, alert(nil)); err != nil {
 		t.Fatalf("alert Send() returned error: %v", err)
 	}
-	expectHit("alert")
+	expectHit(t, hits, "alert")
 
 	for _, m := range []utils.Message{
 		clearMsg,
@@ -914,16 +919,17 @@ func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
 		{Kind: utils.KindOffline},
 		{Kind: utils.KindReconnected},
 	} {
-		if err := trigger.Webhook.Send(ctx, m); err != nil {
+		if err := d.Send(ctx, m); err != nil {
 			t.Fatalf("%s Send() inside alert backoff returned error: %v", m.Kind, err)
 		}
-		expectHit(string(m.Kind))
+		expectHit(t, hits, string(m.Kind))
 	}
 
 	// The alert window is still active: a second alert is suppressed.
-	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
-		t.Errorf("second alert: expected ErrBackoff, got %v", err)
+	if err := d.Send(ctx, alert(nil)); err != nil {
+		t.Errorf("second alert: expected silent skip, got %v", err)
 	}
+	expectNoHit(t, hits, "second alert")
 }
 
 // A failed alert must not start the backoff window, or the retry next cycle
@@ -931,40 +937,24 @@ func TestBackoffOnlyAppliesToAlerts(t *testing.T) {
 func TestFailedAlertDoesNotStartBackoff(t *testing.T) {
 	var fail atomic.Bool
 	fail.Store(true)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if fail.Load() {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	backoff := "1h"
-	cfg := &utils.Config{
-		Triggers: utils.Trigger{
-			Backoff_Period: &backoff,
-			Webhook: utils.WebhookTrigger{
-				Webhook_url: &server.URL,
-			},
-		},
-	}
-	trigger := utils.SetupTrigger(cfg)
+	url, hits := webhookServer(t, &fail)
+	d := newTestDispatcher(t, backoffConfig(url, "1h"))
 	ctx := context.Background()
 
-	err := trigger.Webhook.Send(ctx, alert(nil))
-	if err == nil || errors.Is(err, utils.ErrBackoff) {
-		t.Fatalf("first alert: expected delivery error, got %v", err)
+	if err := d.Send(ctx, alert(nil)); err == nil {
+		t.Fatal("first alert: expected delivery error, got nil")
 	}
 
 	// Retry must be attempted (not backed off) and now succeeds.
 	fail.Store(false)
-	if err := trigger.Webhook.Send(ctx, alert(nil)); err != nil {
+	if err := d.Send(ctx, alert(nil)); err != nil {
 		t.Fatalf("retry alert: expected success, got %v", err)
 	}
+	expectHit(t, hits, "retry alert")
 
 	// The delivered alert started the window.
-	if err := trigger.Webhook.Send(ctx, alert(nil)); !errors.Is(err, utils.ErrBackoff) {
-		t.Errorf("third alert: expected ErrBackoff, got %v", err)
+	if err := d.Send(ctx, alert(nil)); err != nil {
+		t.Errorf("third alert: expected silent skip, got %v", err)
 	}
+	expectNoHit(t, hits, "third alert")
 }
